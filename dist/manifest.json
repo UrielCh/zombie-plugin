@@ -1,0 +1,69 @@
+{
+  "background": {
+    "page": "files/background.html",
+    "persistent": true
+  },
+  "browser_action": {
+    "default_icon": "files/icon.png",
+    "default_popup": "files/popup.html",
+    "default_title": "zombie Help"
+  },
+  "content_scripts": [
+    {
+      "all_frames": false,
+      "js": ["/vendor/jquery.3.min.js", "/js/client.js"],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "description": "Dynamicaly improve Your chrome navigator",
+  "devtools_page": "devtools.html",
+  "externally_connectable": {
+    "matches": [
+      "*://127.0.0.1/*",
+      "*://localhost/*",
+      "*://*.exs.fr/*",
+      "*://*.xulu.fr/*",
+      "*://*.google.com/*",
+      "*://*.google.fr/*"
+    ]
+  },
+  "icons": {
+    "64": "files/icon.png"
+  },
+  "incognito": "spanning",
+  "manifest_version": 2,
+  "minimum_chrome_version": "32",
+  "name": "Zombie",
+  "offline_enabled": true,
+  "omnibox": {
+    "keyword": "zombie"
+  },
+  "key": "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDpfXtry9J2UpxAq+An8kWQjN0fyENgZi0TTrBCHxV1T2COwjhEwJBefRbGL0leQm66B0b4pJdMRBSbcPh2lIkPJF5SiUrKPO04shZP/CLGmsVvFQm/ayj4jE3YcC81Lst2QY7Tku+gEejkyeAAq56tRdEBWZnFkMS9L3KI3tazUgMjg6/L6Zs5o+lYH8IXA+axdJwBkdEMnXyGyB1UgxPutGDumtlzc+YForCgwYIMS3+Bm7DM5MQDbuXhqzpTUkN0SigV8vP8pGFHhe+KdUcIAYdU8eIxOLps4NqJxh2oUqx5oQPrHuAuUTl8pQc4eTi8lvURsIoeL9FgP7jb0MOzAgMBAAECggEAZXSl9YAaUlmxFZTZkOIAAkCDMPU2+aNMQNB3XDPfghrcrQuNoao+0R/vjmwrqC6bqG/TEeWK7JPElIpxHC2MpKy744dOnTP+LB2N/nFjtwK3eX4dvzRUGDP2+247xRMxS5BO/HYjc1104j0p/YCVMVtd5wVFAQjXxBDi5sBVcJMEyd1FciyTGutUf0Eay6YmdNMreaucdLnReTUk41sGUuN1cLbbsuQigFoK55I+rhduUhj9NDq8hgsPCpV6iUVHWSnVj1ENTGHu7m7w9KFtX5o9BBgGgM+M+cdbZavcdAPXvX6gRDHwLqsc0mihRAoPOUMF9QaoGqifFXX9QE9xaQKBgQD6010loGmvYj9xtWB0KjTnCPs69X6WB8SAK8sNHafZBYtt8sodnt7Qyd/36jQMXTy0FdfBeyjvU5idSZ4aAI4SEqK7GdKn2hhcUde74xEANQoaxELuPE/34oy+OeaNWvO51Ol4Su62OvCuht/ANmIc2ZcctK5ZniPW2kYn4AC0DwKBgQDuTpFcloyKUQmM9otA5rIx1sGr8R+JTF4Fz/dRa9DHKPiLrB5v4zgXAAKXVCr3VuK9x2BxaExlhabvGsZk5inQ5mBfn/L71b7qklPMONwZuPHc5cnjxtPVc6T/mT63+ZWJGedPVVaFAtGcadLfbDX8eUmDjc7kmzBvJ7VGKyfCHQKBgQC8wmPO9TGTszRbtkuoIDs/wxqN/EIPVjki29IrRK4UPH/5dkV0lSLJraLHR5Fz3JbaT7XW/YCI2zh25ff9SX2hTDT66SwG9bJvh4f69Z7NsRyxmBFmiC0GN5ADeD9xEYlpyDkLNhj/Osv2C7pHRKYBYB7Ak5jCCKigABPb3k+pMQKBgG87YQI0izjshmazlWAfzkERGqklDTFK4gAYiDoK9xJe/1RCbJqRFlc1+/+im8ODXKZ0b4G/yxj//2FPwBbMj+wf/A/mWsZNiKV404BZcfLXrp0K7OdSoQHazsM3Rl0dND0gSCVxkcbX//rgMjtzCOflvPiYsl9mSH85q5UrA43JAoGBAIoYlbBAQO2wDAdqgQKKeMYCitisxT600J5Vg9ll1dtTCrJeCleHBum14XrgD0ak7lA/cROz9D7v7cH1HKC50Yb6uI8APxxHNyhRo0oEHlOY2bjxjmddEkqNKDCSbOfke22whSbgWw1Q1KtBmI5MGYg6zxWFvwiGi0q2T5HbyqYD",
+  "permissions": [
+    "browsingData",
+    "tabs",
+    "storage",
+    "unlimitedStorage",
+    "cookies",
+    "webRequest",
+    "webRequestBlocking",
+    "geolocation",
+    "webNavigation", 
+    "proxy",
+    "desktopCapture",
+    "<all_urls>"
+  ],
+  "update_url": "https://clients2.google.com/service/update2/crx",
+  "version": "4.0.0",
+  "web_accessible_resources": [
+    "/js/background.js",
+    "/js/zFunction.js",
+    "/js/client.js",
+    "http://*/*",
+    "https://*/*"
+  ]
+}
