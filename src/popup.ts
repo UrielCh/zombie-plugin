@@ -1,8 +1,13 @@
 import ChromePromise from "../vendor/chrome-promise";
 import PluginStat, { PluginStatValue } from "./PluginStat";
 
+/// <reference path="typings/jquery/jquery.d.ts" />
 interface BackGroundPage extends Window {
     pluginStat: PluginStatValue;
+}
+
+interface MyJQ extends JQuery<HTMLElement> {
+    bootstrapToggle(opt: bootstrapToggleConfig):JQuery<HTMLElement>;
 }
 
 $(() => {
@@ -29,7 +34,7 @@ $(() => {
     }
     let pluginStat: PluginStatValue = (bg && bg.pluginStat) ? bg.pluginStat : PluginStat();
 
-    $("#enableCloseIrrelevantTabs").prop('checked', pluginStat.config.enableCloseIrrelevantTabs).bootstrapToggle({
+    (<MyJQ>$("#enableCloseIrrelevantTabs")).prop('checked', pluginStat.config.enableCloseIrrelevantTabs).bootstrapToggle({
         on: 'on',
         off: 'off',
         onstyle: 'danger',
@@ -37,14 +42,15 @@ $(() => {
         size: "sm",
     });
 
-    $("#debuggerStatement").prop('checked', pluginStat.config.debuggerStatement).bootstrapToggle({
+    (<MyJQ>$("#debuggerStatement")).prop('checked', pluginStat.config.debuggerStatement).bootstrapToggle({
         on: 'on',
         off: 'off',
         onstyle: 'danger',
         offstyle: 'secondary',
         size: "sm",
     });
-    $("#pauseProcess").prop('checked', pluginStat.config.pauseProcess).bootstrapToggle({
+    
+    (<MyJQ>$("#pauseProcess")).prop('checked', pluginStat.config.pauseProcess).bootstrapToggle({
         off: '<svg style="width:24px;height:24px" viewBox="0 0 24 24"><path fill="#FFF" d="M8,5.14V19.14L19,12.14L8,5.14Z"/></svg>',
         on: '<svg style="width:24px;height:24px" viewBox="0 0 24 24"><path fill="#FFF" d="M18,18H6V6H18V18Z"/></svg>',
         size: "sm",

@@ -12,7 +12,7 @@ browserify .\built\background.js  > .\dist\js\background.js
 browserify .\built\popup.js  > .\dist\js\popup.js
 copy .\built\client.js .\dist\js\client.js
 
-# single line
+# single line windows
 tsc -p .; copy .\built\client.js .\dist\js\client.js; browserify .\built\popup.js> .\dist\js\popup.js; browserify .\built\background.js> .\dist\js\background.js
 ```
 
