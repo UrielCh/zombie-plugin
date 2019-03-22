@@ -2,7 +2,7 @@ import ChromePromise from "../vendor/chrome-promise";
 import ZFunction from "./zFunction";
 import ZUtils from "./zUtils";
 import jsQR from "../vendor/jsqr";
-import PluginStat, { PluginStatValue } from "./pluginStat";
+import PluginStat, { PluginStatValue } from "./PluginStat";
 
 interface registerCommandMessage {
     command: string;
