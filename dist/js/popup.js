@@ -6,7 +6,7 @@ function value() {
     if (!old) {
         const stats = {
             config: {
-                enableCloseIrrelevantTabs: false,
+                closeIrrelevantTabs: false,
                 debuggerStatement: false,
                 pauseProcess: false,
             },
@@ -52,7 +52,7 @@ $(() => {
         bg = (chrome.extension.getBackgroundPage());
     }
     let pluginStat = (bg && bg.pluginStat) ? bg.pluginStat : PluginStat_1.default();
-    $("#enableCloseIrrelevantTabs").prop('checked', pluginStat.config.enableCloseIrrelevantTabs).bootstrapToggle({
+    $("#closeIrrelevantTabs").prop('checked', pluginStat.config.closeIrrelevantTabs).bootstrapToggle({
         on: 'on',
         off: 'off',
         onstyle: 'danger',
@@ -73,13 +73,13 @@ $(() => {
         onstyle: "danger",
         offstyle: "success",
     });
-    for (const elm of ['enableCloseIrrelevantTabs', 'debuggerStatement', 'pauseProcess']) {
+    for (const elm of ['closeIrrelevantTabs', 'debuggerStatement', 'pauseProcess']) {
         const jq = $(`#${elm}`);
         jq.on('change', function () {
             const value = $(this).is(':checked');
             switch (elm) {
-                case 'enableCloseIrrelevantTabs':
-                    pluginStat.config.enableCloseIrrelevantTabs = value;
+                case 'closeIrrelevantTabs':
+                    pluginStat.config.closeIrrelevantTabs = value;
                 case 'debuggerStatement':
                     pluginStat.config.debuggerStatement = value;
                 case 'pauseProcess':

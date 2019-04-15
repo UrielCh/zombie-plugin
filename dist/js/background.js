@@ -6,7 +6,7 @@ function value() {
     if (!old) {
         const stats = {
             config: {
-                enableCloseIrrelevantTabs: false,
+                closeIrrelevantTabs: false,
                 debuggerStatement: false,
                 pauseProcess: false,
             },
@@ -226,9 +226,7 @@ chromep.proxy.settings.get({
     pluginStat.proxy = config.value.mode;
 });
 
-},{"../vendor/chrome-promise":7,"./PluginStat":1,"./tasker":4,"./zUtils":6}],3:[function(require,module,exports){
-arguments[4][1][0].apply(exports,arguments)
-},{"dup":1}],4:[function(require,module,exports){
+},{"../vendor/chrome-promise":6,"./PluginStat":1,"./tasker":3,"./zUtils":5}],3:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -238,10 +236,10 @@ const chrome_promise_1 = __importDefault(require("../vendor/chrome-promise"));
 const zFunction_1 = __importDefault(require("./zFunction"));
 const zUtils_1 = __importDefault(require("./zUtils"));
 const jsqr_1 = __importDefault(require("../vendor/jsqr"));
-const pluginStat_1 = __importDefault(require("./pluginStat"));
+const PluginStat_1 = __importDefault(require("./PluginStat"));
 const zFunction = zFunction_1.default.Instance;
 const chromep = new chrome_promise_1.default();
-const pluginStat = pluginStat_1.default();
+const pluginStat = PluginStat_1.default();
 const toOk = (message) => (message);
 const pError = (sendResponse, prefix) => {
     prefix = prefix || '';
@@ -409,6 +407,9 @@ class Tasker {
                     active: request.active || false,
                     pinned: request.pinned || false
                 };
+                if (request.closeIrrelevantTabs === true || request.closeIrrelevantTabs === false) {
+                    pluginStat.config.closeIrrelevantTabs = request.closeIrrelevantTabs;
+                }
                 const task = {
                     action: request.action,
                     deps: request.deps || [],
@@ -560,7 +561,7 @@ class Tasker {
         if (!tabId)
             return (Promise.reject('missing tabId'));
         ms = ms || 10000;
-        const value = pluginStat.config.enableCloseIrrelevantTabs;
+        const value = pluginStat.config.closeIrrelevantTabs;
         if (value)
             setTimeout(zUtils_1.default.closeTab, ms, tabId);
         return Promise.resolve('ok');
@@ -584,7 +585,7 @@ class Tasker {
 exports.default = Tasker;
 ;
 
-},{"../vendor/chrome-promise":7,"../vendor/jsqr":8,"./pluginStat":3,"./zFunction":5,"./zUtils":6}],5:[function(require,module,exports){
+},{"../vendor/chrome-promise":6,"../vendor/jsqr":7,"./PluginStat":1,"./zFunction":4,"./zUtils":5}],4:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -837,7 +838,7 @@ class ZFunction {
 exports.default = ZFunction;
 ;
 
-},{"../vendor/chrome-promise":7,"./PluginStat":1}],6:[function(require,module,exports){
+},{"../vendor/chrome-promise":6,"./PluginStat":1}],5:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -903,7 +904,7 @@ class ZUtils {
 }
 exports.default = ZUtils;
 
-},{"../vendor/chrome-promise":7}],7:[function(require,module,exports){
+},{"../vendor/chrome-promise":6}],6:[function(require,module,exports){
 /*!
  * chrome-promise
  * https://github.com/tfoxy/chrome-promise
@@ -1055,7 +1056,7 @@ exports.default = ZUtils;
     }
   }));
   
-},{}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory();

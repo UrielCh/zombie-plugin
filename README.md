@@ -7,10 +7,11 @@ this code meant to stay up to date with the last Javascript standard.
 ## build extention:
 
 ```
-tsc -p .
-browserify .\built\background.js  > .\dist\js\background.js
-browserify .\built\popup.js  > .\dist\js\popup.js
-copy .\built\client.js .\dist\js\client.js
+# build linux
+tsc -p . && \
+browserify ./built/background.js  > ./dist/js/background.js && \
+browserify ./built/popup.js  > ./dist/js/popup.js && \
+cp ./built/client.js ./dist/js/client.js
 
 # single line windows
 tsc -p .; copy .\built\client.js .\dist\js\client.js; browserify .\built\popup.js> .\dist\js\popup.js; browserify .\built\background.js> .\dist\js\background.js
@@ -35,3 +36,12 @@ tsc -p .; copy .\built\client.js .\dist\js\client.js; browserify .\built\popup.j
 - [materialdesignicons.com](https://materialdesignicons.com/) ison sources
 - [material.io](https://material.io/tools/icons/) not used
 - [materialpalette.com](https://www.materialpalette.com/icons) not used
+
+
+### changelog:
+
+* V 4.0.1:
+    - add closeIrrelevantTabs param in registerCommand
+
+* V 4.0.0:
+    - Initial public version

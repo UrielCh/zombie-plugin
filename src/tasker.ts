@@ -14,6 +14,7 @@ interface registerCommandMessage {
     deps: (string | string[])[];
     depCss?: string[]
     action: string;
+    closeIrrelevantTabs?: boolean;
 }
 
 interface ZTask {
@@ -103,7 +104,7 @@ export default class Tasker {
         if (!tabId)
             return /** @type {Promise<string>} */ (Promise.reject('missing tabId'));
         ms = ms || 10000;
-        const value = pluginStat.config.enableCloseIrrelevantTabs;
+        const value = pluginStat.config.closeIrrelevantTabs;
         if (value)
             setTimeout(ZUtils.closeTab, ms, tabId)
         return Promise.resolve('ok'); // wait(ms)().then(() => 'ok');
@@ -336,6 +337,9 @@ export default class Tasker {
                 active: request.active || false,
                 pinned: request.pinned || false
             };
+            if (request.closeIrrelevantTabs === true || request.closeIrrelevantTabs === false) {
+                pluginStat.config.closeIrrelevantTabs = request.closeIrrelevantTabs;
+            }
             /**
              * @type ZTask
              */

@@ -34,7 +34,7 @@ $(() => {
     }
     let pluginStat: PluginStatValue = (bg && bg.pluginStat) ? bg.pluginStat : PluginStat();
 
-    (<MyJQ>$("#enableCloseIrrelevantTabs")).prop('checked', pluginStat.config.enableCloseIrrelevantTabs).bootstrapToggle({
+    (<MyJQ>$("#closeIrrelevantTabs")).prop('checked', pluginStat.config.closeIrrelevantTabs).bootstrapToggle({
         on: 'on',
         off: 'off',
         onstyle: 'danger',
@@ -63,15 +63,15 @@ $(() => {
     //    console.log(key, value);
     //});
 
-    for (const elm of ['enableCloseIrrelevantTabs', 'debuggerStatement', 'pauseProcess']) {
+    for (const elm of ['closeIrrelevantTabs', 'debuggerStatement', 'pauseProcess']) {
         const jq = $(`#${elm}`);
         jq.on('change', function () {
             const value = $(this).is(':checked');
             // Can be fix with moderne TS
             // tasker.config[elm] = value;
             switch (elm) {
-                case 'enableCloseIrrelevantTabs':
-                    pluginStat.config.enableCloseIrrelevantTabs = value;
+                case 'closeIrrelevantTabs':
+                    pluginStat.config.closeIrrelevantTabs = value;
                 case 'debuggerStatement':
                     pluginStat.config.debuggerStatement = value;
                 case 'pauseProcess':

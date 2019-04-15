@@ -1,11 +1,11 @@
-// type ConfigEntry = 'enableCloseIrrelevantTabs' | 'debuggerStatement' | 'pauseProcess';
+// type ConfigEntry = 'closeIrrelevantTabs' | 'debuggerStatement' | 'pauseProcess';
 
 interface BackGroundPage extends Window {
     pluginStat: PluginStatValue;
 }
 
 export interface PluginSavedState {
-    enableCloseIrrelevantTabs: boolean,
+    closeIrrelevantTabs: boolean,
     debuggerStatement: boolean,
     pauseProcess: boolean,
 }
@@ -28,7 +28,7 @@ export default function value() {
         // console.log('Initialize PluginStat instance ', Error('stack'))
         const stats = {
             config: {
-                enableCloseIrrelevantTabs: false,
+                closeIrrelevantTabs: false,
                 debuggerStatement: false,
                 pauseProcess: false,
             },
