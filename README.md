@@ -17,6 +17,11 @@ cp ./built/client.js ./dist/js/client.js
 tsc -p .; copy .\built\client.js .\dist\js\client.js; browserify .\built\popup.js> .\dist\js\popup.js; browserify .\built\background.js> .\dist\js\background.js
 ```
 
+```bash
+cd dist
+tar -cvzf ../zombie-v4.0.1.tar.gz .
+```
+
 ## todo
 - add a gulpFile
 
