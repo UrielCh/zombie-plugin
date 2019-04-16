@@ -89,13 +89,11 @@ $(() => {
     }
     updateDisplay();
     const flushCache = () => {
-        console.log('flushCache');
         chromep.runtime.sendMessage({
             command: 'flushCache',
         });
     };
     const flushProxy = () => {
-        console.log('setProxy');
         chromep.runtime.sendMessage({
             command: 'setProxy',
         });

@@ -106,7 +106,18 @@ if (chrome.runtime) {
 }
 
 let souldCloseTabId = 0;
-if (chrome.webRequest)
+if (chrome.webRequest) {
+    chrome.webRequest.onAuthRequired.addListener((details, callbackFn) => {
+        if (details.isProxy && pluginStat.proxyAuth && callbackFn) {
+            callbackFn({
+                authCredentials: pluginStat.proxyAuth
+            });
+        }
+    },
+        { urls: ["<all_urls>"] },
+        ['asyncBlocking']);
+
+
     chrome.webRequest.onErrorOccurred.addListener(details => {
         if (details.type != 'main_frame')
             return;
@@ -136,7 +147,7 @@ if (chrome.webRequest)
     }, {
             urls: ['<all_urls>']
         });
-
+}
 const replaceUserAgent = (userAgent: string, headers: chrome.webRequest.HttpHeader[]) => {
     if (!userAgent)
         return headers;

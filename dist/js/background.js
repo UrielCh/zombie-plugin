@@ -111,7 +111,14 @@ if (chrome.runtime) {
     chrome.runtime.onMessage.addListener(pluginListenerInternal);
 }
 let souldCloseTabId = 0;
-if (chrome.webRequest)
+if (chrome.webRequest) {
+    chrome.webRequest.onAuthRequired.addListener((details, callbackFn) => {
+        if (details.isProxy && pluginStat.proxyAuth && callbackFn) {
+            callbackFn({
+                authCredentials: pluginStat.proxyAuth
+            });
+        }
+    }, { urls: ["<all_urls>"] }, ['asyncBlocking']);
     chrome.webRequest.onErrorOccurred.addListener(details => {
         if (details.type != 'main_frame')
             return;
@@ -139,6 +146,7 @@ if (chrome.webRequest)
     }, {
         urls: ['<all_urls>']
     });
+}
 const replaceUserAgent = (userAgent, headers) => {
     if (!userAgent)
         return headers;
@@ -333,14 +341,14 @@ class Tasker {
             },
             setProxy: (request, sender, sendResponse) => {
                 let proxy = '';
-                let { scheme, host, port } = request;
+                let { username, password, scheme, host, port } = request;
                 scheme = scheme || 'http';
                 let promise = null;
                 if (!host) {
                     promise = chromep.proxy.settings.clear({
                         scope: 'regular'
                     })
-                        .then(() => pluginStat.proxy = 'system');
+                        .then(() => { pluginStat.proxyAuth = undefined; return pluginStat.proxy = 'system'; });
                 }
                 else {
                     proxy = `${scheme}://${host}:${port}`;
@@ -357,7 +365,11 @@ class Tasker {
                             }
                         },
                         scope: 'regular'
-                    }).then(() => pluginStat.proxy = `${scheme}://${host}:${port}`);
+                    }).then(() => {
+                        if (username && password)
+                            pluginStat.proxyAuth = { username, password };
+                        return pluginStat.proxy = `${scheme}://${host}:${port}`;
+                    });
                 }
                 return promise
                     .then(() => chromep.storage.local.set({

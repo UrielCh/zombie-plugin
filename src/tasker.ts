@@ -238,6 +238,8 @@ export default class Tasker {
         setProxy: (request, sender, sendResponse) => {
             let proxy = '';
             let {
+                username,
+                password,
                 scheme,
                 host,
                 port
@@ -249,7 +251,7 @@ export default class Tasker {
                 promise = chromep.proxy.settings.clear({
                     scope: 'regular'
                 })
-                    .then(() => pluginStat.proxy = 'system');
+                    .then(() => {pluginStat.proxyAuth = undefined; return pluginStat.proxy = 'system';});
             } else {
                 // enable proxy
                 proxy = `${scheme}://${host}:${port}`;
@@ -265,8 +267,11 @@ export default class Tasker {
                             bypassList: ["<local>", '10.0.0.0/8', '192.168.0.0/16']
                         }
                     },
-                    scope: 'regular'
-                }).then(() => pluginStat.proxy = `${scheme}://${host}:${port}`);
+                    scope: 'regular' // regular_only, incognito_persistent, incognito_session_only
+                }).then(() => {
+                    if (username && password)
+                        pluginStat.proxyAuth = {username, password};
+                    return pluginStat.proxy = `${scheme}://${host}:${port}`});
             }
             return promise
                 .then(() => chromep.storage.local.set({

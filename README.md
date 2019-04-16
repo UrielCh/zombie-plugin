@@ -19,7 +19,7 @@ tsc -p .; copy .\built\client.js .\dist\js\client.js; browserify .\built\popup.j
 
 ```bash
 cd dist
-tar -cvzf ../zombie-v4.0.1.tar.gz .
+tar -cvzf ../zombie-v4.0.2.tar.gz .
 ```
 
 ## todo
@@ -44,6 +44,9 @@ tar -cvzf ../zombie-v4.0.1.tar.gz .
 
 
 ### changelog:
+
+* V 4.0.2:
+    - add support for user/password auth in proxy
 
 * V 4.0.1:
     - add closeIrrelevantTabs param in registerCommand

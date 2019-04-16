@@ -19,6 +19,7 @@ export interface PluginStatValue {
     nbNamedTab: number;
     memoryCacheSize: number;
     proxy: string;
+    proxyAuth?: {username:string, password: string}
     userAgent: string;
 }
 
