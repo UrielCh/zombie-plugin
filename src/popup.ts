@@ -72,10 +72,13 @@ $(() => {
             switch (elm) {
                 case 'closeIrrelevantTabs':
                     pluginStat.config.closeIrrelevantTabs = value;
+                    break;
                 case 'debuggerStatement':
                     pluginStat.config.debuggerStatement = value;
+                    break;
                 case 'pauseProcess':
                     pluginStat.config.pauseProcess = value;
+                    break;
             }
         });
     }

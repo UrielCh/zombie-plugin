@@ -45,6 +45,9 @@ tar -cvzf ../zombie-v4.0.2.tar.gz .
 
 ### changelog:
 
+* V 4.0.3:
+    - fix bug in ctrl buttons
+
 * V 4.0.2:
     - add support for user/password auth in proxy
 
