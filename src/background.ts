@@ -160,19 +160,37 @@ const replaceUserAgent = (userAgent: string, headers: chrome.webRequest.HttpHead
         };
     });
 };
-
-const setUserAgentHook = (data: chrome.webRequest.WebRequestHeadersDetails) => {
-    let requestHeaders = data.requestHeaders;
-    if (data && data.url && data.requestHeaders && data.requestHeaders.length > 0 && pluginStat.userAgent)
-        requestHeaders = replaceUserAgent(pluginStat.userAgent, data.requestHeaders);
-    return {
-        requestHeaders
+if (chrome.webRequest) {
+    const getHostname = (url: string) => {
+        const aElm = document.createElement("a");
+        aElm.href = url;
+        return aElm.hostname;
     };
-};
-if (chrome.webRequest)
+
+    const setUserAgentHook = (data: chrome.webRequest.WebRequestHeadersDetails) => {
+        let requestHeaders = data.requestHeaders;
+        if (!data || !data.url)
+            return {
+                requestHeaders
+            };
+        if (tasker.blockedDomains && tasker.blockedDomains.length) {
+            const hostname = getHostname(data.url);
+            for (const dom of tasker.blockedDomains) {
+                if (~hostname.indexOf(dom))
+                return { cancel: true }
+            }
+        }
+        if (data.requestHeaders && data.requestHeaders.length > 0 && pluginStat.userAgent)
+            requestHeaders = replaceUserAgent(pluginStat.userAgent, data.requestHeaders);
+        return {
+            requestHeaders
+        };
+    };
+
     chrome.webRequest.onBeforeSendHeaders.addListener(setUserAgentHook, {
-        'urls': ['http://*/*', 'https://*/*']
+        'urls': ['<all_urls>']
     }, ['requestHeaders', 'blocking']);
+}
 
 /**
  * @param {chrome.tabs.Tab} tab
@@ -212,6 +230,7 @@ if (chrome.tabs)
 
 /**
  * Main testing loop every 5 sec
+ * auto-close tab
  */
 setInterval(() => chromep.tabs.query({})
     .then(tabs => tabs.forEach(tab => {

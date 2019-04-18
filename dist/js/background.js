@@ -159,18 +159,35 @@ const replaceUserAgent = (userAgent, headers) => {
         };
     });
 };
-const setUserAgentHook = (data) => {
-    let requestHeaders = data.requestHeaders;
-    if (data && data.url && data.requestHeaders && data.requestHeaders.length > 0 && pluginStat.userAgent)
-        requestHeaders = replaceUserAgent(pluginStat.userAgent, data.requestHeaders);
-    return {
-        requestHeaders
+if (chrome.webRequest) {
+    const getHostname = (url) => {
+        const aElm = document.createElement("a");
+        aElm.href = url;
+        return aElm.hostname;
     };
-};
-if (chrome.webRequest)
+    const setUserAgentHook = (data) => {
+        let requestHeaders = data.requestHeaders;
+        if (!data || !data.url)
+            return {
+                requestHeaders
+            };
+        if (tasker.blockedDomains && tasker.blockedDomains.length) {
+            const hostname = getHostname(data.url);
+            for (const dom of tasker.blockedDomains) {
+                if (~hostname.indexOf(dom))
+                    return { cancel: true };
+            }
+        }
+        if (data.requestHeaders && data.requestHeaders.length > 0 && pluginStat.userAgent)
+            requestHeaders = replaceUserAgent(pluginStat.userAgent, data.requestHeaders);
+        return {
+            requestHeaders
+        };
+    };
     chrome.webRequest.onBeforeSendHeaders.addListener(setUserAgentHook, {
-        'urls': ['http://*/*', 'https://*/*']
+        'urls': ['<all_urls>']
     }, ['requestHeaders', 'blocking']);
+}
 if (chrome.tabs)
     chrome.tabs.onCreated.addListener(tab => {
         if (!tab.id) {
@@ -263,6 +280,7 @@ const pOk = (sendResponse) => () => sendResponse(toOk('ok'));
 const wait = (duration) => (args) => new Promise(resolve => setTimeout(() => (resolve(args)), duration));
 class Tasker {
     constructor() {
+        this.blockedDomains = [];
         this.lastCookiesUpdate = 0;
         this.lastCookiesSave = 0;
         this.registedActionTab = {};
@@ -338,6 +356,11 @@ class Tasker {
                         });
                     });
                 });
+            },
+            setBlockedDomains: (request, sender, sendResponse) => {
+                const { domains } = request;
+                Tasker.Instance.blockedDomains = domains;
+                return Promise.resolve(sendResponse('updated'));
             },
             setProxy: (request, sender, sendResponse) => {
                 let proxy = '';

@@ -47,6 +47,9 @@ echo zombie-v${version}.tar.gz generated
 
 ### changelog:
 
+* V 4.0.4:
+    - add setBlockedDomains({domains:[]})
+
 * V 4.0.3:
     - fix bug in ctrl buttons
 

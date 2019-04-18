@@ -82,7 +82,7 @@ export default class Tasker {
         // Do you need arguments? Make it a regular method instead.
         return this._instance || (this._instance = new this());
     }
-
+    public blockedDomains: string[] = [];
     public lastCookiesUpdate: number = 0;
     public lastCookiesSave: number = 0;
     /**
@@ -111,10 +111,10 @@ export default class Tasker {
     };
 
     /**
- * copy parent tab task to chidlren tab task
- * @param {chrome.tabs.Tab} tab
- * @returns {ZTask|null} todo
- */
+     * copy parent tab task to chidlren tab task
+     * @param {chrome.tabs.Tab} tab
+     * @returns {ZTask|null} todo
+     */
     public getTabInformation(tab: chrome.tabs.Tab) {
         const tasker = this;
         if (!tab || !tab.id)
@@ -231,7 +231,14 @@ export default class Tasker {
                     });
                 })
         },
-
+        /**
+         * setBlockedDomains {domains:[dom1, dom2 ...]}
+         */
+        setBlockedDomains: (request, sender, sendResponse) => {
+            const {domains} = request;
+            Tasker.Instance.blockedDomains = domains;
+            return Promise.resolve(sendResponse('updated'));
+        },
         /**
          * setProxy {scheme, host, port}
          */
@@ -251,7 +258,7 @@ export default class Tasker {
                 promise = chromep.proxy.settings.clear({
                     scope: 'regular'
                 })
-                    .then(() => {pluginStat.proxyAuth = undefined; return pluginStat.proxy = 'system';});
+                    .then(() => { pluginStat.proxyAuth = undefined; return pluginStat.proxy = 'system'; });
             } else {
                 // enable proxy
                 proxy = `${scheme}://${host}:${port}`;
@@ -270,8 +277,9 @@ export default class Tasker {
                     scope: 'regular' // regular_only, incognito_persistent, incognito_session_only
                 }).then(() => {
                     if (username && password)
-                        pluginStat.proxyAuth = {username, password};
-                    return pluginStat.proxy = `${scheme}://${host}:${port}`});
+                        pluginStat.proxyAuth = { username, password };
+                    return pluginStat.proxy = `${scheme}://${host}:${port}`
+                });
             }
             return promise
                 .then(() => chromep.storage.local.set({
