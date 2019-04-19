@@ -22,6 +22,7 @@ $(() => {
             tasker_proxy: pluginStat.proxy,
             config_userAgent: pluginStat.userAgent,
             code: lastCode,
+            version: 'v' + chrome.runtime.getManifest().version,
         }
         for (const key of Object.keys(data)) {
             $(`#${key}`).text(data[key]);

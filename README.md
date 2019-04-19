@@ -48,6 +48,7 @@ echo zombie-v${version}.tar.gz generated
 ### changelog:
 
 * V 4.0.5:
+    - add plugin version in popup
     - bug fix
 
 * V 4.0.4:
