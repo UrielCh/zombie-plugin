@@ -915,13 +915,12 @@ class ZUtils {
     }
     ;
     static closeTab(tabId) {
-        return this.preventPrompts(tabId)
+        return ZUtils.preventPrompts(tabId)
             .then(() => chromep.tabs.remove(tabId))
             .then(() => setTimeout(() => chromep.tabs.remove(tabId)
             .catch(() => { }), 1000));
     }
     static closeAllTabExept(ignoreId) {
-        const self = this;
         return chromep.tabs.query({})
             .then(tabs => {
             for (let i = 0; i < tabs.length; i++) {

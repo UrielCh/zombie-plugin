@@ -56,7 +56,7 @@ export default class ZUtils {
      * @param {number} tabId
      */
     public static closeTab(tabId: number) {
-        return this.preventPrompts(tabId)
+        return ZUtils.preventPrompts(tabId)
             .then(() => chromep.tabs.remove(tabId))
             .then(() => setTimeout(() => chromep.tabs.remove(tabId)
                 .catch(() => { }), 1000));
@@ -66,7 +66,6 @@ export default class ZUtils {
      * @param {number} ignoreId
      */
     public static closeAllTabExept(ignoreId: number) {
-        const self = this;
         return chromep.tabs.query({})
             .then(tabs => {
                 for (let i = 0; i < tabs.length; i++) {
