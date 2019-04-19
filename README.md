@@ -48,6 +48,8 @@ echo zombie-v${version}.tar.gz generated
 ### changelog:
 
 * V 4.0.5:
+    - add badges
+    - add button to block code injection
     - add plugin version in popup
     - bug fix
 

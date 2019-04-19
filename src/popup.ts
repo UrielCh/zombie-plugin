@@ -59,12 +59,19 @@ $(() => {
         offstyle: "success",
     });
 
+    (<MyJQ>$("#injectProcess")).prop('checked', pluginStat.config.injectProcess).bootstrapToggle({
+        on: 'on',
+        off: 'off',
+        onstyle: 'primary',
+        offstyle: 'secondary',
+        size: "sm",
+    });
 
     //tasker.config.forEach((value: boolean, key: string) => {
     //    console.log(key, value);
     //});
-
-    for (const elm of ['closeIrrelevantTabs', 'debuggerStatement', 'pauseProcess']) {
+    
+    for (const elm of ['closeIrrelevantTabs', 'debuggerStatement', 'pauseProcess', 'injectProcess']) {
         const jq = $(`#${elm}`);
         jq.on('change', function () {
             const value = $(this).is(':checked');
@@ -80,7 +87,13 @@ $(() => {
                 case 'pauseProcess':
                     pluginStat.config.pauseProcess = value;
                     break;
+                case 'injectProcess':
+                    pluginStat.config.injectProcess = value;
+                    break;
             }
+            chromep.runtime.sendMessage({
+                command: 'updateBadge',
+            });
         });
     }
     updateDisplay();

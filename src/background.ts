@@ -35,6 +35,7 @@ if (chrome.tabs)
         if (oldTask && oldTask.target) {
             delete tasker.namedTab[oldTask.target]
             pluginStat.nbNamedTab = Object.keys(tasker.namedTab).length;
+            Tasker.updateBadge();
         }
     });
 
@@ -258,13 +259,15 @@ if (chrome.storage) {
         .then((items) => {
             pluginStat.config = <PluginSavedState>(items);
             lastValue = JSON.stringify(pluginStat.config);
+            Tasker.updateBadge();
         })
         .then(() => {
             // start sync loop
             setInterval(() => {
                 let newVal = JSON.stringify(pluginStat.config);
                 if (newVal != lastValue) {
-                    console.log('Sync tasker.config value');
+                    // Tasker.updateBadge();
+                    // console.log('Sync tasker.config value');
                     chromep.storage.local.set(pluginStat.config)
                         .then(() => lastValue = newVal);
                 }

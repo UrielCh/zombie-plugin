@@ -9,6 +9,7 @@ function value() {
                 closeIrrelevantTabs: false,
                 debuggerStatement: false,
                 pauseProcess: false,
+                injectProcess: true,
             },
             nbRegistedActionTab: 0,
             nbNamedTab: 0,
@@ -57,6 +58,7 @@ if (chrome.tabs)
         if (oldTask && oldTask.target) {
             delete tasker.namedTab[oldTask.target];
             pluginStat.nbNamedTab = Object.keys(tasker.namedTab).length;
+            tasker_1.default.updateBadge();
         }
     });
 if (chrome.tabs)
@@ -233,12 +235,12 @@ if (chrome.storage) {
         .then((items) => {
         pluginStat.config = (items);
         lastValue = JSON.stringify(pluginStat.config);
+        tasker_1.default.updateBadge();
     })
         .then(() => {
         setInterval(() => {
             let newVal = JSON.stringify(pluginStat.config);
             if (newVal != lastValue) {
-                console.log('Sync tasker.config value');
                 chromep.storage.local.set(pluginStat.config)
                     .then(() => lastValue = newVal);
             }
@@ -287,6 +289,10 @@ class Tasker {
         this.nbRegistedActionTab = 0;
         this.namedTab = {};
         this.commands = {
+            updateBadge: (request, sender, sendResponse) => {
+                Tasker.updateBadge();
+                return sendResponse('ok');
+            },
             close: (request, sender, sendResponse) => zUtils_1.default.closeAllTabExept(0)
                 .then(pOk(sendResponse), pError(sendResponse, 'close all Tab')),
             closeMe: (request, sender, sendResponse) => {
@@ -472,6 +478,7 @@ class Tasker {
                     if (task.target) {
                         Tasker.Instance.namedTab[task.target] = tab;
                         pluginStat.nbNamedTab = Object.keys(Tasker.Instance.namedTab).length;
+                        Tasker.updateBadge();
                     }
                     sendResponse(toOk('done'));
                 });
@@ -557,6 +564,8 @@ class Tasker {
                 const tab = sender.tab;
                 if (!tab || !tab.id)
                     return Promise.resolve();
+                if (!pluginStat.config.injectProcess)
+                    return Promise.resolve();
                 const tabId = tab.id;
                 const tabInformation = Tasker.Instance.getTabInformation(tab);
                 return Promise.resolve(tabInformation)
@@ -616,6 +625,22 @@ class Tasker {
         return taskParameters;
     }
     ;
+    static updateBadge() {
+        if (!chrome.browserAction)
+            return;
+        if (!pluginStat.config.injectProcess) {
+            chrome.browserAction.setBadgeText({ text: 'X' });
+            chrome.browserAction.setBadgeBackgroundColor({ color: 'red' });
+        }
+        else if (pluginStat.config.pauseProcess) {
+            chrome.browserAction.setBadgeBackgroundColor({ color: '#3a87ad' });
+            chrome.browserAction.setBadgeText({ text: 'II' });
+        }
+        else {
+            chrome.browserAction.setBadgeBackgroundColor({ color: '#468847' });
+            chrome.browserAction.setBadgeText({ text: String(Object.keys(Tasker.Instance.namedTab).length) });
+        }
+    }
 }
 exports.default = Tasker;
 ;

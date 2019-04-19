@@ -9,6 +9,7 @@ function value() {
                 closeIrrelevantTabs: false,
                 debuggerStatement: false,
                 pauseProcess: false,
+                injectProcess: true,
             },
             nbRegistedActionTab: 0,
             nbNamedTab: 0,
@@ -74,7 +75,14 @@ $(() => {
         onstyle: "danger",
         offstyle: "success",
     });
-    for (const elm of ['closeIrrelevantTabs', 'debuggerStatement', 'pauseProcess']) {
+    $("#injectProcess").prop('checked', pluginStat.config.injectProcess).bootstrapToggle({
+        on: 'on',
+        off: 'off',
+        onstyle: 'primary',
+        offstyle: 'secondary',
+        size: "sm",
+    });
+    for (const elm of ['closeIrrelevantTabs', 'debuggerStatement', 'pauseProcess', 'injectProcess']) {
         const jq = $(`#${elm}`);
         jq.on('change', function () {
             const value = $(this).is(':checked');
@@ -88,7 +96,13 @@ $(() => {
                 case 'pauseProcess':
                     pluginStat.config.pauseProcess = value;
                     break;
+                case 'injectProcess':
+                    pluginStat.config.injectProcess = value;
+                    break;
             }
+            chromep.runtime.sendMessage({
+                command: 'updateBadge',
+            });
         });
     }
     updateDisplay();

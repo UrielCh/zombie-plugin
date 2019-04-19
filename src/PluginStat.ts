@@ -8,6 +8,7 @@ export interface PluginSavedState {
     closeIrrelevantTabs: boolean,
     debuggerStatement: boolean,
     pauseProcess: boolean,
+    injectProcess: boolean,
 }
 
 export interface PluginStatValue {
@@ -19,7 +20,7 @@ export interface PluginStatValue {
     nbNamedTab: number;
     memoryCacheSize: number;
     proxy: string;
-    proxyAuth?: {username:string, password: string}
+    proxyAuth?: { username: string, password: string }
     userAgent: string;
 }
 
@@ -32,6 +33,7 @@ export default function value() {
                 closeIrrelevantTabs: false,
                 debuggerStatement: false,
                 pauseProcess: false,
+                injectProcess: true,
             },
             nbRegistedActionTab: 0,
             nbNamedTab: 0,

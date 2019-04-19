@@ -130,6 +130,22 @@ export default class Tasker {
         return taskParameters;
     };
 
+    public static updateBadge() {
+        if (!chrome.browserAction)
+            return;
+        if (!pluginStat.config.injectProcess) {
+            chrome.browserAction.setBadgeText({ text: 'X' });
+            chrome.browserAction.setBadgeBackgroundColor({ color: 'red' });
+        } else if (pluginStat.config.pauseProcess) {
+            chrome.browserAction.setBadgeBackgroundColor({ color: '#3a87ad' });
+            chrome.browserAction.setBadgeText({ text: 'II' });
+        } else {
+            chrome.browserAction.setBadgeBackgroundColor({ color: '#468847' });
+            chrome.browserAction.setBadgeText({ text: String(Object.keys(Tasker.Instance.namedTab).length) });
+        }
+    }
+    
+    
     /**
      * mapping tablename => chrome.tabs.Tab
      */
@@ -137,6 +153,10 @@ export default class Tasker {
     // last setted user agent (original data is stored in chrome.storage)
     // events command map
     commands: { [key: string]: (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => any) => Promise<any> } = {
+        updateBadge: (request, sender, sendResponse) => {
+            Tasker.updateBadge();
+            return sendResponse('ok');
+        },
         /**
          * External
          **/
@@ -387,6 +407,7 @@ export default class Tasker {
                 if (task.target) {
                     Tasker.Instance.namedTab[task.target] = tab;
                     pluginStat.nbNamedTab = Object.keys(Tasker.Instance.namedTab).length;
+                    Tasker.updateBadge();
                 }
                 sendResponse(toOk('done'));
             })
@@ -525,6 +546,8 @@ export default class Tasker {
             const self = this;
             const tab = sender.tab;
             if (!tab || !tab.id)
+                return Promise.resolve();
+            if (!pluginStat.config.injectProcess)
                 return Promise.resolve();
             const tabId = tab.id;
             const tabInformation = Tasker.Instance.getTabInformation(tab);
