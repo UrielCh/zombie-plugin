@@ -270,16 +270,67 @@ const pluginStat = PluginStat_1.default();
 const toOk = (message) => (message);
 const pError = (sendResponse, prefix) => {
     prefix = prefix || '';
-    const stack = Error();
     return (error) => {
-        error = `${prefix} ${error}`.trim();
-        console.error('chrome error message:', stack, error);
+        let errorMsg = `${prefix} ${error.message}`.trim();
+        console.error(`chrome error message ${prefix}: `, error);
         if (sendResponse)
             return sendResponse(zUtils_1.default.toErr(error));
     };
 };
 const pOk = (sendResponse) => () => sendResponse(toOk('ok'));
 const wait = (duration) => (args) => new Promise(resolve => setTimeout(() => (resolve(args)), duration));
+function setPromiseFunction(fn, thisArg) {
+    return function (...arg) {
+        let args = Array.prototype.slice.call(arg);
+        return new Promise((resolve, reject) => {
+            function callback(...arg2) {
+                var err = chrome.runtime.lastError;
+                if (err)
+                    return reject(err);
+                var results = Array.prototype.slice.call(arg2);
+                switch (results.length) {
+                    case 0:
+                        return resolve();
+                    case 1:
+                        return resolve(results[0]);
+                    default:
+                        return resolve(results);
+                }
+            }
+            args.push(callback);
+            fn.apply(thisArg, args);
+        });
+    };
+}
+function setPromiseFunctionLT(fn) {
+    return function (...args) {
+        return new Promise((resolve, reject) => {
+            function callback(resp) {
+                const err = chrome.runtime.lastError;
+                if (err)
+                    return reject(err);
+                resolve(resp);
+            }
+            fn.apply(null, [...args, callback]);
+        });
+    };
+}
+function toPromise(fn) {
+    return function (...args) {
+        return new Promise((resolve, reject) => {
+            function callback(resp) {
+                const err = chrome.runtime.lastError;
+                if (err)
+                    return reject(err);
+                resolve(resp);
+            }
+            fn.apply(null, [...args, callback]);
+        });
+    };
+}
+const chrome_debugger_attach = setPromiseFunction(chrome.debugger.attach, chrome.debugger);
+const chrome_debugger_detach = setPromiseFunction(chrome.debugger.detach, chrome.debugger);
+const chrome_debugger_sendCommand = setPromiseFunction(chrome.debugger.sendCommand, chrome.debugger);
 class Tasker {
     constructor() {
         this.blockedDomains = [];
@@ -288,10 +339,29 @@ class Tasker {
         this.registedActionTab = {};
         this.nbRegistedActionTab = 0;
         this.namedTab = {};
+        this.debuggerTabId = 0;
         this.commands = {
             updateBadge: (request, sender, sendResponse) => {
                 Tasker.updateBadge();
                 return sendResponse('ok');
+            },
+            sendCommand: (request, sender, sendResponse) => {
+                const { method, commandParams } = request;
+                console.log({ method, commandParams });
+                if (!sender.tab || !sender.tab.id)
+                    return sendResponse(zUtils_1.default.toErr('sender.tab is missing'));
+                const tabId = sender.tab.id;
+                let p = Promise.resolve({});
+                if (sender.tab.id != Tasker.Instance.debuggerTabId) {
+                    if (Tasker.Instance.debuggerTabId) {
+                        p = chrome_debugger_detach({ tabId: Tasker.Instance.debuggerTabId });
+                    }
+                    p = p.then(() => chrome_debugger_attach({ tabId }, "1.3"))
+                        .then(() => Tasker.Instance.debuggerTabId = tabId, () => Tasker.Instance.debuggerTabId = tabId);
+                }
+                p.then(() => console.log({ target: { tabId }, method, commandParams }));
+                p.then(() => chrome_debugger_sendCommand({ tabId }, method, commandParams))
+                    .then(pOk(sendResponse), pError(sendResponse, `sendCommand ${method}`));
             },
             close: (request, sender, sendResponse) => zUtils_1.default.closeAllTabExept(0)
                 .then(pOk(sendResponse), pError(sendResponse, 'close all Tab')),
@@ -518,7 +588,10 @@ class Tasker {
             })
                 .then(pOk(sendResponse), pError(sendResponse, 'putCookies')),
             clean: (request, sender, sendResponse) => {
-                const dataTypeSet = {
+                const options = {
+                    since: 0
+                };
+                const dataToRemove = {
                     appcache: true,
                     cache: true,
                     downloads: true,
@@ -527,13 +600,22 @@ class Tasker {
                     history: true,
                     indexedDB: true,
                     localStorage: true,
-                    webSQL: true
+                    webSQL: true,
+                    serviceWorkers: true,
+                    pluginData: true,
+                    cacheStorage: true,
                 };
-                return chromep.browsingData.remove({
-                    since: 0
-                }, dataTypeSet)
-                    .then(() => '1')
-                    .then(pOk(sendResponse), pError(sendResponse, 'clean'));
+                return new Promise((resolve, reject) => {
+                    let isDone = false;
+                    const done = () => {
+                        if (!isDone) {
+                            isDone = true;
+                            resolve(sendResponse(toOk(1)));
+                        }
+                    };
+                    chrome.browsingData.remove(options, dataToRemove, done);
+                    setTimeout(done, 500);
+                });
             },
             isOpen: (request, sender, sendResponse) => {
                 const target = request.target || request.tab || null;
