@@ -2,7 +2,7 @@ const endpoint = 'https://api-js.dat' + 'adome.co/js/';
 
 sendData = (tabId, jsData, cid, ddk, Referer, request, ddv, custom) => {
   custom = custom || '';
-  console.log(`sendData(${tabId}, '${jsData}', '${cid}', '${ddk}', '${Referer}', '${request}', '${ddv}', '${custom}')`)
+  // console.log(`sendData(${tabId}, '${jsData}', '${cid}', '${ddk}', '${Referer}', '${request}', '${ddv}', '${custom}')`)
   let queryString =
     'jsData=' + encodeURIComponent(jsData) +
     '&cid=' + encodeURIComponent(cid) +
@@ -26,11 +26,11 @@ sendData = (tabId, jsData, cid, ddk, Referer, request, ddv, custom) => {
     let firstChild = (parent.childNodes && (parent.childNodes.length > 0)) ? parent.childNodes[0] : null;
     parent.insertBefore(script, firstChild || null);
   }`;
-  
+
   return chrome.tabs.executeScript(tabId, {
     code,
     allFrames: false
-  }, (e)=> {console.log('done', e)})
+  }, (e) => { })
 }
 
 forceData = (data) => {
@@ -45,53 +45,73 @@ forceData = (data) => {
     lb: false, str_ss: true, str_ls: true, str_idb: true, str_odb: true,
     abk: false, wbd: false, gl: true, lgs: true, img: true,
   }
+  let changes = {};
+  let c = 0;
   for (k of Object.keys(expected)) {
     if (data[k] === undefined)
       continue;
     const v = expected[k];
     if (v != data[k]) {
-      console.log(`change dd.${k}:${data[k]} to ${v}`);
+      c++;
+      changes[k] = `${data[k]} => ${v}`
+      // console.log(`change dd.${k}:${data[k]} to ${v}`);
       data[k] = v
     }
   }
-  const { ts_mtp, ts_tec, ts_tsa } = data;
-  console.log({ ts_mtp, ts_tec, ts_tsa })
+  if (c)
+    console.log(changes);
+  //  const { ts_mtp, ts_tec, ts_tsa } = data;
+  //  console.log({ ts_mtp, ts_tec, ts_tsa })
   return data;
 };
 
-const queryMod = function (details) {
-  console.log(details);
-  let { tabId } = details;
-  if (details && details.requestBody && details.requestBody.raw && details.requestBody.raw[0]) {
-    let queryString = new TextDecoder("utf-8").decode(details.requestBody.raw[0].bytes)
-    let formData = {};
-    queryString.split('&').forEach(s => { const [k, v] = s.split('='); formData[k] = decodeURIComponent(v) })
-    let jsDataStr = formData.jsData;
-    let jsData = JSON.parse(jsDataStr)
-    jsData = forceData(jsData);
-    let jsDataStr2 = JSON.stringify(jsData)
-    if (jsDataStr != jsDataStr2) {
-      const { cid, ddk, Referer, request, ddv, custom } = formData;
-      sendData(tabId, jsDataStr2, cid, ddk, Referer, request, ddv, custom)
-      return { cancel: true };
+{
+  const queryMod = function (details) {
+    // console.log(details);
+    let { tabId } = details;
+    if (details && details.requestBody && details.requestBody.raw && details.requestBody.raw[0]) {
+      let queryString = new TextDecoder("utf-8").decode(details.requestBody.raw[0].bytes)
+      let formData = {};
+      queryString.split('&').forEach(s => { const [k, v] = s.split('='); formData[k] = decodeURIComponent(v) })
+      let jsDataStr = formData.jsData;
+      let jsData = JSON.parse(jsDataStr)
+      jsData = forceData(jsData);
+      let jsDataStr2 = JSON.stringify(jsData)
+      if (jsDataStr != jsDataStr2) {
+        const { cid, ddk, Referer, request, ddv, custom } = formData;
+        sendData(tabId, jsDataStr2, cid, ddk, Referer, request, ddv, custom)
+        return { cancel: true };
+      }
+    } else if (details && details.requestBody && details.requestBody.formData) {
+      const formData = details.requestBody.formData;
+      let jsDataStr = details.requestBody.formData.jsData[0];
+      let jsData = JSON.parse(jsDataStr)
+      jsData = forceData(jsData);
+      let jsDataStr2 = JSON.stringify(jsData)
+      if (jsDataStr != jsDataStr2) {
+        const { cid, ddk, Referer, request, ddv, custom } = formData;
+        sendData(tabId, jsDataStr2, cid, ddk, Referer, request, ddv, custom)
+        return { cancel: true };
+      }
     }
-  } else if (details && details.requestBody && details.requestBody.formData) {
-    const formData = details.requestBody.formData;
-    let jsDataStr = details.requestBody.formData.jsData[0];
-    let jsData = JSON.parse(jsDataStr)
-    jsData = forceData(jsData);
-    let jsDataStr2 = JSON.stringify(jsData)
-    if (jsDataStr != jsDataStr2) {
-      const { cid, ddk, Referer, request, ddv, custom } = formData;
-      sendData(tabId, jsDataStr2, cid, ddk, Referer, request, ddv, custom)
-      return { cancel: true };
-    }
+    return {};
+  };
+
+  if (!chrome.webRequest.onBeforeRequest.hasListener(queryMod)) {
+    let requestFilter = { urls: [endpoint] };
+    let extraInfoSpec = ['requestBody', 'blocking'];
+    chrome.webRequest.onBeforeRequest.addListener(queryMod, requestFilter, extraInfoSpec)
   }
-  return {};
-};
-if (!chrome.webRequest.onBeforeRequest.hasListener(queryMod)) {
-  const requestFilter = { urls: [endpoint] };
-  const extraInfoSpec = ['requestBody', 'blocking'];
-  chrome.webRequest.onBeforeRequest.addListener(queryMod, requestFilter, extraInfoSpec)
+}
+
+{
+  const logUrl = 'https://listener.logz.io:8091/'
+  // listener.logz.io
+  const printQuery = function (details) {
+    console.log(details);
+  };
+  let requestFilter = { urls: [logUrl] };
+  let extraInfoSpec = ['requestBody', 'blocking'];
+  chrome.webRequest.onBeforeRequest.addListener(printQuery, requestFilter, extraInfoSpec)
 }
 

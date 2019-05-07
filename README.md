@@ -47,6 +47,9 @@ echo zombie-v${version}.tar.gz generated
 
 ### changelog:
 
+* V 4.0.7:
+    - add emoji
+
 * V 4.0.6:
     - add chome.debugger connection via 'sendCommand' call[beta]
     - since chrome.browsingData.remove's callback may not be called, add a 500 ms timeout to call resolve.
