@@ -46,6 +46,8 @@ echo zombie-v${version}.tar.gz generated
 
 
 ### changelog:
+* V 4.0.8
+    - fix chome 72- compatibility
 
 * V 4.0.7:
     - add emoji

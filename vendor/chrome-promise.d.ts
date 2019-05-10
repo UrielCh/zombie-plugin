@@ -1753,7 +1753,7 @@ declare namespace chromepApi.tabs {
         /**
              * Injects JavaScript code into a page. For details, see the programmatic injection section of the content scripts doc.
              * @param tabId Optional. The ID of the tab in which to run the script; defaults to the active tab of the current window.
-             * @param details Details of the script or CSS to inject. Either the code or the file property must be set, but both may not be set at the same time.
+             * @param details Details of the script or CSS to inject. Either the code or the file property must be set, but both may not be set at thchre same time.
              * @param callback Optional. Called after all the JavaScript has been executed.
              * Parameter result: The result of the script in every injected frame.
              */

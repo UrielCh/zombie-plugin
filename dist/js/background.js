@@ -603,8 +603,10 @@ class Tasker {
                     webSQL: true,
                     serviceWorkers: true,
                     pluginData: true,
-                    cacheStorage: true,
                 };
+                if (chrome.browsingData['removeCacheStorage']) {
+                    dataToRemove['cacheStorage'] = true;
+                }
                 return new Promise((resolve, reject) => {
                     let isDone = false;
                     const done = () => {

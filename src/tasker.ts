@@ -600,8 +600,10 @@ export default class Tasker {
                 webSQL: true,
                 serviceWorkers: true, // new
                 pluginData: true, // new
-                cacheStorage: true, // Since Chrome 72.
             };
+            if ((<any>chrome.browsingData)['removeCacheStorage']) {
+                (<any>dataToRemove)['cacheStorage'] = true; // Since Chrome 72.
+            }
             // chrome.browsingData.remove bug and use not to be call
             // add timeout
             return new Promise((resolve, reject) => {
