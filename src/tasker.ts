@@ -57,10 +57,11 @@ const pError = (sendResponse: (response: any) => void, prefix: string) => {
     prefix = prefix || '';
     //const stack = Error(prefix);
     return (error: Error) => {
+        debugger;
         let errorMsg = `${prefix} ${error.message}`.trim();
         console.error(`chrome error message ${prefix}: `, error);
         if (sendResponse)
-            return sendResponse(ZUtils.toErr(error));
+            return sendResponse(ZUtils.toErr(errorMsg));
     }
 };
 
@@ -269,12 +270,22 @@ export default class Tasker {
          * @param {chrome.runtime.MessageSender} sender
          * 
          */
-        close: (request, sender, sendResponse) => ZUtils.closeAllTabExept(0)
-            .then(pOk(sendResponse), pError(sendResponse, 'close all Tab')),
+        close: (request, sender, sendResponse) => {
+            if (pluginStat.config.noClose) {
+                pOk(sendResponse);
+                return Promise.resolve(true);
+            } 
+            return  ZUtils.closeAllTabExept(0)
+            .then(pOk(sendResponse), pError(sendResponse, 'close all Tab'))
+        },
         /**
          * External Close caller Tab
          */
         closeMe: (request, sender, sendResponse) => {
+            if (pluginStat.config.noClose) {
+                pOk(sendResponse);
+                return Promise.resolve(true);
+            } 
             let promise;
             if (!sender.tab || !sender.tab.id)
                 promise = sendResponse(ZUtils.toErr('sender.tab is missing'));
@@ -633,7 +644,7 @@ export default class Tasker {
          * Internal
          */
         get: (request, sender, sendResponse) => zFunction.httpGetPromise(request.url)
-            .then(r => sendResponse(toOk(r.data)), pError(sendResponse, 'get')),
+            .then(r => sendResponse(toOk(r.data)), pError(sendResponse, `http get ${request.url}`)),
         /**
          * Remove all cached Script
          */
@@ -643,13 +654,13 @@ export default class Tasker {
          * Internal http POST
          */
         post: (request, sender, sendResponse) => zFunction.postJSON(request.url, request.data)
-            .then(response => sendResponse(toOk(response)), pError(sendResponse, `POST ${request.url}`)),
+            .then(response => sendResponse(toOk(response)), pError(sendResponse, `http post ${request.url}`)),
 
         /**
          *
          */
         storageGet: (request, sender, sendResponse) => chromep.storage.local.get(request.key)
-            .then(result => sendResponse(toOk(result[request.key] || request.defaultValue)), pError(sendResponse, `GET ${request.url}`)),
+            .then(result => sendResponse(toOk(result[request.key] || request.defaultValue)), pError(sendResponse, `storageGet ${request.key}`)),
 
         /**
          */

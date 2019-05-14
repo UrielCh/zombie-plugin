@@ -46,6 +46,10 @@ echo zombie-v${version}.tar.gz generated
 
 
 ### changelog:
+
+* V 4.0.9
+    - add No-close option
+
 * V 4.0.8
     - fix chome 72- compatibility
 

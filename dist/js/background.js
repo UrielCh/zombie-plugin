@@ -10,6 +10,7 @@ function value() {
                 debuggerStatement: false,
                 pauseProcess: false,
                 injectProcess: true,
+                noClose: false,
             },
             nbRegistedActionTab: 0,
             nbNamedTab: 0,
@@ -271,10 +272,11 @@ const toOk = (message) => (message);
 const pError = (sendResponse, prefix) => {
     prefix = prefix || '';
     return (error) => {
+        debugger;
         let errorMsg = `${prefix} ${error.message}`.trim();
         console.error(`chrome error message ${prefix}: `, error);
         if (sendResponse)
-            return sendResponse(zUtils_1.default.toErr(error));
+            return sendResponse(zUtils_1.default.toErr(errorMsg));
     };
 };
 const pOk = (sendResponse) => () => sendResponse(toOk('ok'));
@@ -363,9 +365,19 @@ class Tasker {
                 p.then(() => chrome_debugger_sendCommand({ tabId }, method, commandParams))
                     .then(pOk(sendResponse), pError(sendResponse, `sendCommand ${method}`));
             },
-            close: (request, sender, sendResponse) => zUtils_1.default.closeAllTabExept(0)
-                .then(pOk(sendResponse), pError(sendResponse, 'close all Tab')),
+            close: (request, sender, sendResponse) => {
+                if (pluginStat.config.noClose) {
+                    pOk(sendResponse);
+                    return Promise.resolve(true);
+                }
+                return zUtils_1.default.closeAllTabExept(0)
+                    .then(pOk(sendResponse), pError(sendResponse, 'close all Tab'));
+            },
             closeMe: (request, sender, sendResponse) => {
+                if (pluginStat.config.noClose) {
+                    pOk(sendResponse);
+                    return Promise.resolve(true);
+                }
                 let promise;
                 if (!sender.tab || !sender.tab.id)
                     promise = sendResponse(zUtils_1.default.toErr('sender.tab is missing'));
@@ -627,13 +639,13 @@ class Tasker {
                 return Promise.resolve().then(() => sendResponse(toOk(count)));
             },
             get: (request, sender, sendResponse) => zFunction.httpGetPromise(request.url)
-                .then(r => sendResponse(toOk(r.data)), pError(sendResponse, 'get')),
+                .then(r => sendResponse(toOk(r.data)), pError(sendResponse, `http get ${request.url}`)),
             flushCache: (request, sender, sendResponse) => zFunction.flush()
                 .then(pOk(sendResponse), pError(sendResponse, 'flushCache')),
             post: (request, sender, sendResponse) => zFunction.postJSON(request.url, request.data)
-                .then(response => sendResponse(toOk(response)), pError(sendResponse, `POST ${request.url}`)),
+                .then(response => sendResponse(toOk(response)), pError(sendResponse, `http post ${request.url}`)),
             storageGet: (request, sender, sendResponse) => chromep.storage.local.get(request.key)
-                .then(result => sendResponse(toOk(result[request.key] || request.defaultValue)), pError(sendResponse, `GET ${request.url}`)),
+                .then(result => sendResponse(toOk(result[request.key] || request.defaultValue)), pError(sendResponse, `storageGet ${request.key}`)),
             storageSet: (request, sender, sendResponse) => chromep.storage.local.set({
                 [request.key]: request.value
             })

@@ -9,6 +9,7 @@ export interface PluginSavedState {
     debuggerStatement: boolean,
     pauseProcess: boolean,
     injectProcess: boolean,
+    noClose: boolean,
 }
 
 export interface PluginStatValue {
@@ -34,6 +35,7 @@ export default function value() {
                 debuggerStatement: false,
                 pauseProcess: false,
                 injectProcess: true,
+                noClose: false,
             },
             nbRegistedActionTab: 0,
             nbNamedTab: 0,

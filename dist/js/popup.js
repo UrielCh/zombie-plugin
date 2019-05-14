@@ -10,6 +10,7 @@ function value() {
                 debuggerStatement: false,
                 pauseProcess: false,
                 injectProcess: true,
+                noClose: false,
             },
             nbRegistedActionTab: 0,
             nbNamedTab: 0,
@@ -82,24 +83,18 @@ $(() => {
         offstyle: 'secondary',
         size: "sm",
     });
-    for (const elm of ['closeIrrelevantTabs', 'debuggerStatement', 'pauseProcess', 'injectProcess']) {
+    $("#noClose").prop('checked', pluginStat.config.noClose).bootstrapToggle({
+        on: '🛡️',
+        off: 'off',
+        onstyle: 'danger',
+        offstyle: 'secondary',
+        size: "sm",
+    });
+    for (const elm of ['closeIrrelevantTabs', 'debuggerStatement', 'pauseProcess', 'injectProcess', 'noClose']) {
         const jq = $(`#${elm}`);
         jq.on('change', function () {
             const value = $(this).is(':checked');
-            switch (elm) {
-                case 'closeIrrelevantTabs':
-                    pluginStat.config.closeIrrelevantTabs = value;
-                    break;
-                case 'debuggerStatement':
-                    pluginStat.config.debuggerStatement = value;
-                    break;
-                case 'pauseProcess':
-                    pluginStat.config.pauseProcess = value;
-                    break;
-                case 'injectProcess':
-                    pluginStat.config.injectProcess = value;
-                    break;
-            }
+            pluginStat.config[elm] = value;
             chromep.runtime.sendMessage({
                 command: 'updateBadge',
             });

@@ -67,30 +67,26 @@ $(() => {
         size: "sm",
     });
 
+
+    (<MyJQ>$("#noClose")).prop('checked', pluginStat.config.noClose).bootstrapToggle({
+        on: '🛡️',
+        off: 'off',
+        onstyle: 'danger',
+        offstyle: 'secondary',
+        size: "sm",
+    });
+
     //tasker.config.forEach((value: boolean, key: string) => {
     //    console.log(key, value);
     //});
     
-    for (const elm of ['closeIrrelevantTabs', 'debuggerStatement', 'pauseProcess', 'injectProcess']) {
+    for (const elm of ['closeIrrelevantTabs', 'debuggerStatement', 'pauseProcess', 'injectProcess', 'noClose']) {
         const jq = $(`#${elm}`);
         jq.on('change', function () {
             const value = $(this).is(':checked');
             // Can be fix with moderne TS
             // tasker.config[elm] = value;
-            switch (elm) {
-                case 'closeIrrelevantTabs':
-                    pluginStat.config.closeIrrelevantTabs = value;
-                    break;
-                case 'debuggerStatement':
-                    pluginStat.config.debuggerStatement = value;
-                    break;
-                case 'pauseProcess':
-                    pluginStat.config.pauseProcess = value;
-                    break;
-                case 'injectProcess':
-                    pluginStat.config.injectProcess = value;
-                    break;
-            }
+            (<any>pluginStat.config)[elm] = value;
             chromep.runtime.sendMessage({
                 command: 'updateBadge',
             });
