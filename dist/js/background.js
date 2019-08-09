@@ -976,19 +976,21 @@ class ZFunction {
             .then(() => coos);
     }
     ;
-    pushCookies(cookies) {
+    async pushCookies(cookies) {
         cookies = cookies || [];
-        const promises = cookies.map(c => Promise.resolve({
-            url: ((c.secure) ? 'https://' : 'http://') + c.domain + c.path,
-            name: c.name,
-            value: c.value,
-            domain: c.domain,
-            path: c.path,
-            secure: c.secure,
-            httpOnly: c.httpOnly,
-            expirationDate: c.expirationDate
-        }).then(chromep.cookies.set));
-        return Promise.all(promises).then(() => 'ok');
+        for (const c of cookies) {
+            await chromep.cookies.set({
+                url: ((c.secure) ? 'https://' : 'http://') + c.domain + c.path,
+                name: c.name,
+                value: c.value,
+                domain: c.domain,
+                path: c.path,
+                secure: c.secure,
+                httpOnly: c.httpOnly,
+                expirationDate: c.expirationDate
+            });
+        }
+        return 'ok';
     }
 }
 exports.default = ZFunction;

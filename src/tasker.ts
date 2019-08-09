@@ -579,6 +579,7 @@ export default class Tasker {
                 return r;
             })
             .then(pOk(sendResponse), pError(sendResponse, 'pushCookies')),
+            
         putCookies: (request, sender, sendResponse) => zFunction.pushCookies(request.cookies)
             .then((r) => {
                 Tasker.Instance.lastCookiesSave = Date.now();

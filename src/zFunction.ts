@@ -10,9 +10,9 @@ interface CacheHttpData {
     lastUpdated: number;
 }
 
- /**
- * @param {string} code
- */
+/**
+* @param {string} code
+*/
 const filterJs = (code: string) => {
     // remove all sourceMapping
     code = code.replace('//# sourceMappingURL=', '//');
@@ -45,7 +45,7 @@ export default class ZFunction {
      * @param {(string|string[])[]} urls
      * @return {string[]}
      */
-    public static flat(urls: (string|string[])[]) {
+    public static flat(urls: (string | string[])[]) {
         let urlsFlat: string[] = [];
         for (let elm of urls) {
             if (Array.isArray(elm))
@@ -303,18 +303,20 @@ export default class ZFunction {
     /**
      * @param cookies {chrome.cookies.Cookie[]} 
      */
-    public pushCookies(cookies: chrome.cookies.Cookie[]) {
+    public async pushCookies(cookies: chrome.cookies.Cookie[]) {
         cookies = cookies || [];
-        const promises = cookies.map(c => Promise.resolve({
-            url: ((c.secure) ? 'https://' : 'http://') + c.domain + c.path,
-            name: c.name,
-            value: c.value,
-            domain: c.domain,
-            path: c.path,
-            secure: c.secure,
-            httpOnly: c.httpOnly,
-            expirationDate: c.expirationDate
-        }).then(chromep.cookies.set));
-        return Promise.all(promises).then(() => 'ok');
+        for (const c of cookies) {
+            await chromep.cookies.set({
+                url: ((c.secure) ? 'https://' : 'http://') + c.domain + c.path,
+                name: c.name,
+                value: c.value,
+                domain: c.domain,
+                path: c.path,
+                secure: c.secure,
+                httpOnly: c.httpOnly,
+                expirationDate: c.expirationDate
+            })
+        }
+        return 'ok';
     }
 };
