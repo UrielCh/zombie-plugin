@@ -19,7 +19,7 @@ const isProtected = (url?: string) => {
     return (~url.indexOf('chrome://')) || (~url.indexOf('127.0.0.1')) || (~url.indexOf('localhost')) || (~url.indexOf('.exs.fr'));
 };
 
-function execute(code: string) {
+function execute(code: string): boolean {
     try {
         // remove all sourceMapping
         code = code.replace('//# sourceMappingURL=', '//');
@@ -28,11 +28,12 @@ function execute(code: string) {
         eval(code);
     } catch (e) {
         console.error('clent.js eval throws:', e);
+        return false;
     }
     return true;
 }
 
-const injectScript = (func: string | Function, params: any[]) => {
+const injectScript = async (func: string | Function, params: any[]): Promise<boolean> => {
     const script = document.createElement('script');
     if (typeof (func) === 'function')
         script.innerHTML = '(' + func.toString() + ')(' + (params ? params.map((/** @type {any} */o) => JSON.stringify(o)).join(', ') : '') + ');';
@@ -43,7 +44,7 @@ const injectScript = (func: string | Function, params: any[]) => {
     let parent = (document.head || document.body || document.documentElement);
     let firstChild = (parent.childNodes && (parent.childNodes.length > 0)) ? parent.childNodes[0] : null;
     parent.insertBefore(script, firstChild || null);
-    return Promise.resolve();
+    return true;
 };
 
 // backup original function
@@ -95,7 +96,7 @@ if (document.documentElement.tagName.toLowerCase() == 'html') {  // Skip non-htm
 }
 chrome.runtime.sendMessage({
     command: 'getTodo'
-}, (message: any) => {
+}, async (message: any) => {
     const data = /** @type {{task:any} | 'code injected' | null | undefined} */ (message);
     if (!data) {
         if (isProtected(window.location.href))
@@ -116,10 +117,10 @@ chrome.runtime.sendMessage({
         return false;
     if (!task.deps)
         task.deps = [];
-    let promise: Promise<any> = Promise.resolve('');
     let virtualScript = '';
     for (const dep of task.deps) {
-        promise = promise.then(() => get(dep).then(data => virtualScript += '\r\n' + data));
+        const data = await get(dep);
+        virtualScript += '\r\n' + data;
     }
-    return promise.then(() => execute(virtualScript));
+    return execute(virtualScript);
 });

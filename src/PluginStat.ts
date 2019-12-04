@@ -4,14 +4,21 @@ interface BackGroundPage extends Window {
     pluginStat: PluginStatValue;
 }
 
+/**
+ * This part of the conf is saved in plugin storage
+ */
 export interface PluginSavedState {
     closeIrrelevantTabs: boolean,
     debuggerStatement: boolean,
     pauseProcess: boolean,
     injectProcess: boolean,
     noClose: boolean,
+    // Proxy auth must be save to keep proxy config running between runs
+    proxyAuth?: { username: string, password: string }
 }
-
+/**
+ * Volatile configuration go here
+ */
 export interface PluginStatValue {
     /**
      * those option are saved in local storage
@@ -21,12 +28,11 @@ export interface PluginStatValue {
     nbNamedTab: number;
     memoryCacheSize: number;
     proxy: string;
-    proxyAuth?: { username: string, password: string }
     userAgent: string;
 }
 
 export default function value() {
-    const old: PluginStatValue = (<BackGroundPage>window).pluginStat;
+    const old: PluginStatValue = (<BackGroundPage><any>window).pluginStat;
     if (!old) {
         // console.log('Initialize PluginStat instance ', Error('stack'))
         const stats = {
@@ -43,7 +49,7 @@ export default function value() {
             proxy: '',
             userAgent: '',
         };
-        (<BackGroundPage>window).pluginStat = stats;
+        (<BackGroundPage><any>window).pluginStat = stats;
         return stats;
     }
     return old;

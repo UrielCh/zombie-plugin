@@ -17,10 +17,11 @@ function execute(code) {
     }
     catch (e) {
         console.error('clent.js eval throws:', e);
+        return false;
     }
     return true;
 }
-const injectScript = (func, params) => {
+const injectScript = async (func, params) => {
     const script = document.createElement('script');
     if (typeof (func) === 'function')
         script.innerHTML = '(' + func.toString() + ')(' + (params ? params.map((o) => JSON.stringify(o)).join(', ') : '') + ');';
@@ -30,7 +31,7 @@ const injectScript = (func, params) => {
     let parent = (document.head || document.body || document.documentElement);
     let firstChild = (parent.childNodes && (parent.childNodes.length > 0)) ? parent.childNodes[0] : null;
     parent.insertBefore(script, firstChild || null);
-    return Promise.resolve();
+    return true;
 };
 const originalGeolocation = {
     getCurrentPosition: navigator.geolocation.getCurrentPosition,
@@ -60,7 +61,7 @@ if (document.documentElement.tagName.toLowerCase() == 'html') {
 }
 chrome.runtime.sendMessage({
     command: 'getTodo'
-}, (message) => {
+}, async (message) => {
     const data = (message);
     if (!data) {
         if (isProtected(window.location.href))
@@ -81,10 +82,10 @@ chrome.runtime.sendMessage({
         return false;
     if (!task.deps)
         task.deps = [];
-    let promise = Promise.resolve('');
     let virtualScript = '';
     for (const dep of task.deps) {
-        promise = promise.then(() => get(dep).then(data => virtualScript += '\r\n' + data));
+        const data = await get(dep);
+        virtualScript += '\r\n' + data;
     }
-    return promise.then(() => execute(virtualScript));
+    return execute(virtualScript);
 });

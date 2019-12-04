@@ -7,6 +7,8 @@ const tasker = Tasker.Instance;
 const chromep = new ChromePromise();
 const pluginStat: PluginStatValue = PluginStat();
 
+const wait = (duration: number) => new Promise(resolve => setTimeout(() => (resolve()), duration));
+
 if (chrome.cookies)
     chrome.cookies.onChanged.addListener((changeInfo) => {
         const {
@@ -40,23 +42,23 @@ if (chrome.tabs)
     });
 
 if (chrome.tabs)
-    chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
+    chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
         console.log({
             'replace': removedTabId,
             'by': addedTabId
         });
         tasker.registedActionTab[addedTabId] = tasker.registedActionTab[removedTabId];
         delete tasker.registedActionTab[removedTabId];
-        return chromep.tabs.get(addedTabId)
-            .then(addedTab => {
-                for (const key in tasker.namedTab) {
-                    const tab = tasker.namedTab[key];
-                    if (tab.id == removedTabId)
-                        tasker.namedTab[key] = addedTab;
-                }
-            }, error => {
-                console.log(Error(error));
-            });
+        try {
+            const addedTab = await chromep.tabs.get(addedTabId);
+            for (const key in tasker.namedTab) {
+                const tab = tasker.namedTab[key];
+                if (tab.id == removedTabId)
+                    tasker.namedTab[key] = addedTab;
+            }
+        } catch (error) {
+            console.log(Error(error));
+        }
     });
 
 
@@ -67,16 +69,19 @@ if (chrome.tabs)
 /**
  * Register function
  */
-const pluginListenerExternal = (request: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
+const pluginListenerExternal = async (request: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
     if (!request.command) {
         sendResponse(ZUtils.toErr('Error all call must contains command name receved:' + JSON.stringify(request)));
         return true;
     }
     const mtd = tasker.commands[request.command];
-    if (mtd)
-        Promise.resolve()
-            .then(() => mtd(request, sender, sendResponse))
-            .catch(ZUtils.catchPromise(`External.${request.command}`));
+    if (mtd) {
+        try {
+            await mtd(request, sender, sendResponse);
+        } catch (e) {
+            ZUtils.catchPromise(`External.${request.command}`)(e);
+        }
+    }
     else
         sendResponse(`command ${request.command} not found`);
     return true;
@@ -84,17 +89,19 @@ const pluginListenerExternal = (request: any, sender: chrome.runtime.MessageSend
 /**
  * Find registred function and exec them
  */
-const pluginListenerInternal = (request: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
+const pluginListenerInternal = async (request: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
     if (!request.command) {
         sendResponse(ZUtils.toErr(`Error all call must contains "command" name recieve:${JSON.stringify(request)}`));
         return true;
     }
     const mtd = tasker.commands[request.command];
-    if (mtd)
-        Promise.resolve()
-            .then(() => mtd(request, sender, sendResponse))
-            .catch(ZUtils.catchPromise(`Internal.${request.command}`));
-    else
+    if (mtd) {
+        try {
+            await mtd(request, sender, sendResponse);
+        } catch (e) {
+            ZUtils.catchPromise(`Internal.${request.command}`)(e);
+        }
+    } else
         sendResponse('command ' + request.command + ' not found');
     return true;
 }
@@ -109,9 +116,9 @@ if (chrome.runtime) {
 let souldCloseTabId = 0;
 if (chrome.webRequest) {
     chrome.webRequest.onAuthRequired.addListener((details, callbackFn) => {
-        if (details.isProxy && pluginStat.proxyAuth && callbackFn) {
+        if (details.isProxy && pluginStat.config.proxyAuth && callbackFn) {
             callbackFn({
-                authCredentials: pluginStat.proxyAuth
+                authCredentials: pluginStat.config.proxyAuth
             });
         }
     },
@@ -119,7 +126,7 @@ if (chrome.webRequest) {
         ['asyncBlocking']);
 
 
-    chrome.webRequest.onErrorOccurred.addListener(details => {
+    chrome.webRequest.onErrorOccurred.addListener(async (details) => {
         if (details.type != 'main_frame')
             return;
         if (details.error == 'net::ERR_FILE_NOT_FOUND' || details.error == 'net::ERR_NAME_NOT_RESOLVED') {
@@ -139,15 +146,16 @@ if (chrome.webRequest) {
             }
             souldCloseTabId = details.tabId;
             console.log(`${details.error} ${details.error} ${details.url} Refresh in 5 sec`, details);
-            setTimeout(ZUtils.refreshTab, 5000, details.tabId);
+            await wait(5000);
+            ZUtils.refreshTab(details.tabId);
             return;
         }
         console.log('chrome.webRequest.onErrorOccurred close 5 sec [close Forced]', details);
         tasker.mayCloseTabIn(details.tabId, 5000);
         console.log(`${details.error} X ${details.error} ${details.url} Close in 5 sec`, details);
     }, {
-            urls: ['<all_urls>']
-        });
+        urls: ['<all_urls>']
+    });
 }
 const replaceUserAgent = (userAgent: string, headers: chrome.webRequest.HttpHeader[]) => {
     if (!userAgent)
@@ -161,6 +169,7 @@ const replaceUserAgent = (userAgent: string, headers: chrome.webRequest.HttpHead
         };
     });
 };
+
 if (chrome.webRequest) {
     const getHostname = (url: string) => {
         const aElm = document.createElement("a");
@@ -178,7 +187,7 @@ if (chrome.webRequest) {
             const hostname = getHostname(data.url);
             for (const dom of tasker.blockedDomains) {
                 if (~hostname.indexOf(dom))
-                return { cancel: true }
+                    return { cancel: true }
             }
         }
         if (data.requestHeaders && data.requestHeaders.length > 0 && pluginStat.userAgent)
@@ -197,44 +206,48 @@ if (chrome.webRequest) {
  * @param {chrome.tabs.Tab} tab
  */
 if (chrome.tabs)
-    chrome.tabs.onCreated.addListener(tab => {
+    chrome.tabs.onCreated.addListener(async (tab) => {
         if (!tab.id) {
             return;
         }
         const tabId = tab.id;
         // console.log('new tab created', tab.id, 'parent', tab.openerTabId);
-        const checker = () => chromep.tabs.get(tabId)
-            .then(tab => {
-                //if (!tab)
-                //    return;
-                // Tab is alive
-                let title = tab.title || '';
-                title = title.toLowerCase();
-                let sslError = false;
-                if (title === 'erreur li\u00e9e \u00e0 la confidentialit\u00e9')
-                    sslError = true;
-                if (title === 'privacy error')
-                    sslError = true;
-                if (sslError) {
-                    console.log('closing tab due to ssl error [close DROPED]', title);
-                    console.log('chrome.webRequest.onErrorOccurred close 20 sec [close DROPED]');
-                    setTimeout(tasker.mayCloseTabIn, 20000, tab.id);
-                    return;
-                }
-                setTimeout(checker, 2000);
-            }, error => Promise.resolve({
+        await wait(500);
+        try {
+            const tab = await chromep.tabs.get(tabId)
+            if (!tab)
+                return;
+            // Tab is alive
+            let title = tab.title || '';
+            title = title.toLowerCase();
+            let sslError = false;
+            if (title === 'erreur li\u00e9e \u00e0 la confidentialit\u00e9')
+                sslError = true;
+            if (title === 'privacy error')
+                sslError = true;
+            if (sslError) {
+                console.log('closing tab due to ssl error [close DROPED]', title);
+                console.log('chrome.webRequest.onErrorOccurred close 20 sec [close DROPED]');
+                await wait(20000);
+                if (tab && tab.id)
+                    tasker.mayCloseTabIn(tab.id, 10);
+                return;
+            }
+        } catch (error) {
+            return {
                 message: 'done table ' + tab.id,
                 details: Error(error)
-            }));
-        setTimeout(checker, 500);
+            };
+        }
     });
 
 /**
  * Main testing loop every 5 sec
  * auto-close tab
  */
-setInterval(() => chromep.tabs.query({})
-    .then(tabs => tabs.forEach(tab => {
+setInterval(async () => {
+    const tabs = await chromep.tabs.query({})
+    tabs.forEach(tab => {
         /**
          * @var {ZTask}
          */
@@ -246,14 +259,12 @@ setInterval(() => chromep.tabs.query({})
         if (ZUtils.isProtected(tab.url))
             return;
         tasker.mayCloseTabIn(tab.id, 20);
-    })), 5 * 60000); // 5 min
+    });
+}, 5 * 60000); // 5 min
 
 
 // load config from previous state
 if (chrome.storage) {
-    /**
-     * @type {string}
-     */
     let lastValue = '';
     chromep.storage.local.get(pluginStat.config)
         .then((items) => {
@@ -263,13 +274,13 @@ if (chrome.storage) {
         })
         .then(() => {
             // start sync loop
-            setInterval(() => {
+            setInterval(async () => {
                 let newVal = JSON.stringify(pluginStat.config);
                 if (newVal != lastValue) {
                     // Tasker.updateBadge();
                     // console.log('Sync tasker.config value');
-                    chromep.storage.local.set(pluginStat.config)
-                        .then(() => lastValue = newVal);
+                    await chromep.storage.local.set(pluginStat.config)
+                    lastValue = newVal;
                 }
             }, 5000);
         })
