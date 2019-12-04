@@ -33,12 +33,8 @@ interface ZTask {
     target: string;
 }
 
-/**
- * @type {ZFunction}
- */
 const zFunction = ZFunction.Instance;
 
-/** @type {ChromePromise} */
 const chromep = new ChromePromise();
 const pluginStat: PluginStatValue = PluginStat();
 const toOk = (message: any) => (message);

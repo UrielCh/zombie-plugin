@@ -11,6 +11,11 @@ interface MyJQ extends JQuery<HTMLElement> {
 }
 
 $(() => {
+    let bg: BackGroundPage | undefined;
+    if (chrome.extension)
+        bg = (chrome.extension.getBackgroundPage()) as BackGroundPage;
+    const pluginStat: PluginStatValue = (bg && bg.pluginStat) ? bg.pluginStat : PluginStat();
+
     const chromep = new ChromePromise();
     let lastCode = 'N/A';
 
@@ -27,11 +32,6 @@ $(() => {
         for (const key of Object.keys(data))
             $(`#${key}`).text(data[key]);
     };
-
-    let bg: BackGroundPage | undefined;
-    if (chrome.extension)
-        bg = (chrome.extension.getBackgroundPage()) as BackGroundPage;
-    const pluginStat: PluginStatValue = (bg && bg.pluginStat) ? bg.pluginStat : PluginStat();
 
     ($('#closeIrrelevantTabs') as MyJQ).prop('checked', pluginStat.config.closeIrrelevantTabs).bootstrapToggle({
         on: '💣',

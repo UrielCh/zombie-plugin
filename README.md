@@ -47,6 +47,13 @@ echo zombie-v${version}.tar.gz generated
 
 ### changelog:
 
+* V 4.0.11
+    - use more async code
+
+* V 4.0.10
+    - save proxy user/password between launch
+    - lint code
+
 * V 4.0.9
     - add No-close option
 
