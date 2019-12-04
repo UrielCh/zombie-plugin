@@ -19,7 +19,7 @@ tsc -p .; copy .\built\client.js .\dist\js\client.js; browserify .\built\popup.j
 
 ```bash
 cd dist
-version=$(cat manifest.json | grep '"version"' | grep -E -o [0-9.]+)
+version=$(cat manifest.json | grep '"version"' | grep -E -o '[0-9.]+')
 tar -cvzf ../zombie-v${version}.tar.gz .
 echo zombie-v${version}.tar.gz generated
 ```
