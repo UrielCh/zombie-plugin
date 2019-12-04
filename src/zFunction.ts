@@ -1,5 +1,5 @@
-import ChromePromise from "../vendor/chrome-promise";
-import PluginStat, { PluginStatValue } from "./PluginStat";
+import ChromePromise from '../vendor/chrome-promise';
+import PluginStat, { PluginStatValue } from './PluginStat';
 
 const pluginStat: PluginStatValue = PluginStat();
 
@@ -31,12 +31,11 @@ export default class ZFunction {
 
     public static flat(urls: Array<string | string[]>) {
         let urlsFlat: string[] = [];
-        for (const elm of urls) {
+        for (const elm of urls)
             if (Array.isArray(elm))
                 urlsFlat = [...urlsFlat, ...elm];
             else
                 urlsFlat = [...urlsFlat, elm];
-        }
         return urlsFlat;
     }
 
@@ -60,7 +59,7 @@ export default class ZFunction {
     public injectJS(tabId: number, urls: Array<string | string[]>) {
         if (urls.length === 0)
             return Promise.resolve('no more javascript to inject');
-        let urlsFlat: string[] = ZFunction.flat(urls);
+        const urlsFlat: string[] = ZFunction.flat(urls);
         return this.httpGetAll(urlsFlat)
             /**
              * @param responsesMetadata {{url:string, data:string}[]}
@@ -84,7 +83,7 @@ export default class ZFunction {
                 console.log('httpGetAll ', urls, 'fail error', error);
                 // closeTab(tab.id);
             });
-    };
+    }
 
     /**
      * @param {number} tabId
@@ -152,12 +151,12 @@ export default class ZFunction {
      */
     public httpGetCached(url: string) {
         return ZFunction._instance.httpGetPromise(url, true);
-    };
+    }
     public flush() {
         this.memoryCache = {};
         pluginStat.memoryCacheSize = 0;
         return Promise.resolve();
-    };
+    }
     /**
      * @param {string} url
      * @param {boolean} [usecache]
@@ -214,8 +213,8 @@ export default class ZFunction {
         return this.getCookies(cookieDomain, cookieName)
             .then((c: chrome.cookies.Cookie[]) => { cookies = c; return c; })
             .then(self.deleteCookiesSelection)
-            .then(() => cookies)
-    };
+            .then(() => cookies);
+    }
     /**
      * delete cookies matching cookieDomain and cookieName regexp
      * return deleted cookies count
@@ -225,7 +224,7 @@ export default class ZFunction {
     public deleteCookies(cookieDomain: string, cookieName: string) {
         return this.getCookies(cookieDomain, cookieName)
             .then(this.deleteCookiesSelection);
-    };
+    }
     /**
      * get mattring cookie and return them as promise
      * @param cookieDomain {string}
@@ -277,7 +276,7 @@ export default class ZFunction {
      */
     public async pushCookies(cookies: chrome.cookies.Cookie[]) {
         cookies = cookies || [];
-        for (const c of cookies) {
+        for (const c of cookies)
             await chromep.cookies.set({
                 domain: c.domain,
                 expirationDate: c.expirationDate,
@@ -288,7 +287,6 @@ export default class ZFunction {
                 url: ((c.secure) ? 'https://' : 'http://') + c.domain + c.path,
                 value: c.value
             });
-        }
         return 'ok';
     }
 

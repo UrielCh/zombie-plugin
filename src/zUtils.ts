@@ -1,4 +1,4 @@
-import ChromePromise from "../vendor/chrome-promise";
+import ChromePromise from '../vendor/chrome-promise';
 
 const chromep = new ChromePromise();
 

@@ -5,17 +5,16 @@ let zone = document.getElementById('tasker_id_loader');
 if (zone)
     zone.innerHTML = chrome.runtime.id;
 // let zoneVerion = document.getElementById('tasker_id_loader_version');
-//if (zoneVerion && chrome.app) {
+// if (zoneVerion && chrome.app) {
 // console.log(chrome.app.installState());
 // zoneVerion.innerHTML = chrome.app.getDetails().version;
-//}
+// }
 
-const get = (url: string) => jQuery.get(url).then((data, textStatus, jqXHR) => { return Promise.resolve(data) }, (jqXHR, textStatus, errorThrown) => { return Promise.reject(textStatus) });
+const get = (url: string) => jQuery.get(url).then((data, textStatus, jqXHR) => Promise.resolve(data), (jqXHR, textStatus, errorThrown) => Promise.reject(textStatus));
 
 const isProtected = (url?: string) => {
-    if (!url) {
+    if (!url)
         return false;
-    }
     return (~url.indexOf('chrome://')) || (~url.indexOf('127.0.0.1')) || (~url.indexOf('localhost')) || (~url.indexOf('.exs.fr'));
 };
 
@@ -25,6 +24,7 @@ function execute(code: string): boolean {
         code = code.replace('//# sourceMappingURL=', '//');
         // remove ES6 import
         code = code.replace(/import\s+[0-9A-Za-z_-]+\s+from\s+['"][./0-9A-Za-z_-]+['"]\s*;?/g, '');
+        /* tslint:disable:no-eval */
         eval(code);
     } catch (e) {
         console.error('clent.js eval throws:', e);
@@ -33,7 +33,7 @@ function execute(code: string): boolean {
     return true;
 }
 
-const injectScript = async (func: string | Function, params: any[]): Promise<boolean> => {
+const injectScript = async (func: string | ((...args: any) => any), params: any[]): Promise<boolean> => {
     const script = document.createElement('script');
     if (typeof (func) === 'function')
         script.innerHTML = '(' + func.toString() + ')(' + (params ? params.map((/** @type {any} */o) => JSON.stringify(o)).join(', ') : '') + ');';
@@ -41,8 +41,8 @@ const injectScript = async (func: string | Function, params: any[]): Promise<boo
         script.innerHTML = func;
     // self remove script
     script.addEventListener('load', () => document.documentElement.removeChild(script), true /*useCapture*/);
-    let parent = (document.head || document.body || document.documentElement);
-    let firstChild = (parent.childNodes && (parent.childNodes.length > 0)) ? parent.childNodes[0] : null;
+    const parent = (document.head || document.body || document.documentElement);
+    const firstChild = (parent.childNodes && (parent.childNodes.length > 0)) ? parent.childNodes[0] : null;
     parent.insertBefore(script, firstChild || null);
     return true;
 };
@@ -52,11 +52,11 @@ const originalGeolocation = {
     getCurrentPosition: navigator.geolocation.getCurrentPosition,
     watchPosition: navigator.geolocation.watchPosition,
     clearWatch: navigator.geolocation.clearWatch,
-}
+};
 
 /**
  * see lib.dom.d.ts
- * @param {Coordinates} coords 
+ * @param {Coordinates} coords
  */
 function installGeolocationCode(coords: Coordinates) {
     /**
@@ -84,16 +84,16 @@ function installGeolocationCode(coords: Coordinates) {
         return (timerId = window.setInterval(myGetPos, 5 * 1000, successCallback, errorCallback, options));
     };
     navigator.geolocation.clearWatch = () => window.clearInterval(timerId);
-};
+}
 
-if (document.documentElement.tagName.toLowerCase() == 'html') {  // Skip non-html pages.
+if (document.documentElement.tagName.toLowerCase() === 'html')  // Skip non-html pages.
     chrome.storage.local.get({ coords: null }, (data) => {
         // /** @type {Position} */
         if (data.coords)
             injectScript(installGeolocationCode, [data.coords]);
-        //else    console.log('NOGEOLOC data');
+        // else console.log('NOGEOLOC data');
     });
-}
+
 chrome.runtime.sendMessage({
     command: 'getTodo'
 }, async (message: any) => {
@@ -109,9 +109,8 @@ chrome.runtime.sendMessage({
         console.error('Bootstraping Retunr Error:' + data.error);
         return true;
     }
-    if (data == 'code injected' || !data.task) {
+    if (data === 'code injected' || !data.task)
         return true;
-    }
     const task = data.task;
     if (!task)
         return false;
@@ -119,8 +118,8 @@ chrome.runtime.sendMessage({
         task.deps = [];
     let virtualScript = '';
     for (const dep of task.deps) {
-        const data = await get(dep);
-        virtualScript += '\r\n' + data;
+        const data2 = await get(dep);
+        virtualScript += '\r\n' + data2;
     }
     return execute(virtualScript);
 });

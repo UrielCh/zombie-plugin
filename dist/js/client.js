@@ -2,11 +2,10 @@
 let zone = document.getElementById('tasker_id_loader');
 if (zone)
     zone.innerHTML = chrome.runtime.id;
-const get = (url) => jQuery.get(url).then((data, textStatus, jqXHR) => { return Promise.resolve(data); }, (jqXHR, textStatus, errorThrown) => { return Promise.reject(textStatus); });
+const get = (url) => jQuery.get(url).then((data, textStatus, jqXHR) => Promise.resolve(data), (jqXHR, textStatus, errorThrown) => Promise.reject(textStatus));
 const isProtected = (url) => {
-    if (!url) {
+    if (!url)
         return false;
-    }
     return (~url.indexOf('chrome://')) || (~url.indexOf('127.0.0.1')) || (~url.indexOf('localhost')) || (~url.indexOf('.exs.fr'));
 };
 function execute(code) {
@@ -28,8 +27,8 @@ const injectScript = async (func, params) => {
     else if (typeof (func) === 'string')
         script.innerHTML = func;
     script.addEventListener('load', () => document.documentElement.removeChild(script), true);
-    let parent = (document.head || document.body || document.documentElement);
-    let firstChild = (parent.childNodes && (parent.childNodes.length > 0)) ? parent.childNodes[0] : null;
+    const parent = (document.head || document.body || document.documentElement);
+    const firstChild = (parent.childNodes && (parent.childNodes.length > 0)) ? parent.childNodes[0] : null;
     parent.insertBefore(script, firstChild || null);
     return true;
 };
@@ -52,13 +51,11 @@ function installGeolocationCode(coords) {
     };
     navigator.geolocation.clearWatch = () => window.clearInterval(timerId);
 }
-;
-if (document.documentElement.tagName.toLowerCase() == 'html') {
+if (document.documentElement.tagName.toLowerCase() === 'html')
     chrome.storage.local.get({ coords: null }, (data) => {
         if (data.coords)
             injectScript(installGeolocationCode, [data.coords]);
     });
-}
 chrome.runtime.sendMessage({
     command: 'getTodo'
 }, async (message) => {
@@ -74,9 +71,8 @@ chrome.runtime.sendMessage({
         console.error('Bootstraping Retunr Error:' + data.error);
         return true;
     }
-    if (data == 'code injected' || !data.task) {
+    if (data === 'code injected' || !data.task)
         return true;
-    }
     const task = data.task;
     if (!task)
         return false;
@@ -84,8 +80,8 @@ chrome.runtime.sendMessage({
         task.deps = [];
     let virtualScript = '';
     for (const dep of task.deps) {
-        const data = await get(dep);
-        virtualScript += '\r\n' + data;
+        const data2 = await get(dep);
+        virtualScript += '\r\n' + data2;
     }
     return execute(virtualScript);
 });

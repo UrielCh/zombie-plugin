@@ -1,7 +1,7 @@
-import ChromePromise from "../vendor/chrome-promise";
-import Tasker from "./tasker";
-import ZUtils from "./zUtils";
-import PluginStat, { PluginSavedState, PluginStatValue } from "./PluginStat";
+import ChromePromise from '../vendor/chrome-promise';
+import PluginStat, { PluginSavedState, PluginStatValue } from './PluginStat';
+import Tasker from './tasker';
+import ZUtils from './zUtils';
 
 const tasker = Tasker.Instance;
 const chromep = new ChromePromise();
@@ -15,7 +15,7 @@ if (chrome.cookies)
             cookie,
             cause
         } = changeInfo;
-        if (cause == 'overwrite' || cause == 'expired_overwrite') {
+        if (cause === 'overwrite' || cause === 'expired_overwrite') {
             const {
                 domain,
                 name
@@ -32,10 +32,10 @@ if (chrome.cookies)
 if (chrome.tabs)
     chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
         const oldTask = tasker.registedActionTab[tabId];
-        delete tasker.registedActionTab[tabId]
+        delete tasker.registedActionTab[tabId];
         pluginStat.nbRegistedActionTab = Object.keys(tasker.registedActionTab).length;
         if (oldTask && oldTask.target) {
-            delete tasker.namedTab[oldTask.target]
+            delete tasker.namedTab[oldTask.target];
             pluginStat.nbNamedTab = Object.keys(tasker.namedTab).length;
             Tasker.updateBadge();
         }
@@ -44,8 +44,8 @@ if (chrome.tabs)
 if (chrome.tabs)
     chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
         console.log({
-            'replace': removedTabId,
-            'by': addedTabId
+            replace: removedTabId,
+            by: addedTabId
         });
         tasker.registedActionTab[addedTabId] = tasker.registedActionTab[removedTabId];
         delete tasker.registedActionTab[removedTabId];
@@ -53,14 +53,13 @@ if (chrome.tabs)
             const addedTab = await chromep.tabs.get(addedTabId);
             for (const key in tasker.namedTab) {
                 const tab = tasker.namedTab[key];
-                if (tab.id == removedTabId)
+                if (tab.id === removedTabId)
                     tasker.namedTab[key] = addedTab;
             }
         } catch (error) {
             console.log(Error(error));
         }
     });
-
 
 /**
  * PLUGIN CONNECTOR
@@ -75,17 +74,16 @@ const pluginListenerExternal = async (request: any, sender: chrome.runtime.Messa
         return true;
     }
     const mtd = tasker.commands[request.command];
-    if (mtd) {
+    if (mtd)
         try {
             await mtd(request, sender, sendResponse);
         } catch (e) {
             ZUtils.catchPromise(`External.${request.command}`)(e);
         }
-    }
     else
         sendResponse(`command ${request.command} not found`);
     return true;
-}
+};
 /**
  * Find registred function and exec them
  */
@@ -95,16 +93,16 @@ const pluginListenerInternal = async (request: any, sender: chrome.runtime.Messa
         return true;
     }
     const mtd = tasker.commands[request.command];
-    if (mtd) {
+    if (mtd)
         try {
             await mtd(request, sender, sendResponse);
         } catch (e) {
             ZUtils.catchPromise(`Internal.${request.command}`)(e);
         }
-    } else
+    else
         sendResponse('command ' + request.command + ' not found');
     return true;
-}
+};
 /**
  * https://developer.chrome.com/extensions/runtime#event-onMessageExternal
  */
@@ -116,30 +114,28 @@ if (chrome.runtime) {
 let souldCloseTabId = 0;
 if (chrome.webRequest) {
     chrome.webRequest.onAuthRequired.addListener((details, callbackFn) => {
-        if (details.isProxy && pluginStat.config.proxyAuth && callbackFn) {
+        if (details.isProxy && pluginStat.config.proxyAuth && callbackFn)
             callbackFn({
                 authCredentials: pluginStat.config.proxyAuth
             });
-        }
     },
-        { urls: ["<all_urls>"] },
+        { urls: ['<all_urls>'] },
         ['asyncBlocking']);
 
-
     chrome.webRequest.onErrorOccurred.addListener(async (details) => {
-        if (details.type != 'main_frame')
+        if (details.type !== 'main_frame')
             return;
-        if (details.error == 'net::ERR_FILE_NOT_FOUND' || details.error == 'net::ERR_NAME_NOT_RESOLVED') {
+        if (details.error === 'net::ERR_FILE_NOT_FOUND' || details.error === 'net::ERR_NAME_NOT_RESOLVED') {
             console.log('onErrorOccurred close 1 sec', details.error);
             tasker.mayCloseTabIn(details.tabId, 1000);
             return;
         }
         if (
-            details.error == 'net::ERR_TUNNEL_CONNECTION_FAILED' ||
-            details.error == 'net::ERR_ABORTED' ||
-            details.error == 'net::ERR_EMPTY_RESPONSE'
+            details.error === 'net::ERR_TUNNEL_CONNECTION_FAILED' ||
+            details.error === 'net::ERR_ABORTED' ||
+            details.error === 'net::ERR_EMPTY_RESPONSE'
         ) {
-            if (souldCloseTabId == details.tabId) {
+            if (souldCloseTabId === details.tabId) {
                 tasker.mayCloseTabIn(details.tabId, 1000);
                 console.log(`${details.error} 2 ${details.error} ${details.url} Close in 1 sec`, details);
                 return;
@@ -172,7 +168,7 @@ const replaceUserAgent = (userAgent: string, headers: chrome.webRequest.HttpHead
 
 if (chrome.webRequest) {
     const getHostname = (url: string) => {
-        const aElm = document.createElement("a");
+        const aElm = document.createElement('a');
         aElm.href = url;
         return aElm.hostname;
     };
@@ -185,10 +181,9 @@ if (chrome.webRequest) {
             };
         if (tasker.blockedDomains && tasker.blockedDomains.length) {
             const hostname = getHostname(data.url);
-            for (const dom of tasker.blockedDomains) {
+            for (const dom of tasker.blockedDomains)
                 if (~hostname.indexOf(dom))
-                    return { cancel: true }
-            }
+                    return { cancel: true };
         }
         if (data.requestHeaders && data.requestHeaders.length > 0 && pluginStat.userAgent)
             requestHeaders = replaceUserAgent(pluginStat.userAgent, data.requestHeaders);
@@ -198,7 +193,7 @@ if (chrome.webRequest) {
     };
 
     chrome.webRequest.onBeforeSendHeaders.addListener(setUserAgentHook, {
-        'urls': ['<all_urls>']
+        urls: ['<all_urls>']
     }, ['requestHeaders', 'blocking']);
 }
 
@@ -207,18 +202,17 @@ if (chrome.webRequest) {
  */
 if (chrome.tabs)
     chrome.tabs.onCreated.addListener(async (tab) => {
-        if (!tab.id) {
+        if (!tab.id)
             return;
-        }
         const tabId = tab.id;
         // console.log('new tab created', tab.id, 'parent', tab.openerTabId);
         await wait(500);
         try {
-            const tab = await chromep.tabs.get(tabId)
-            if (!tab)
+            const tab2 = await chromep.tabs.get(tabId);
+            if (!tab2)
                 return;
             // Tab is alive
-            let title = tab.title || '';
+            let title = tab2.title || '';
             title = title.toLowerCase();
             let sslError = false;
             if (title === 'erreur li\u00e9e \u00e0 la confidentialit\u00e9')
@@ -229,8 +223,8 @@ if (chrome.tabs)
                 console.log('closing tab due to ssl error [close DROPED]', title);
                 console.log('chrome.webRequest.onErrorOccurred close 20 sec [close DROPED]');
                 await wait(20000);
-                if (tab && tab.id)
-                    tasker.mayCloseTabIn(tab.id, 10);
+                if (tab2 && tab2.id)
+                    tasker.mayCloseTabIn(tab2.id, 10);
                 return;
             }
         } catch (error) {
@@ -246,7 +240,7 @@ if (chrome.tabs)
  * auto-close tab
  */
 setInterval(async () => {
-    const tabs = await chromep.tabs.query({})
+    const tabs = await chromep.tabs.query({});
     tabs.forEach(tab => {
         /**
          * @var {ZTask}
@@ -262,33 +256,31 @@ setInterval(async () => {
     });
 }, 5 * 60000); // 5 min
 
-
 // load config from previous state
 if (chrome.storage) {
     let lastValue = '';
     chromep.storage.local.get(pluginStat.config)
         .then((items) => {
-            pluginStat.config = <PluginSavedState>(items);
+            pluginStat.config = items as PluginSavedState;
             lastValue = JSON.stringify(pluginStat.config);
             Tasker.updateBadge();
         })
         .then(() => {
             // start sync loop
             setInterval(async () => {
-                let newVal = JSON.stringify(pluginStat.config);
-                if (newVal != lastValue) {
+                const newVal = JSON.stringify(pluginStat.config);
+                if (newVal !== lastValue) {
                     // Tasker.updateBadge();
                     // console.log('Sync tasker.config value');
-                    await chromep.storage.local.set(pluginStat.config)
+                    await chromep.storage.local.set(pluginStat.config);
                     lastValue = newVal;
                 }
             }, 5000);
-        })
+        });
 }
 
 chromep.proxy.settings.get({
-    'incognito': false
+    incognito: false
 }).then((config) => {
     pluginStat.proxy = config.value.mode;
 });
-

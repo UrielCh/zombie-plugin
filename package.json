@@ -7,8 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rimraf built",
     "tsc": "tsc -p .",
+    "lint": "tslint -p .",
     "browserify": "browserify ./built/background.js > ./dist/js/background.js && browserify ./built/popup.js  > ./dist/js/popup.js && cp ./built/client.js ./dist/js/client.js",
-    "build": "npm run tsc && npm run browserify"
+    "build": "npm run lint && npm run tsc && npm run browserify"
   },
   "author": "",
   "license": "ISC",
