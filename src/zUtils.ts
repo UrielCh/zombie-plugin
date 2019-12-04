@@ -4,19 +4,19 @@ const chromep = new ChromePromise();
 
 export default class ZUtils {
     /**
-    * @param {number} tabId
-    */
+     * refresh page
+     */
     public static refreshTab(tabId: number) {
-        console.log(`refreshingTab tabId:${tabId}`);
+        // console.log(`refreshingTab tabId:${tabId}`);
         /**
          * @type Promise<chrome.tabs.Tab>
          */
-        let promise = chromep.tabs.get(tabId);
+        const promise = chromep.tabs.get(tabId);
 
         promise.then((tab) => {
             if (!tab)
                 return Promise.reject('noTab');
-            console.log('refreshTab', tabId, tab.url);
+            // console.log('refreshTab', tabId, tab.url);
             if (!tab || !tab.url)
                 return Promise.reject('noTab');
             return chromep.tabs.update(tabId, {
@@ -28,18 +28,17 @@ export default class ZUtils {
     /**
      */
     public static isProtected(url?: string) {
-        if (!url) {
+        if (!url)
             return false;
-        }
         return (~url.indexOf('chrome://')) || (~url.indexOf('127.0.0.1')) || (~url.indexOf('localhost')) || (~url.indexOf('.exs.fr'));
-    };
+    }
 
     /**
      * @param name {string}
      */
     public static catchPromise(name: string) {
         return (error: Error) => {
-            console.log(name, 'promise Failure', error)
+            console.log(name, 'promise Failure', error);
         };
     }
 
@@ -50,7 +49,7 @@ export default class ZUtils {
         return chromep.tabs.update(tabId, {
             url: 'javascript:window.onbeforeunload = undefined; window.onunload = undefined; window.confirm=function(){return !0}; window.alert=function(){}; window.prompt=function(){return !0};'
         }).then(() => '', () => '');
-    };
+    }
 
     /**
      * @param {number} tabId
@@ -68,19 +67,15 @@ export default class ZUtils {
     public static closeAllTabExept(ignoreId: number) {
         return chromep.tabs.query({})
             .then(tabs => {
-                for (let i = 0; i < tabs.length; i++) {
-                    const tabId = tabs[i].id;
-                    if (tabId && tabId != ignoreId)
+                for (const tab of tabs) {
+                    const tabId = tab.id;
+                    if (tabId && tabId !== ignoreId)
                     ZUtils.closeTab(tabId);
                 }
-            })
-    };
+            });
+    }
 
-    /**
-    * @param error {any}
-    */
    public static toErr(error: any) {
-        return { error }
-    };
-
+        return { error };
+    }
 }

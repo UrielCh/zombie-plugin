@@ -25,7 +25,7 @@ interface ZTask {
     /**
      * javascript url to inject
      */
-    deps: (string | string[])[];
+    deps: Array<string | string[]>;
     /**
      * css url to inject
      */
@@ -41,23 +41,13 @@ const zFunction = ZFunction.Instance;
 /** @type {ChromePromise} */
 const chromep = new ChromePromise();
 const pluginStat: PluginStatValue = PluginStat();
-
-
-/**
-* @param message {any}
-*/
 const toOk = (message: any) => (message);
 
-/**
-* @param sendResponse  { (response: any) => void} }
-* @param prefix  { string }
-* @returns {(error:any) => any}
-*/
 const pError = (sendResponse: (response: any) => void, prefix: string, error: Error) => {
     prefix = prefix || '';
-    //const stack = Error(prefix);
+    // const stack = Error(prefix);
     debugger;
-    let errorMsg = `${prefix} ${error.message}`.trim();
+    const errorMsg = `${prefix} ${error.message}`.trim();
     console.error(`chrome error message ${prefix}: `, error);
     if (sendResponse)
         return sendResponse(ZUtils.toErr(errorMsg));
@@ -68,7 +58,7 @@ const wait = (duration: number) => new Promise(resolve => setTimeout(() => (reso
 //  to promis Keeping this
 function setPromiseFunction(fn: Function, thisArg: any) {
     return function (...arg: any[]) {
-        let args = Array.prototype.slice.call(arg);
+        const args = Array.prototype.slice.call(arg);
         return new Promise((resolve, reject) => {
             function callback(...arg2: any[]) {
                 var err = chrome.runtime.lastError;
@@ -118,17 +108,15 @@ function toPromise(fn: Function) {
     };
 }
 
-
-
 // : (target: chrome.debugger.Debuggee) => Promise<void>
 const chrome_debugger_attach = setPromiseFunction(chrome.debugger.attach, chrome.debugger);
 const chrome_debugger_detach = setPromiseFunction(chrome.debugger.detach, chrome.debugger);
 // const chrome_debugger_sendCommand = setPromiseFunction(chrome.debugger.sendCommand, chrome.debugger);
 const chrome_debugger_sendCommand = setPromiseFunction(chrome.debugger.sendCommand, chrome.debugger) as (target: chrome.debugger.Debuggee, method: string, commandParams?: Object) => Promise<any>;
 
-//const debugger_sendCommand = (target: chrome.debugger.Debuggee, method: string, commandParams?: Object) => chrome_debugger_sendCommand(target, method, commandParams);
+// const debugger_sendCommand = (target: chrome.debugger.Debuggee, method: string, commandParams?: Object) => chrome_debugger_sendCommand(target, method, commandParams);
 
-//(target: chrome.debugger.Debuggee) => new Promise((resolve, reject) => {
+// (target: chrome.debugger.Debuggee) => new Promise((resolve, reject) => {
 /*
 const chrome_debugger_detach = (target: chrome.debugger.Debuggee) => new Promise((resolve, reject) => {
     function callback() {
@@ -145,24 +133,51 @@ const chrome_debugger_detach = (target: chrome.debugger.Debuggee) => new Promise
 
 
 export default class Tasker {
+    public static updateBadge() {
+        if (!chrome.browserAction)
+            return;
+        if (!pluginStat.config.injectProcess) {
+            chrome.browserAction.setBadgeText({ text: 'X' });
+            chrome.browserAction.setBadgeBackgroundColor({ color: 'red' });
+        } else if (pluginStat.config.pauseProcess) {
+            chrome.browserAction.setBadgeBackgroundColor({ color: '#3a87ad' });
+            chrome.browserAction.setBadgeText({ text: 'II' });
+        } else {
+            chrome.browserAction.setBadgeBackgroundColor({ color: '#468847' });
+            chrome.browserAction.setBadgeText({ text: String(Object.keys(Tasker.Instance.namedTab).length) });
+        }
+    }
+
     private static _instance: Tasker;
-    private constructor() {
-    }
-    public static get Instance() {
-        // Do you need arguments? Make it a regular method instead.
-        return this._instance || (this._instance = new this());
-    }
+
     public blockedDomains: string[] = [];
+
     public lastCookiesUpdate: number = 0;
+
     public lastCookiesSave: number = 0;
+
     /**
      * mapping tabId => ZTask
      */
     public registedActionTab: { [key: number]: ZTask } = {};
+
     /**
-     * number of registedActionTab 
+     * number of registedActionTab
      */
     public nbRegistedActionTab: number = 0;
+
+    /**
+     * mapping tablename => chrome.tabs.Tab
+     */
+    public namedTab: { [key: string]: chrome.tabs.Tab } = {};
+
+    private constructor() {
+    }
+
+    public static get Instance() {
+        // Do you need arguments? Make it a regular method instead.
+        return this._instance || (this._instance = new this());
+    }
 
     /**
      * close a tab if autoclose if enabled
@@ -178,7 +193,7 @@ export default class Tasker {
         if (value)
             setTimeout(ZUtils.closeTab, ms, tabId)
         return Promise.resolve('ok');
-    };
+    }
 
     /**
      * copy parent tab task to chidlren tab task
@@ -198,32 +213,13 @@ export default class Tasker {
                 tasker.registedActionTab[tab.id] = taskParameters;
         }
         return taskParameters;
-    };
-
-    public static updateBadge() {
-        if (!chrome.browserAction)
-            return;
-        if (!pluginStat.config.injectProcess) {
-            chrome.browserAction.setBadgeText({ text: 'X' });
-            chrome.browserAction.setBadgeBackgroundColor({ color: 'red' });
-        } else if (pluginStat.config.pauseProcess) {
-            chrome.browserAction.setBadgeBackgroundColor({ color: '#3a87ad' });
-            chrome.browserAction.setBadgeText({ text: 'II' });
-        } else {
-            chrome.browserAction.setBadgeBackgroundColor({ color: '#468847' });
-            chrome.browserAction.setBadgeText({ text: String(Object.keys(Tasker.Instance.namedTab).length) });
-        }
     }
 
-
-    /**
-     * mapping tablename => chrome.tabs.Tab
-     */
-    namedTab: { [key: string]: chrome.tabs.Tab } = {};
     // last setted user agent (original data is stored in chrome.storage)
     // events command map
-    debuggerTabId: number = 0;
-    commands: { [key: string]: (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => any) => Promise<any> } = {
+    private debuggerTabId: number = 0;
+
+    public commands: { [key: string]: (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => any) => Promise<any> } = {
         updateBadge: (request, sender, sendResponse) => {
             Tasker.updateBadge();
             return sendResponse('ok');
@@ -239,27 +235,27 @@ export default class Tasker {
                     return sendResponse(ZUtils.toErr('sender.tab is missing'));
                 const tabId = sender.tab.id;
 
-                if (sender.tab.id != Tasker.Instance.debuggerTabId) {
+                if (sender.tab.id !== Tasker.Instance.debuggerTabId) {
                     if (Tasker.Instance.debuggerTabId) {
                         await chrome_debugger_detach({ tabId: Tasker.Instance.debuggerTabId });
                     }
-                    await chrome_debugger_attach({ tabId }, "1.3");
+                    await chrome_debugger_attach({ tabId }, '1.3');
                     Tasker.Instance.debuggerTabId = tabId;
                 }
                 console.log({ target: { tabId }, method, commandParams });
                 await chrome_debugger_sendCommand({ tabId }, method, commandParams);
-                sendResponse(toOk('ok'))
+                sendResponse(toOk('ok'));
             } catch (e) {
                 pError(sendResponse, `sendCommand ${method}`, e);
             }
         },
         /**
          * External
-         **/
+         */
+
         /**
          * @param {any} request
          * @param {chrome.runtime.MessageSender} sender
-         * 
          */
         close: async (request, sender, sendResponse) => {
             try {
@@ -268,9 +264,9 @@ export default class Tasker {
                     return true;
                 }
                 await ZUtils.closeAllTabExept(0);
-                sendResponse(toOk('ok'))
+                sendResponse(toOk('ok'));
             } catch (e) {
-                pError(sendResponse, 'close all Tab', e)
+                pError(sendResponse, 'close all Tab', e);
             }
         },
         /**
@@ -278,7 +274,7 @@ export default class Tasker {
          */
         closeMe: async (request, sender, sendResponse) => {
             if (pluginStat.config.noClose) {
-                sendResponse(toOk('ok'))
+                sendResponse(toOk('ok'));
                 return true;
             }
             if (!sender.tab || !sender.tab.id) {
@@ -288,7 +284,7 @@ export default class Tasker {
             try {
                 if (request.lazy) {
                     await this.mayCloseTabIn(sender.tab.id, 5000);
-                    sendResponse(toOk('ok'))
+                    sendResponse(toOk('ok'));
                 } else {
                     await ZUtils.closeTab(sender.tab.id);
                     sendResponse(toOk('ok'));
@@ -301,7 +297,7 @@ export default class Tasker {
         saveCookies: async (request, sender, sendResponse) => {
             this.lastCookiesSave = Date.now();
             // console.log(`lastCookiesSave updated`);
-            sendResponse(toOk('ok'))
+            sendResponse(toOk('ok'));
         },
 
         readQrCode: async (request, sender, sendResponse) => {
@@ -309,9 +305,9 @@ export default class Tasker {
              * @type {Promise<any>}
              */
             let windowId = 0;;
-            if (sender.tab && sender.tab.windowId) {
+            if (sender.tab && sender.tab.windowId)
                 windowId = sender.tab.windowId;
-            } else {
+            else {
                 const tabs = await chromep.tabs.query({
                     lastFocusedWindow: true
                 });
@@ -320,11 +316,10 @@ export default class Tasker {
                 windowId = tabs[0].windowId;
             }
             const raw = await chromep.tabs.captureVisibleTab(windowId, {
-                format: "png"
+                format: 'png'
             });
-            if (!raw) {
+            if (!raw)
                 throw Error('error capturing screen');
-            }
             const prefix = 'data:image/png;base64,';
             if (raw.indexOf(prefix) !== 0) {
                 throw Error('error capturing screen');
@@ -375,14 +370,13 @@ export default class Tasker {
          */
         setProxy: async (request, sender, sendResponse) => {
             let proxy = '';
-            let {
-                username,
-                password,
-                scheme,
+            const {
                 host,
-                port
+                password,
+                port,
+                username
             } = request;
-            scheme = scheme || 'http';
+            const scheme = request.scheme || 'http';
             if (!host) {
                 // disable proxy
                 await chromep.proxy.settings.clear({
@@ -394,22 +388,22 @@ export default class Tasker {
                 // enable proxy
                 proxy = `${scheme}://${host}:${port}`;
                 await chromep.proxy.settings.set({
+                    scope: 'regular', // regular_only, incognito_persistent, incognito_session_only
                     value: {
                         mode: 'fixed_servers',
                         rules: {
+                            bypassList: ['<local>', '10.0.0.0/8', '192.168.0.0/16'],
                             singleProxy: {
-                                scheme,
                                 host,
-                                port
-                            },
-                            bypassList: ["<local>", '10.0.0.0/8', '192.168.0.0/16']
+                                port,
+                                scheme
+                            }
                         }
-                    },
-                    scope: 'regular' // regular_only, incognito_persistent, incognito_session_only
+                    }
                 });
                 if (username && password)
                     pluginStat.config.proxyAuth = { username, password };
-                pluginStat.proxy = `${scheme}://${host}:${port}`
+                pluginStat.proxy = `${scheme}://${host}:${port}`;
             }
             await chromep.storage.local.set({ proxy });
             sendResponse(toOk('ok'));
@@ -426,7 +420,7 @@ export default class Tasker {
                     pError(sendResponse, `preventPrompts Tab:${tabId}`, e);
                 }
             } else
-                sendResponse(ZUtils.toErr('missing tab'))
+                sendResponse(ZUtils.toErr('missing tab'));
         },
         /**
          */
@@ -436,9 +430,8 @@ export default class Tasker {
             if (coords.latitude && coords.latitude && coords.accuracy) {
                 delete request.command;
                 await chromep.storage.local.set({ coords });
-            } else {
-                await chromep.storage.local.remove('coords')
-            }
+            } else
+                await chromep.storage.local.remove('coords');
             return sendResponse(toOk('ok'));
         },
         /**
@@ -449,24 +442,23 @@ export default class Tasker {
                 return sendResponse(toOk('ok'));
             const task = Tasker.Instance.registedActionTab[sender.tab.id];
             task.action = request.action;
-            return sendResponse(toOk('ok'))
+            return sendResponse(toOk('ok'));
         },
         /**
          * External
          */
         registerCommand: async (request: registerCommandMessage, sender, sendResponse) => {
             const params: chrome.tabs.CreateProperties = {
-                url: request.url,
                 active: request.active || false,
-                pinned: request.pinned || false
+                pinned: request.pinned || false,
+                url: request.url
             };
-            if (request.closeIrrelevantTabs === true || request.closeIrrelevantTabs === false) {
+            if (request.closeIrrelevantTabs === true || request.closeIrrelevantTabs === false)
                 pluginStat.config.closeIrrelevantTabs = request.closeIrrelevantTabs;
-            }
             const task: ZTask = {
                 action: request.action,
-                deps: request.deps || [],
                 depCss: request.depCss || [],
+                deps: request.deps || [],
                 target: request.target || ''
             };
             if (!task.action)
@@ -506,10 +498,8 @@ export default class Tasker {
             if (domain || name) {
                 const count = await zFunction.deleteCookies(domain, name)
                 sendResponse(toOk(count));
-            }
-            else {
+            } else
                 sendResponse(ZUtils.toErr('missing Domain or cookieName argument'));
-            }
         },
 
         /**
@@ -523,8 +513,7 @@ export default class Tasker {
             if (domain || name) {
                 const cookies = await zFunction.popCookies(domain, name);
                 return sendResponse(toOk(cookies));
-            }
-            else
+            } else
                 return sendResponse(ZUtils.toErr('missing Domain or cookieName argument'));
         },
         /**
@@ -538,8 +527,7 @@ export default class Tasker {
             if (domain || name) {
                 const cookies = zFunction.getCookies(domain, name);
                 return sendResponse(toOk(cookies));
-            }
-            else
+            } else
                 return sendResponse(ZUtils.toErr('missing Domain or cookieName argument'));
         },
 
@@ -552,7 +540,7 @@ export default class Tasker {
                 Tasker.Instance.lastCookiesSave = Date.now();
                 sendResponse(toOk('ok'))
             } catch (e) {
-                pError(sendResponse, 'pushCookies', e)
+                pError(sendResponse, 'pushCookies', e);
             }
         },
 
@@ -562,7 +550,7 @@ export default class Tasker {
                 Tasker.Instance.lastCookiesSave = Date.now();
                 sendResponse(toOk('ok'));
             } catch (e) {
-                pError(sendResponse, 'putCookies', e)
+                pError(sendResponse, 'putCookies', e);
             }
         },
         /**
@@ -583,10 +571,10 @@ export default class Tasker {
                 history: true,
                 indexedDB: true,
                 localStorage: true,
+                pluginData: true, // new
+                serviceWorkers: true, // new
                 webSQL: true,
                 // serverBoundCertificates: true,
-                serviceWorkers: true, // new
-                pluginData: true, // new
             };
             if ((<any>chrome.browsingData)['removeCacheStorage']) {
                 (<any>dataToRemove)['cacheStorage'] = true; // Since Chrome 72.
@@ -705,10 +693,10 @@ export default class Tasker {
                         return;
                     await this.mayCloseTabIn(tabId, 10000);
                     sendResponse(toOk('NOOP'));
-                    return
+                    return;
                 }
                 const javascriptIncludes = tabInformation.deps || [];
-                let debugText = '// sources:\r\n// ' + ZFunction.flat(javascriptIncludes).join('\r\n// ');
+                const debugText = '// sources:\r\n// ' + ZFunction.flat(javascriptIncludes).join('\r\n// ');
                 // if this tab has parent that we known of
                 // table of parent
                 await zFunction.injectCSS(tabId, tabInformation.depCss);
@@ -732,9 +720,9 @@ export default class Tasker {
         getConfigs: async (request, sender, sendResponse) => {
             sendResponse({
                 ...pluginStat.config,
-                lastCookiesUpdate: Tasker.Instance.lastCookiesUpdate,
-                lastCookiesSave: Tasker.Instance.lastCookiesSave
+                lastCookiesSave: Tasker.Instance.lastCookiesSave,
+                lastCookiesUpdate: Tasker.Instance.lastCookiesUpdate
             });
         }
-    }
-};
+    };
+}

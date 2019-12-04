@@ -27,8 +27,8 @@ $(() => {
         for (const key of Object.keys(data)) {
             $(`#${key}`).text(data[key]);
         }
-    }
-    
+    };
+
     let bg: BackGroundPage | undefined;
     if (chrome.extension) {
         bg = <BackGroundPage>(chrome.extension.getBackgroundPage());
