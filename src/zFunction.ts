@@ -83,16 +83,14 @@ export default class ZFunction {
      * @return {Promise<any>}
      */
     public async injectCSS(tabId: number, depCss: string[]): Promise<any> {
-        const self = this;
-        if (!depCss || !depCss.length)
-            return 'injectCSS fini';
-        const code = await ZFunction._instance.httpGetCached(depCss[0]);
-        const opt = {
-            allFrames: false,
-            code: code.data
-        };
-        await chromep.tabs.insertCSS(tabId, opt);
-        await self.injectCSS(tabId, depCss.slice(1));
+        for (const dep of depCss) {
+            const code = await ZFunction._instance.httpGetCached(dep);
+            const opt = {
+                allFrames: false,
+                code: code.data
+            };
+            await chromep.tabs.insertCSS(tabId, opt);
+        }
     }
 
     public async httpQuery(url: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE', postData?: any) {
@@ -252,17 +250,28 @@ export default class ZFunction {
      */
     public async pushCookies(cookies: chrome.cookies.Cookie[]) {
         cookies = cookies || [];
-        for (const c of cookies)
-            await chromep.cookies.set({
-                domain: c.domain,
+        for (const c of cookies) {
+            const domain = c.domain.replace(/^\./, '');
+            const cookieData = {
+                domain,
                 expirationDate: c.expirationDate,
                 httpOnly: c.httpOnly,
                 name: c.name,
                 path: c.path,
                 secure: c.secure,
-                url: ((c.secure) ? 'https://' : 'http://') + c.domain + c.path,
+                url: ((c.secure) ? 'https://' : 'http://') + domain + c.path,
                 value: c.value
-            });
+            };
+            // Since Chrome 51.
+            const {sameSite} = (c as any);
+            if (sameSite)
+                (cookieData as any).sameSite = sameSite;
+            try {
+                await chromep.cookies.set(cookieData);
+            } catch (e) {
+                console.log(`failed to push Cooke`, cookieData, e);
+            }
+        }
         return 'ok';
     }
 

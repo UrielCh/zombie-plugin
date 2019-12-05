@@ -285,7 +285,6 @@ const pluginStat = PluginStat_1.default();
 const toOk = (message) => (message);
 const pError = (sendResponse, prefix, error) => {
     prefix = prefix || '';
-    debugger;
     const errorMsg = `${prefix} ${error.message}`.trim();
     console.error(`chrome error message ${prefix}: `, error);
     if (sendResponse)
@@ -831,16 +830,14 @@ class ZFunction {
         }
     }
     async injectCSS(tabId, depCss) {
-        const self = this;
-        if (!depCss || !depCss.length)
-            return 'injectCSS fini';
-        const code = await ZFunction._instance.httpGetCached(depCss[0]);
-        const opt = {
-            allFrames: false,
-            code: code.data
-        };
-        await chromep.tabs.insertCSS(tabId, opt);
-        await self.injectCSS(tabId, depCss.slice(1));
+        for (const dep of depCss) {
+            const code = await ZFunction._instance.httpGetCached(dep);
+            const opt = {
+                allFrames: false,
+                code: code.data
+            };
+            await chromep.tabs.insertCSS(tabId, opt);
+        }
     }
     async httpQuery(url, method, postData) {
         const data = postData ? JSON.stringify(postData) : '';
@@ -958,17 +955,28 @@ class ZFunction {
     }
     async pushCookies(cookies) {
         cookies = cookies || [];
-        for (const c of cookies)
-            await chromep.cookies.set({
-                domain: c.domain,
+        for (const c of cookies) {
+            const domain = c.domain.replace(/^\./, '');
+            const cookieData = {
+                domain,
                 expirationDate: c.expirationDate,
                 httpOnly: c.httpOnly,
                 name: c.name,
                 path: c.path,
                 secure: c.secure,
-                url: ((c.secure) ? 'https://' : 'http://') + c.domain + c.path,
+                url: ((c.secure) ? 'https://' : 'http://') + domain + c.path,
                 value: c.value
-            });
+            };
+            const { sameSite } = c;
+            if (sameSite)
+                cookieData.sameSite = sameSite;
+            try {
+                await chromep.cookies.set(cookieData);
+            }
+            catch (e) {
+                console.log(`failed to push Cooke`, cookieData, e);
+            }
+        }
         return 'ok';
     }
     async deleteCookiesSelection(coos) {
