@@ -34,6 +34,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const chrome_promise_1 = __importDefault(require("../vendor/chrome-promise"));
 const PluginStat_1 = __importDefault(require("./PluginStat"));
 $(() => {
+    let bg;
+    if (chrome.extension)
+        bg = (chrome.extension.getBackgroundPage());
+    const pluginStat = (bg && bg.pluginStat) ? bg.pluginStat : PluginStat_1.default();
     const chromep = new chrome_promise_1.default();
     let lastCode = 'N/A';
     const updateDisplay = () => {
@@ -49,10 +53,6 @@ $(() => {
         for (const key of Object.keys(data))
             $(`#${key}`).text(data[key]);
     };
-    let bg;
-    if (chrome.extension)
-        bg = (chrome.extension.getBackgroundPage());
-    const pluginStat = (bg && bg.pluginStat) ? bg.pluginStat : PluginStat_1.default();
     $('#closeIrrelevantTabs').prop('checked', pluginStat.config.closeIrrelevantTabs).bootstrapToggle({
         on: '💣',
         off: 'off',

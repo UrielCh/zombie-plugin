@@ -792,6 +792,7 @@ const filterJs = (code) => {
     code = code.replace(/import\s+[^ ]+\s*=\s*require\([^)]+\);?/g, '');
     return code;
 };
+const wait = (duration) => new Promise(resolve => setTimeout(() => (resolve()), duration));
 class ZFunction {
     constructor() {
         this.memoryCache = {};
@@ -808,43 +809,40 @@ class ZFunction {
     static get Instance() {
         return this._instance || (this._instance = new this());
     }
-    injectJS(tabId, urls) {
+    async injectJS(tabId, urls) {
         if (urls.length === 0)
-            return Promise.resolve('no more javascript to inject');
+            return 'no more javascript to inject';
         const urlsFlat = ZFunction.flat(urls);
-        return this.httpGetAll(urlsFlat)
-            .then(responsesMetadata => {
+        try {
+            const responsesMetadata = await this.httpGetAll(urlsFlat);
             const responsesMap = {};
             responsesMetadata.forEach((responseMetadata) => responsesMap[responseMetadata.url] = filterJs(responseMetadata.data));
-            let promise = Promise.resolve();
             for (const elm of urls) {
                 let responses;
                 if (Array.isArray(elm))
                     responses = elm.map(url => `// from: ${url}\r\n${responsesMap[url]}`).join('\r\n');
                 else
                     responses = `// from: ${elm}\r\n${responsesMap[elm]}`;
-                promise = promise.then(() => ZFunction._instance.injectJavascript(tabId, responses));
+                await ZFunction._instance.injectJavascript(tabId, responses);
             }
-            return promise;
-        }, error => {
+        }
+        catch (error) {
             console.log('httpGetAll ', urls, 'fail error', error);
-        });
+        }
     }
-    injectCSS(tabId, depCss) {
+    async injectCSS(tabId, depCss) {
         const self = this;
         if (!depCss || !depCss.length)
-            return Promise.resolve('injectCSS fini');
-        return ZFunction._instance.httpGetCached(depCss[0])
-            .then(code => {
-            const opt = {
-                allFrames: false,
-                code: code.data
-            };
-            return chromep.tabs.insertCSS(tabId, opt)
-                .then(results => self.injectCSS(tabId, depCss.slice(1)));
-        });
+            return 'injectCSS fini';
+        const code = await ZFunction._instance.httpGetCached(depCss[0]);
+        const opt = {
+            allFrames: false,
+            code: code.data
+        };
+        await chromep.tabs.insertCSS(tabId, opt);
+        await self.injectCSS(tabId, depCss.slice(1));
     }
-    httpQuery(url, method, postData) {
+    async httpQuery(url, method, postData) {
         const data = postData ? JSON.stringify(postData) : '';
         return jQuery.ajax({
             contentType: 'application/json',
@@ -853,7 +851,7 @@ class ZFunction {
             url
         });
     }
-    getHttp(url) {
+    async getHttp(url) {
         return this.httpQuery(url, 'GET');
     }
     postJSON(url, data) {
@@ -887,59 +885,55 @@ class ZFunction {
         pluginStat.memoryCacheSize = 0;
         return Promise.resolve();
     }
-    httpGetPromise(url, usecache) {
+    async httpGetPromise(url, usecache) {
         const self = this;
         const key = this.getKeyFromUrl(url);
         if (usecache && key) {
             const value = this.memoryCache[key];
             const limit = Date.now() - 60000 * 40;
             if (value && value.lastUpdated > limit)
-                return Promise.resolve(value);
-            else
-                return this.httpGetPromise(url, false)
-                    .then((val) => {
-                    if (key) {
-                        self.memoryCache[key] = value;
-                        pluginStat.memoryCacheSize = Object.keys(self.memoryCache).length;
-                    }
-                    return val;
-                });
+                return value;
+            else {
+                const val = await this.httpGetPromise(url, false);
+                if (key) {
+                    self.memoryCache[key] = value;
+                    pluginStat.memoryCacheSize = Object.keys(self.memoryCache).length;
+                }
+                return val;
+            }
         }
-        return new Promise((resolve, reject) => {
-            const retries = 5;
-            let counter = 0;
-            const retry = () => {
-                counter++;
-                self.getHttp(url).then(data => {
-                    const value = {
-                        data,
-                        lastUpdated: Date.now(),
-                        url
-                    };
-                    resolve(value);
-                }, error => {
-                    if (counter <= retries)
-                        setTimeout(retry, 1000);
-                    else
-                        reject(`giving url ${url} up after ${retries} retries`);
-                });
-            };
-            retry();
-        });
+        const retries = 5;
+        let counter = 0;
+        while (true) {
+            counter++;
+            try {
+                const data = await self.getHttp(url);
+                const value = {
+                    data,
+                    lastUpdated: Date.now(),
+                    url
+                };
+                return value;
+            }
+            catch (error) {
+                if (counter > retries)
+                    throw Error(`giving url ${url} up after ${retries} retries`);
+                await wait(1000);
+            }
+        }
     }
-    popCookies(cookieDomain, cookieName) {
+    async popCookies(cookieDomain, cookieName) {
         const self = this;
         let cookies = [];
-        return this.getCookies(cookieDomain, cookieName)
-            .then((c) => { cookies = c; return c; })
-            .then(self.deleteCookiesSelection)
-            .then(() => cookies);
+        cookies = await this.getCookies(cookieDomain, cookieName);
+        await self.deleteCookiesSelection(cookies);
+        return cookies;
     }
-    deleteCookies(cookieDomain, cookieName) {
-        return this.getCookies(cookieDomain, cookieName)
-            .then(this.deleteCookiesSelection);
+    async deleteCookies(cookieDomain, cookieName) {
+        const cookies = await this.getCookies(cookieDomain, cookieName);
+        return await this.deleteCookiesSelection(cookies);
     }
-    getCookies(cookieDomain, cookieName) {
+    async getCookies(cookieDomain, cookieName) {
         let regDomain = null;
         if (cookieDomain)
             regDomain = RegExp(cookieDomain, 'i');
@@ -947,27 +941,20 @@ class ZFunction {
         if (cookieName)
             regName = RegExp(cookieName, 'i');
         const coos = [];
-        return chromep.cookies.getAllCookieStores()
-            .then((cookies) => {
-            let promises = cookies.map(cookie => chromep.cookies.getAll({
+        const cookies = await chromep.cookies.getAllCookieStores();
+        for (const cookie of cookies) {
+            const cookies2 = await chromep.cookies.getAll({
                 storeId: cookie.id
-            }));
-            promises = promises.map(pomise0 => pomise0.then(cookies2 => {
-                for (const c of cookies2) {
-                    if (regDomain && !regDomain.test(c.domain))
-                        continue;
-                    if (regName && !regName.test(c.name))
-                        continue;
-                    coos.push(c);
-                }
-                return true;
-            }));
-            return promises;
-        })
-            .then((promises) => {
-            return Promise.all(promises);
-        })
-            .then(() => coos);
+            });
+            for (const c of cookies2) {
+                if (regDomain && !regDomain.test(c.domain))
+                    continue;
+                if (regName && !regName.test(c.name))
+                    continue;
+                coos.push(c);
+            }
+        }
+        return coos;
     }
     async pushCookies(cookies) {
         cookies = cookies || [];
@@ -984,20 +971,18 @@ class ZFunction {
             });
         return 'ok';
     }
-    deleteCookiesSelection(coos) {
+    async deleteCookiesSelection(coos) {
         let cnt = 0;
-        let promise = Promise.resolve(0);
         for (const coo of coos) {
             const url = ((coo.secure) ? 'https://' : 'http://') + coo.domain + coo.path;
             const name = coo.name;
-            promise = promise
-                .then(() => chromep.cookies.remove({
+            await chromep.cookies.remove({
                 name,
                 url
-            }))
-                .then(() => ++cnt);
+            });
+            ++cnt;
         }
-        return promise;
+        return cnt;
     }
     getKeyFromUrl(url) {
         return (url.indexOf('?') >= 0) ? null : url;
@@ -1014,17 +999,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const chrome_promise_1 = __importDefault(require("../vendor/chrome-promise"));
 const chromep = new chrome_promise_1.default();
 class ZUtils {
-    static refreshTab(tabId) {
-        const promise = chromep.tabs.get(tabId);
-        promise.then((tab) => {
+    static async refreshTab(tabId) {
+        const tab = await chromep.tabs.get(tabId);
+        try {
             if (!tab)
-                return Promise.reject('noTab');
-            if (!tab || !tab.url)
-                return Promise.reject('noTab');
-            return chromep.tabs.update(tabId, {
+                throw Error('noTab');
+            await chromep.tabs.update(tabId, {
                 url: tab.url
             });
-        }).then(() => 'ok', (err) => 'err ' + err);
+            return 'ok';
+        }
+        catch (err) {
+            return 'err ' + err.message;
+        }
     }
     static isProtected(url) {
         if (!url)
@@ -1036,26 +1023,30 @@ class ZUtils {
             console.log(name, 'promise Failure', error);
         };
     }
-    static preventPrompts(tabId) {
-        return chromep.tabs.update(tabId, {
-            url: 'javascript:window.onbeforeunload = undefined; window.onunload = undefined; window.confirm=function(){return !0}; window.alert=function(){}; window.prompt=function(){return !0};'
-        }).then(() => '', () => '');
+    static async preventPrompts(tabId) {
+        try {
+            await chromep.tabs.update(tabId, {
+                url: 'javascript:window.onbeforeunload = undefined; window.onunload = undefined; window.confirm=function(){return !0}; window.alert=function(){}; window.prompt=function(){return !0};'
+            });
+            return '';
+        }
+        catch (e) {
+            return '';
+        }
     }
-    static closeTab(tabId) {
-        return ZUtils.preventPrompts(tabId)
-            .then(() => chromep.tabs.remove(tabId))
-            .then(() => setTimeout(() => chromep.tabs.remove(tabId)
-            .catch(() => { }), 1000));
+    static async closeTab(tabId) {
+        await ZUtils.preventPrompts(tabId);
+        await chromep.tabs.remove(tabId);
+        return setTimeout(() => chromep.tabs.remove(tabId)
+            .catch(() => { }), 1000);
     }
-    static closeAllTabExept(ignoreId) {
-        return chromep.tabs.query({})
-            .then(tabs => {
-            for (const tab of tabs) {
-                const tabId = tab.id;
-                if (tabId && tabId !== ignoreId)
-                    ZUtils.closeTab(tabId);
-            }
-        });
+    static async closeAllTabExept(ignoreId) {
+        const tabs = await chromep.tabs.query({});
+        for (const tab of tabs) {
+            const tabId = tab.id;
+            if (tabId && tabId !== ignoreId)
+                await ZUtils.closeTab(tabId);
+        }
     }
     static toErr(error) {
         return { error };

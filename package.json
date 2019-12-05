@@ -7,8 +7,16 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rimraf built",
     "tsc": "tsc -p .",
+    "tsc:watch": "tsc --watch -p .",
+    "browserifyBG:watch": "watchify ./built/background.js -o ./dist/js/background.js",
+    "browserifyPOP:watch": "watchify ./built/popup.js     -o ./dist/js/popup.js",
+    "browserifyCLI:watch": "cpx --watch ./built/client.js    ./dist/js/",
+    "watch": "concurrently npm:*:watch",
     "lint": "tslint -p .",
-    "browserify": "browserify ./built/background.js > ./dist/js/background.js && browserify ./built/popup.js  > ./dist/js/popup.js && cp ./built/client.js ./dist/js/client.js",
+    "browserify-BG": "browserify  ./built/background.js -o ./dist/js/background.js",
+    "browserify-POP": "browserify ./built/popup.js      -o ./dist/js/popup.js",
+    "browserify-CLI": "cpx        ./built/client.js        ./dist/js/",
+    "browserify": "concurrently npm:browserify-*",    
     "build": "npm run lint && npm run tsc && npm run browserify"
   },
   "author": "",
@@ -22,9 +30,17 @@
   },
   "devDependencies": {
     "@types/base64-js": "^1.2.5",
+    "@types/bluebird": "^3.5.29",
     "@types/chrome": "0.0.89",
     "@types/jquery": "^3.3.31",
+    "@types/puppeteer": "^2.0.0",
+    "bluebird": "^3.7.2",
+    "concurrently": "^5.0.0",
+    "cpx": "^1.5.0",
+    "puppeteer": "^2.0.0",
     "rimraf": "^3.0.0",
-    "tslint": "^5.20.1"
+    "ts-node": "^8.5.4",
+    "tslint": "^5.20.1",
+    "watchify": "^3.11.1"
   }
 }
