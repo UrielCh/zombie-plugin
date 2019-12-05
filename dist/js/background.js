@@ -83,43 +83,28 @@ if (chrome.tabs)
             console.log(Error(error));
         }
     });
-const pluginListenerExternal = async (request, sender, sendResponse) => {
+const pluginListener = (internal) => async (request, sender, sendResponse) => {
     if (!request.command) {
-        sendResponse(zUtils_1.default.toErr('Error all call must contains command name receved:' + JSON.stringify(request)));
+        sendResponse(zUtils_1.default.toErr(`Error all call must contains "command" name recieve: ${JSON.stringify(request)}`));
         return true;
     }
     const mtd = tasker.commands[request.command];
     if (mtd)
         try {
+            if (!sendResponse)
+                sendResponse = console.log;
             await mtd(request, sender, sendResponse);
         }
         catch (e) {
-            zUtils_1.default.catchPromise(`External.${request.command}`)(e);
+            zUtils_1.default.catchPromise(`${internal ? 'Internal' : 'External'}.${request.command}`)(e);
         }
     else
         sendResponse(`command ${request.command} not found`);
     return true;
 };
-const pluginListenerInternal = async (request, sender, sendResponse) => {
-    if (!request.command) {
-        sendResponse(zUtils_1.default.toErr(`Error all call must contains "command" name recieve:${JSON.stringify(request)}`));
-        return true;
-    }
-    const mtd = tasker.commands[request.command];
-    if (mtd)
-        try {
-            await mtd(request, sender, sendResponse);
-        }
-        catch (e) {
-            zUtils_1.default.catchPromise(`Internal.${request.command}`)(e);
-        }
-    else
-        sendResponse('command ' + request.command + ' not found');
-    return true;
-};
 if (chrome.runtime) {
-    chrome.runtime.onMessageExternal.addListener(pluginListenerExternal);
-    chrome.runtime.onMessage.addListener(pluginListenerInternal);
+    chrome.runtime.onMessageExternal.addListener(pluginListener(false));
+    chrome.runtime.onMessage.addListener(pluginListener(true));
 }
 let souldCloseTabId = 0;
 if (chrome.webRequest) {
@@ -623,8 +608,8 @@ class Tasker {
                     const r = await zFunction.httpGetPromise(request.url);
                     sendResponse(toOk(r.data));
                 }
-                catch (e) {
-                    pError(sendResponse, `http get ${request.url}`, e);
+                catch (error) {
+                    pError(sendResponse, `http get ${request.url}`, error);
                 }
             },
             flushCache: async (request, sender, sendResponse) => {
@@ -632,8 +617,8 @@ class Tasker {
                     await zFunction.flush();
                     sendResponse(toOk('ok'));
                 }
-                catch (e) {
-                    pError(sendResponse, 'flushCache', e);
+                catch (error) {
+                    pError(sendResponse, 'flushCache', error);
                 }
             },
             post: async (request, sender, sendResponse) => {
@@ -641,8 +626,8 @@ class Tasker {
                     const response = await zFunction.postJSON(request.url, request.data);
                     sendResponse(toOk(response));
                 }
-                catch (e) {
-                    pError(sendResponse, `http post ${request.url}`, e);
+                catch (error) {
+                    pError(sendResponse, `http post ${request.url}`, error);
                 }
             },
             storageGet: async (request, sender, sendResponse) => {
@@ -650,8 +635,8 @@ class Tasker {
                     const result = await chromep.storage.local.get(request.key);
                     sendResponse(toOk(result[request.key] || request.defaultValue));
                 }
-                catch (e) {
-                    pError(sendResponse, `storageGet ${request.key}`, e);
+                catch (error) {
+                    pError(sendResponse, `storageGet ${request.key}`, error);
                 }
             },
             storageSet: async (request, sender, sendResponse) => {
@@ -661,8 +646,8 @@ class Tasker {
                     });
                     sendResponse(toOk('ok'));
                 }
-                catch (e) {
-                    pError(sendResponse, `storageSet ${request.key}`, e);
+                catch (error) {
+                    pError(sendResponse, `storageSet ${request.key}`, error);
                 }
             },
             storageRemove: async (request, sender, sendResponse) => {
@@ -670,8 +655,8 @@ class Tasker {
                     await chromep.storage.local.remove(request.key);
                     sendResponse(toOk('ok'));
                 }
-                catch (e) {
-                    pError(sendResponse, `storageRemove ${request.key}`, e);
+                catch (error) {
+                    pError(sendResponse, `storageRemove ${request.key}`, error);
                 }
             },
             openExtensionManager: async (request, sender, sendResponse) => {
@@ -681,8 +666,8 @@ class Tasker {
                     });
                     sendResponse(toOk('ok'));
                 }
-                catch (e) {
-                    pError(sendResponse, 'openExtensionManager', e);
+                catch (error) {
+                    pError(sendResponse, 'openExtensionManager', error);
                 }
             },
             getTodo: async (request, sender, sendResponse) => {

@@ -66,49 +66,33 @@ if (chrome.tabs)
  */
 
 /**
- * Register function
+ * onMessage function reciever
  */
-const pluginListenerExternal = async (request: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
+const pluginListener = (internal: boolean ) => async (request: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
     if (!request.command) {
-        sendResponse(ZUtils.toErr('Error all call must contains command name receved:' + JSON.stringify(request)));
+        sendResponse(ZUtils.toErr(`Error all call must contains "command" name recieve: ${JSON.stringify(request)}`));
         return true;
     }
     const mtd = tasker.commands[request.command];
     if (mtd)
         try {
+            if (!sendResponse)
+                sendResponse = console.log;
             await mtd(request, sender, sendResponse);
         } catch (e) {
-            ZUtils.catchPromise(`External.${request.command}`)(e);
+            ZUtils.catchPromise(`${internal ? 'Internal' : 'External'}.${request.command}`)(e);
         }
     else
         sendResponse(`command ${request.command} not found`);
     return true;
 };
-/**
- * Find registred function and exec them
- */
-const pluginListenerInternal = async (request: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
-    if (!request.command) {
-        sendResponse(ZUtils.toErr(`Error all call must contains "command" name recieve:${JSON.stringify(request)}`));
-        return true;
-    }
-    const mtd = tasker.commands[request.command];
-    if (mtd)
-        try {
-            await mtd(request, sender, sendResponse);
-        } catch (e) {
-            ZUtils.catchPromise(`Internal.${request.command}`)(e);
-        }
-    else
-        sendResponse('command ' + request.command + ' not found');
-    return true;
-};
+
 /**
  * https://developer.chrome.com/extensions/runtime#event-onMessageExternal
  */
 if (chrome.runtime) {
-    chrome.runtime.onMessageExternal.addListener(pluginListenerExternal);
-    chrome.runtime.onMessage.addListener(pluginListenerInternal);
+    chrome.runtime.onMessageExternal.addListener(pluginListener(false));
+    chrome.runtime.onMessage.addListener(pluginListener(true));
 }
 
 let souldCloseTabId = 0;

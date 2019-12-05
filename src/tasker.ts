@@ -43,7 +43,7 @@ const pError = (sendResponse: (response: any) => void, prefix: string, error: Er
     prefix = prefix || '';
     // const stack = Error(prefix);
     /* tslint:disable:no-debugger */
-    debugger;
+    // debugger;
     const errorMsg = `${prefix} ${error.message}`.trim();
     console.error(`chrome error message ${prefix}: `, error);
     if (sendResponse)
@@ -587,8 +587,8 @@ export default class Tasker {
             try {
                 const r = await zFunction.httpGetPromise(request.url);
                 sendResponse(toOk(r.data));
-            } catch (e) {
-                pError(sendResponse, `http get ${request.url}`, e);
+            } catch (error) {
+                pError(sendResponse, `http get ${request.url}`, error);
             }
         },
         /**
@@ -598,8 +598,8 @@ export default class Tasker {
             try {
                 await zFunction.flush();
                 sendResponse(toOk('ok'));
-            } catch (e) {
-                pError(sendResponse, 'flushCache', e);
+            } catch (error) {
+                pError(sendResponse, 'flushCache', error);
             }
         },
         /**
@@ -609,8 +609,8 @@ export default class Tasker {
             try {
                 const response = await zFunction.postJSON(request.url, request.data);
                 sendResponse(toOk(response));
-            } catch (e) {
-                pError(sendResponse, `http post ${request.url}`, e);
+            } catch (error) {
+                pError(sendResponse, `http post ${request.url}`, error);
             }
         },
 
@@ -621,8 +621,8 @@ export default class Tasker {
             try {
                 const result = await chromep.storage.local.get(request.key);
                 sendResponse(toOk(result[request.key] || request.defaultValue));
-            } catch (e) {
-                pError(sendResponse, `storageGet ${request.key}`, e);
+            } catch (error) {
+                pError(sendResponse, `storageGet ${request.key}`, error);
             }
         },
 
@@ -634,8 +634,8 @@ export default class Tasker {
                     [request.key]: request.value
                 });
                 sendResponse(toOk('ok'));
-            } catch (e) {
-                pError(sendResponse, `storageSet ${request.key}`, e);
+            } catch (error) {
+                pError(sendResponse, `storageSet ${request.key}`, error);
             }
         },
         /**
@@ -644,8 +644,8 @@ export default class Tasker {
             try {
                 await chromep.storage.local.remove(request.key);
                 sendResponse(toOk('ok'));
-            } catch (e) {
-                pError(sendResponse, `storageRemove ${request.key}`, e);
+            } catch (error) {
+                pError(sendResponse, `storageRemove ${request.key}`, error);
             }
         },
         /**
@@ -656,8 +656,8 @@ export default class Tasker {
                     url: 'chrome://extensions'
                 });
                 sendResponse(toOk('ok'));
-            } catch (e) {
-                pError(sendResponse, 'openExtensionManager', e);
+            } catch (error) {
+                pError(sendResponse, 'openExtensionManager', error);
             }
 
         },
