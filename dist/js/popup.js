@@ -11,6 +11,7 @@ function value() {
                 pauseProcess: false,
                 injectProcess: true,
                 noClose: false,
+                proxyAuth: ''
             },
             nbRegistedActionTab: 0,
             nbNamedTab: 0,

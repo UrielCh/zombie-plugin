@@ -11,6 +11,7 @@ function value() {
                 pauseProcess: false,
                 injectProcess: true,
                 noClose: false,
+                proxyAuth: ''
             },
             nbRegistedActionTab: 0,
             nbNamedTab: 0,
@@ -111,7 +112,7 @@ if (chrome.webRequest) {
     chrome.webRequest.onAuthRequired.addListener((details, callbackFn) => {
         if (details.isProxy && pluginStat.config.proxyAuth && callbackFn)
             callbackFn({
-                authCredentials: pluginStat.config.proxyAuth
+                authCredentials: JSON.parse(pluginStat.config.proxyAuth)
             });
     }, { urls: ['<all_urls>'] }, ['asyncBlocking']);
     chrome.webRequest.onErrorOccurred.addListener(async (details) => {
@@ -232,19 +233,19 @@ setInterval(async () => {
 if (chrome.storage) {
     let lastValue = '';
     chromep.storage.local.get(pluginStat.config)
-        .then((items) => {
+        .then(async (items) => {
         pluginStat.config = items;
         lastValue = JSON.stringify(pluginStat.config);
         tasker_1.default.updateBadge();
-    })
-        .then(() => {
-        setInterval(async () => {
+        while (true) {
+            await wait(3000);
             const newVal = JSON.stringify(pluginStat.config);
-            if (newVal !== lastValue) {
-                await chromep.storage.local.set(pluginStat.config);
-                lastValue = newVal;
-            }
-        }, 5000);
+            if (newVal === lastValue)
+                continue;
+            console.log('calling await chromep.storage.local.set');
+            await chromep.storage.local.set(pluginStat.config);
+            lastValue = newVal;
+        }
     });
 }
 chromep.proxy.settings.get({
@@ -435,7 +436,7 @@ class Tasker {
                     await chromep.proxy.settings.clear({
                         scope: 'regular'
                     });
-                    pluginStat.config.proxyAuth = undefined;
+                    pluginStat.config.proxyAuth = '';
                     pluginStat.proxy = 'system';
                 }
                 else {
@@ -454,8 +455,12 @@ class Tasker {
                             }
                         }
                     });
-                    if (username && password)
-                        pluginStat.config.proxyAuth = { username, password };
+                    if (username && password) {
+                        pluginStat.config.proxyAuth = JSON.stringify({ username, password });
+                    }
+                    else {
+                        pluginStat.config.proxyAuth = '';
+                    }
                     pluginStat.proxy = `${scheme}://${host}:${port}`;
                 }
                 await chromep.storage.local.set({ proxy });

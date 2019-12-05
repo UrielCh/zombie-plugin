@@ -372,7 +372,7 @@ export default class Tasker {
                 await chromep.proxy.settings.clear({
                     scope: 'regular'
                 });
-                pluginStat.config.proxyAuth = undefined;
+                pluginStat.config.proxyAuth = '';
                 pluginStat.proxy = 'system';
             } else {
                 // enable proxy
@@ -391,8 +391,11 @@ export default class Tasker {
                         }
                     }
                 });
-                if (username && password)
-                    pluginStat.config.proxyAuth = { username, password };
+                if (username && password) {
+                    pluginStat.config.proxyAuth = JSON.stringify({username, password});
+                } else {
+                    pluginStat.config.proxyAuth = '';
+                }
                 pluginStat.proxy = `${scheme}://${host}:${port}`;
             }
             await chromep.storage.local.set({ proxy });

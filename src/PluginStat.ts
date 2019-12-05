@@ -14,7 +14,7 @@ export interface PluginSavedState {
     injectProcess: boolean;
     noClose: boolean;
     // Proxy auth must be save to keep proxy config running between runs
-    proxyAuth?: { username: string, password: string };
+    proxyAuth: string; // { username: string, password: string };
 }
 /**
  * Volatile configuration go here
@@ -42,6 +42,7 @@ export default function value() {
                 pauseProcess: false,
                 injectProcess: true,
                 noClose: false,
+                proxyAuth: '' // {username: '', password: '' },
             },
             nbRegistedActionTab: 0,
             nbNamedTab: 0,

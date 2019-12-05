@@ -68,7 +68,7 @@ if (chrome.tabs)
 /**
  * onMessage function reciever
  */
-const pluginListener = (internal: boolean ) => async (request: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
+const pluginListener = (internal: boolean) => async (request: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
     if (!request.command) {
         sendResponse(ZUtils.toErr(`Error all call must contains "command" name recieve: ${JSON.stringify(request)}`));
         return true;
@@ -100,7 +100,7 @@ if (chrome.webRequest) {
     chrome.webRequest.onAuthRequired.addListener((details, callbackFn) => {
         if (details.isProxy && pluginStat.config.proxyAuth && callbackFn)
             callbackFn({
-                authCredentials: pluginStat.config.proxyAuth
+                authCredentials: JSON.parse(pluginStat.config.proxyAuth)
             });
     },
         { urls: ['<all_urls>'] },
@@ -241,25 +241,26 @@ setInterval(async () => {
 }, 5 * 60000); // 5 min
 
 // load config from previous state
+// save updated state every 3 sec
 if (chrome.storage) {
     let lastValue = '';
     chromep.storage.local.get(pluginStat.config)
-        .then((items) => {
+        .then(async (items) => {
             pluginStat.config = items as PluginSavedState;
             lastValue = JSON.stringify(pluginStat.config);
             Tasker.updateBadge();
-        })
-        .then(() => {
-            // start sync loop
-            setInterval(async () => {
+            while (true) {
+                await wait(3000);
                 const newVal = JSON.stringify(pluginStat.config);
-                if (newVal !== lastValue) {
-                    // Tasker.updateBadge();
-                    // console.log('Sync tasker.config value');
-                    await chromep.storage.local.set(pluginStat.config);
-                    lastValue = newVal;
-                }
-            }, 5000);
+                // console.log('Sync Config', newVal);
+                if (newVal === lastValue)
+                    continue;
+                // Tasker.updateBadge();
+                // console.log('Sync tasker.config value');
+                console.log('calling await chromep.storage.local.set');
+                await chromep.storage.local.set(pluginStat.config);
+                lastValue = newVal;
+            }
         });
 }
 
@@ -268,4 +269,5 @@ chromep.proxy.settings.get({
 }).then((config) => {
     // console.log('Load PROXY conf: ', config);
     pluginStat.proxy = config.value.mode;
+    // console.log(pluginStat);
 });
