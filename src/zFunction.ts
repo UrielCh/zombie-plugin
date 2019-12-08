@@ -185,23 +185,15 @@ export default class ZFunction {
             }
         }
     }
-    /**
-     * @param cookieDomain {string}
-     * @param cookieName {string}
-     */
     public async popCookies(cookieDomain: string, cookieName: string) {
-        const self: ZFunction = this;
-        /** @type {chrome.cookies.Cookie[]} */
         let cookies: chrome.cookies.Cookie[] = [];
         cookies = await this.getCookies(cookieDomain, cookieName);
-        await self.deleteCookiesSelection(cookies);
+        await this.deleteCookiesSelection(cookies);
         return cookies;
     }
     /**
-     * delete cookies matching cookieDomain and cookieName regexp
+     * Selete cookies matching cookieDomain and cookieName regexp
      * return deleted cookies count
-     * @param cookieDomain {string}
-     * @param cookieName {string}
      */
     public async deleteCookies(cookieDomain: string, cookieName: string) {
         const cookies = await this.getCookies(cookieDomain, cookieName);
@@ -209,28 +201,16 @@ export default class ZFunction {
     }
     /**
      * get mattring cookie and return them as promise
-     * @param cookieDomain {string}
-     * @param cookieName {string}
      */
     public async getCookies(cookieDomain: string, cookieName: string) {
-        /**
-         * @type {RegExp|null}
-         */
         let regDomain: RegExp | null = null;
         if (cookieDomain)
             regDomain = RegExp(cookieDomain, 'i');
 
-        /**
-         * @type {RegExp|null}
-         */
         let regName: RegExp | null = null;
         if (cookieName)
             regName = RegExp(cookieName, 'i');
-        /**
-         * @type {chrome.cookies.Cookie[]}
-         */
         const coos: chrome.cookies.Cookie[] = [];
-
         const cookies: chrome.cookies.CookieStore[] = await chromep.cookies.getAllCookieStores();
         for (const cookie of cookies) {
             const cookies2 = await chromep.cookies.getAll({

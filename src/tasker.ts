@@ -492,7 +492,7 @@ export default class Tasker {
                 const count = await zFunction.deleteCookies(domain, name);
                 sendResponse(toOk(count));
             } else
-                sendResponse(ZUtils.toErr('missing Domain or cookieName argument'));
+                sendResponse(ZUtils.toErr('Missing "domain" or "name" argument as regexp.'));
         },
 
         /**
@@ -507,7 +507,7 @@ export default class Tasker {
                 const cookies = await zFunction.popCookies(domain, name);
                 return sendResponse(toOk(cookies));
             } else
-                return sendResponse(ZUtils.toErr('missing Domain or cookieName argument'));
+                sendResponse(ZUtils.toErr('Missing "domain" or "name" argument as regexp.'));
         },
         /**
          *
@@ -521,7 +521,7 @@ export default class Tasker {
                 const cookies = zFunction.getCookies(domain, name);
                 return sendResponse(toOk(cookies));
             } else
-                return sendResponse(ZUtils.toErr('missing Domain or cookieName argument'));
+                sendResponse(ZUtils.toErr('Missing "domain" or "name" argument as regexp.'));
         },
 
         /**
