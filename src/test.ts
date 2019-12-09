@@ -3,7 +3,10 @@ import bluebird from 'bluebird';
 import fse from 'fs-extra';
 import http from 'http';
 import path from 'path';
-import puppeteer from 'puppeteer';
+import puppeteer, { Browser, Page, Target } from 'puppeteer';
+
+import { expect } from 'chai';
+import 'mocha';
 
 interface IProxy {
     scheme: string;
@@ -19,9 +22,8 @@ function startSrv(port: number) {
     return new Promise(resolve => {
         const app = http.createServer(async (request, response) => {
             let url = request.url || '/';
-            if (url === '/') {
+            if (url === '/')
                 url = '/index.html';
-            }
             url = url.replace(/\//g, '');
             const file = path.join(__dirname, '..', 'test', url);
             try {
@@ -40,41 +42,64 @@ function startSrv(port: number) {
                 });
                 const data = await fse.readFile(file);
                 response.write(data);
-                // const readStream = fse.createReadStream(file);
-                // readStream.pipe(response);
             } catch (e) {
                 response.writeHead(404, { 'Content-Type': 'text/plain' });
-                response.write('Not found')
+                response.write('Not found');
             }
             response.end();
         });
         app.listen(port, resolve);
     });
 }
-
-async function main() {
-    await startSrv(3000);
-
+let _browser: Browser;
+async function getbrowser() {
+    if (_browser)
+        return _browser;
     const CRX_PATH = './dist';
-    const browser = await puppeteer.launch({
+    _browser = await puppeteer.launch({
         headless: false,
-        devtools: true,
+        // devtools: true,
         args: [
             `--disable-extensions-except=${CRX_PATH}`,
             `--load-extension=${CRX_PATH}`,
             // '--allow-file-access flag',
-            '--allow-file-access-from-files',
             // '--user-agent=PuppeteerAgent'
         ]
     });
+    return _browser;
+}
 
+async function getBGTarget(): Promise<Target> {
+    const browser: Browser = await getbrowser();
     const targets = await browser.targets();
     const bgTarget = targets.filter(target => target.type() === 'background_page')[0];
+    return bgTarget;
+}
 
+let _BgPage: Page;
+async function getBGPage(): Promise<Page> {
+    if (_BgPage)
+        return _BgPage;
+    _BgPage = await (await getBGTarget()).page();
+    return _BgPage;
+}
+
+async function getMainTarget(): Promise<Target> {
+    const browser: Browser = await getbrowser();
+    const targets = await browser.targets();
     const mainTarget = targets.filter(target => target.type() === 'page')[0];
-    // console.log(targets.map(a => a.type()));
+    return mainTarget;
+}
+let _mainPage: Page;
+async function getMainPage(): Promise<Page> {
+    if (_mainPage)
+        return _mainPage;
+    _mainPage = await (await getMainTarget()).page();
+    return _mainPage;
+}
 
-    const page0 = await mainTarget.page(); // browser.newPage();
+async function enableDevMode(): Promise<void> {
+    const page0 = await getMainPage();
     await page0.setViewport({ width: 1920, height: 1080 });
     // page0.goto('chrome://extensions/?id=${pluginId}');
     await page0.goto('chrome://extensions/');
@@ -111,83 +136,151 @@ async function main() {
     await page0.evaluateHandle(`querySelectorShadow("extensions-manager", "cr-view-manager", "items-list", "extensions-item[id=${pluginId}]", "a.clippable-flex-text").click()`);
     // querySelectorShadow("extensions-manager", "cr-view-manager").children['items-list'].shadowRoot.querySelector('extensions-item').shadowRoot.querySelector('a.clippable-flex-text')
     // querySelectorShadow("extensions-manager", "cr-view-manager", "extensions-item-list", "extensions-item-list", "extensions-item[id=\"${pluginId}\"]", "a.clippable-flex-text").click()
-    const page = await bgTarget.page();
+}
 
-    if (false) // test proxy
+describe('InitEnv', () => {
+    it('Should start a webserver and a chronme windows', async () => {
+        await startSrv(3000);
+        // await enableDevMode();
+        // const bgTarget = await getBGTarget();
+        // const page0 = await getMainPage();
+    });
+});
+
+describe('Test Proxy Feature', () => {
+    let proxy0: IProxy | null;
+    let ipTxt0: string;
+    it('disable all privious proxy data', async () => {
+        const page = await getBGPage();
+        page.evaluate(() => { (chrome.runtime.onMessage as any).dispatch({ command: 'setProxy' }, null, console.log); });
+    });
+
+    it('Try to find a public proxy', async () => {
         try {
-            page.evaluate(() => { (chrome.runtime.onMessage as any).dispatch({ command: 'setProxy' }, null, console.log); });
             const proxys: IProxy[] = await fse.readJSON('../zombie/private/proxy.json');
-            const proxy0 = proxys[0];
+            proxy0 = proxys[0];
+        } catch (e) {
+            proxy0 = null;
+        }
+    });
 
-            await page0.goto('http://monip.org/', { timeout: 10000, waitUntil: 'networkidle0' });
-            //         await page0.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 });
-            const ipTxt0 = await page0.$eval('font[size="8"]', el => el.textContent);
-            console.log('RealIP:', ipTxt0);
-            page.evaluate((proxy) => {
+    it('Should find a public IP', async () => {
+        if (proxy0) {
+            const page0 = await getMainPage();
+            try {
+                await page0.goto('http://monip.org/', { timeout: 10000, waitUntil: 'domcontentloaded' });
+            } catch (e) {
+                console.log(e);
+            }
+            ipTxt0 = await page0.$eval('font[size="8"]', el => el.textContent) as string;
+            expect(ipTxt0).to.match(/[0-9.]+/);
+            // console.log('RealIP:', ipTxt0);
+        }
+    }).timeout(20000);
+
+    it('Should change public IP', async () => {
+        if (proxy0) {
+            const page = await getBGPage();
+            const page0 = await getMainPage();
+            await page.evaluate((proxy) => {
                 console.log(proxy);
                 (chrome.runtime.onMessage as any).dispatch({ command: 'setProxy', scheme: proxy.scheme, host: proxy.host, port: proxy.port, username: proxy.username, password: proxy.password }, null, console.log);
             }, proxy0 as any as puppeteer.JSONObject); // JSON.stringify(
             try {
-                await page0.reload({ timeout: 10000, waitUntil: 'networkidle0' });
+                await page0.reload({ timeout: 10000, waitUntil: 'domcontentloaded' });
             } catch (e) {
                 console.log('May be an error');
             }
-            //         await page0.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 });
             const ipTxt1 = await page0.$eval('font[size="8"]', el => el.textContent);
-            console.log('ProxyIP:', ipTxt1);
+            expect(ipTxt1).to.match(/[0-9.]+/);
+            // console.log('ProxyIP:', ipTxt1);
             assert.notEqual(ipTxt0, ipTxt1);
-        } catch (e) {
-            console.log('Proxy Base not found test skiped', e);
         }
+    }).timeout(20000);
+});
 
-    try {
-        // await page0.goto('https://en.wikipedia.org/wiki/QR_code', { timeout: 10000, waitUntil: 'networkidle0' });
-        await page0.goto(`http://localhost:3000/`, { timeout: 10000, waitUntil: 'networkidle0' });
-    } catch (e) { }
-    console.log('Ready');
+describe('Test QR code Readed', () => {
+    it('Should Open QrCode page', async () => {
+        const page0 = await getMainPage();
+        const testurl = `http://localhost:3000/`;
+        try {
+            await page0.goto(testurl, { timeout: 1000, waitUntil: 'networkidle0' });
+        } catch (e) { }
+        expect(page0.url()).to.eq(testurl);
+    }).timeout(10000);
 
-    // tslint:disable-next-line: no-shadowed-variable
-    const qr = await page0.evaluate((pluginId) => {
-        return new Promise(resolve => chrome.runtime.sendMessage(pluginId, { command: 'readQrCode' }, resolve));
-    }, pluginId) as any[];
-    assert.equal(qr.length , 1);
-    assert.equal(qr[0].text , 'https://github.com/UrielCh/zombie-plugin');
+    it('Should read QR code value', async () => {
+        const page0 = await getMainPage();
+        // tslint:disable-next-line: no-shadowed-variable
+        const qr = await page0.evaluate((pluginId) => {
+            return new Promise(resolve => chrome.runtime.sendMessage(pluginId, { command: 'readQrCode' }, resolve));
+        }, pluginId) as any[];
+        expect(qr.length).to.equal(1);
+        expect(qr[0].text).to.equal('https://github.com/UrielCh/zombie-plugin');
+    });
+});
 
-    try {
-        await page0.goto('https://www.google.com/', { timeout: 10000, waitUntil: 'networkidle0' });
-    } catch (e) { }
-    // get Original cookies
-    const cookies1 = await page.evaluate(() => {
-        return new Promise(resolve => (chrome.runtime.onMessage as any).dispatch({ command: 'getCookies', name: '.*' }, null, resolve));
-    }) as puppeteer.Cookie[];
-    console.log(`total Cookies Count: ${cookies1.length}`);
-    console.log(cookies1.map(cookie => `${cookie.domain}${cookie.path} ${cookie.name}`).join(', '));
+describe('Test Cookies manipulation functions', () => {
+    let cookies1: puppeteer.Cookie[];
+    it('Should go to the cookies test page', async () => {
+        const page0 = await getMainPage();
+        const testurl = 'https://www.google.com/';
+        try {
+            await page0.goto(testurl, { timeout: 10000, waitUntil: 'networkidle0' });
+        } catch (e) { }
+        expect(page0.url()).to.eq(testurl);
+    }).timeout(12000);
 
-    // delete cookies should return deleted cookies
-    const cookies2 = await page.evaluate(() => {
-        return new Promise(resolve => (chrome.runtime.onMessage as any).dispatch({ command: 'deleteCookies', name: '.*' }, null, resolve));
-    }) as puppeteer.Cookie[];
-    // assert.equal(cookies2.length, 4);
-    console.log(cookies2 + ' cookies deleted');
+    it('Should Find some cookies', async () => {
+        const page = await getBGPage();
+        // get Original cookies
+        cookies1 = await page.evaluate(() => {
+            return new Promise(resolve => (chrome.runtime.onMessage as any).dispatch({ command: 'getCookies', name: '.*' }, null, resolve));
+        }) as puppeteer.Cookie[];
+        // console.log(`total Cookies Count: ${cookies1.length}`);
+        // console.log(cookies1.map(cookie => `${cookie.domain}${cookie.path} ${cookie.name}`).join(', '));
+        expect(cookies1.length).to.gt(0);
+    });
 
-    // get cookies after delete should be empty
-    const cookies3 = await page.evaluate(() => {
-        return new Promise(resolve => (chrome.runtime.onMessage as any).dispatch({ command: 'getCookies', name: '.*' }, null, resolve));
-    }) as puppeteer.Cookie[];
-    console.log(`total Cookies after clean Count: ${cookies3.length}`);
-    console.log(cookies3.map(cookie => `${cookie.domain}${cookie.path} ${cookie.name}`).join(', '));
+    it('Should delete those cookies', async () => {
+        const page = await getBGPage();
+        // delete cookies should return deleted cookies
+        const deleted = await page.evaluate(() => {
+            return new Promise(resolve => (chrome.runtime.onMessage as any).dispatch({ command: 'deleteCookies', name: '.*' }, null, resolve));
+        }) as puppeteer.Cookie[];
+        expect(deleted).to.eq(cookies1.length);
+        // console.log(deleted + ' cookies deleted');
+    });
 
-    // push previouly save cookies
-    await page.evaluate((cookies) => {
-        return new Promise(resolve => (chrome.runtime.onMessage as any).dispatch({ command: 'pushCookies', cookies }, null, resolve));
-    }, cookies1 as any as puppeteer.SerializableOrJSHandle);
+    it('Should retrieves empty cookies set', async () => {
+        const page = await getBGPage();
+        // get cookies after delete should be empty
+        const cookies3 = await page.evaluate(() => {
+            return new Promise(resolve => (chrome.runtime.onMessage as any).dispatch({ command: 'getCookies', name: '.*' }, null, resolve));
+        }) as puppeteer.Cookie[];
+        expect(cookies3.length).to.eq(0);
+    });
 
-    // get cookies should be the same
-    const cookies4 = await page.evaluate(() => {
-        return new Promise(resolve => (chrome.runtime.onMessage as any).dispatch({ command: 'getCookies', name: '.*' }, null, resolve));
-    }) as puppeteer.Cookie[];
-    console.log(cookies4.map(cookie => `${cookie.domain}${cookie.path} ${cookie.name}`).join(', '));
+    it('Should inject previously retrieved cookies', async () => {
+        const page = await getBGPage();
+        // push previouly save cookies
+        const code = await page.evaluate((cookies) => {
+            return new Promise(resolve => (chrome.runtime.onMessage as any).dispatch({ command: 'pushCookies', cookies }, null, resolve));
+        }, cookies1 as any as puppeteer.SerializableOrJSHandle);
+        expect(code).to.eq('ok');
+    });
 
-    // await browser.close();
-}
-main();
+    it('Should find the same cookies that initialy', async () => {
+        const page = await getBGPage();
+        // get cookies should be the same
+        const cookies4 = await page.evaluate(() => {
+            return new Promise(resolve => (chrome.runtime.onMessage as any).dispatch({ command: 'getCookies', name: '.*' }, null, resolve));
+        }) as puppeteer.Cookie[];
+        // console.log(cookies4.map(cookie => `${cookie.domain}${cookie.path} ${cookie.name}`).join(', '));
+        expect(cookies4).to.deep.eq(cookies1);
+    });
+
+    it('Should be done', async () => {
+        await (await getbrowser()).close();
+    });
+});
