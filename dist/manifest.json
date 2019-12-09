@@ -33,7 +33,8 @@
       "*://*.exs.fr/*",
       "*://*.xulu.fr/*",
       "*://*.google.com/*",
-      "*://*.google.fr/*"
+      "*://*.google.fr/*",
+      "http://localhost:3000/*"
     ]
   },
   "icons": {

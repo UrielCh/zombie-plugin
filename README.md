@@ -7,14 +7,7 @@ this code meant to stay up to date with the last Javascript standard.
 ## build extention:
 
 ```
-# build linux
-tsc -p . && \
-browserify ./built/background.js  > ./dist/js/background.js && \
-browserify ./built/popup.js  > ./dist/js/popup.js && \
-cp ./built/client.js ./dist/js/client.js
-
-# single line windows
-tsc -p .; copy .\built\client.js .\dist\js\client.js; browserify .\built\popup.js> .\dist\js\popup.js; browserify .\built\background.js> .\dist\js\background.js
+npm run build
 ```
 
 ```bash
@@ -46,6 +39,9 @@ echo zombie-v${version}.tar.gz generated
 
 
 ### changelog:
+
+* V 4.0.12
+    - improve plugin script, add puppeteer test unit.
 
 * V 4.0.11
     - use more async code
