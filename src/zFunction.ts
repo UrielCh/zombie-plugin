@@ -10,6 +10,11 @@ interface CacheHttpData {
     lastUpdated: number;
 }
 
+interface CookiesFilter {
+    domain?: string;
+    name?: string;
+}
+
 const filterJs = (code: string) => {
     // remove all sourceMapping
     code = code.replace('//# sourceMappingURL=', '//');
@@ -185,9 +190,9 @@ export default class ZFunction {
             }
         }
     }
-    public async popCookies(cookieDomain: string, cookieName: string) {
+    public async popCookies(filter: CookiesFilter) {
         let cookies: chrome.cookies.Cookie[] = [];
-        cookies = await this.getCookies(cookieDomain, cookieName);
+        cookies = await this.getCookies(filter);
         await this.deleteCookiesSelection(cookies);
         return cookies;
     }
@@ -195,21 +200,21 @@ export default class ZFunction {
      * Selete cookies matching cookieDomain and cookieName regexp
      * return deleted cookies count
      */
-    public async deleteCookies(cookieDomain: string, cookieName: string) {
-        const cookies = await this.getCookies(cookieDomain, cookieName);
+    public async deleteCookies(filter: CookiesFilter) {
+        const cookies = await this.getCookies(filter);
         return await this.deleteCookiesSelection(cookies);
     }
     /**
      * get mattring cookie and return them as promise
      */
-    public async getCookies(cookieDomain: string, cookieName: string) {
+    public async getCookies(filter: CookiesFilter) {
         let regDomain: RegExp | null = null;
-        if (cookieDomain)
-            regDomain = RegExp(cookieDomain, 'i');
+        if (filter.domain)
+            regDomain = RegExp(filter.domain, 'i');
 
         let regName: RegExp | null = null;
-        if (cookieName)
-            regName = RegExp(cookieName, 'i');
+        if (filter.name)
+            regName = RegExp(filter.name, 'i');
         const coos: chrome.cookies.Cookie[] = [];
         const cookies: chrome.cookies.CookieStore[] = await chromep.cookies.getAllCookieStores();
         for (const cookie of cookies) {

@@ -489,7 +489,7 @@ export default class Tasker {
                 name
             } = request;
             if (domain || name) {
-                const count = await zFunction.deleteCookies(domain, name);
+                const count = await zFunction.deleteCookies({domain, name});
                 sendResponse(toOk(count));
             } else
                 sendResponse(ZUtils.toErr('Missing "domain" or "name" argument as regexp.'));
@@ -504,7 +504,7 @@ export default class Tasker {
                 name
             } = request;
             if (domain || name) {
-                const cookies = await zFunction.popCookies(domain, name);
+                const cookies = await zFunction.popCookies({domain, name});
                 return sendResponse(toOk(cookies));
             } else
                 sendResponse(ZUtils.toErr('Missing "domain" or "name" argument as regexp.'));
@@ -518,7 +518,7 @@ export default class Tasker {
                 name
             } = request;
             if (domain || name) {
-                const cookies = zFunction.getCookies(domain, name);
+                const cookies = zFunction.getCookies({domain, name});
                 return sendResponse(toOk(cookies));
             } else
                 sendResponse(ZUtils.toErr('Missing "domain" or "name" argument as regexp.'));
