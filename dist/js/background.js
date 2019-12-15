@@ -455,12 +455,10 @@ class Tasker {
                             }
                         }
                     });
-                    if (username && password) {
+                    if (username && password)
                         pluginStat.config.proxyAuth = JSON.stringify({ username, password });
-                    }
-                    else {
+                    else
                         pluginStat.config.proxyAuth = '';
-                    }
                     pluginStat.proxy = `${scheme}://${host}:${port}`;
                 }
                 await chromep.storage.local.set({ proxy });
@@ -535,29 +533,29 @@ class Tasker {
             deleteCookies: async (request, sender, sendResponse) => {
                 const { domain, name } = request;
                 if (domain || name) {
-                    const count = await zFunction.deleteCookies(domain, name);
+                    const count = await zFunction.deleteCookies({ domain, name });
                     sendResponse(toOk(count));
                 }
                 else
-                    sendResponse(zUtils_1.default.toErr('missing Domain or cookieName argument'));
+                    sendResponse(zUtils_1.default.toErr('Missing "domain" or "name" argument as regexp.'));
             },
             popCookies: async (request, sender, sendResponse) => {
                 const { domain, name } = request;
                 if (domain || name) {
-                    const cookies = await zFunction.popCookies(domain, name);
+                    const cookies = await zFunction.popCookies({ domain, name });
                     return sendResponse(toOk(cookies));
                 }
                 else
-                    return sendResponse(zUtils_1.default.toErr('missing Domain or cookieName argument'));
+                    sendResponse(zUtils_1.default.toErr('Missing "domain" or "name" argument as regexp.'));
             },
             getCookies: async (request, sender, sendResponse) => {
                 const { domain, name } = request;
                 if (domain || name) {
-                    const cookies = zFunction.getCookies(domain, name);
+                    const cookies = zFunction.getCookies({ domain, name });
                     return sendResponse(toOk(cookies));
                 }
                 else
-                    return sendResponse(zUtils_1.default.toErr('missing Domain or cookieName argument'));
+                    sendResponse(zUtils_1.default.toErr('Missing "domain" or "name" argument as regexp.'));
             },
             pushCookies: async (request, sender, sendResponse) => {
                 try {
@@ -714,7 +712,11 @@ class Tasker {
                 sendResponse(toOk('ok'));
             },
             getConfigs: async (request, sender, sendResponse) => {
-                sendResponse(Object.assign(Object.assign({}, pluginStat.config), { lastCookiesSave: Tasker.Instance.lastCookiesSave, lastCookiesUpdate: Tasker.Instance.lastCookiesUpdate }));
+                sendResponse({
+                    ...pluginStat.config,
+                    lastCookiesSave: Tasker.Instance.lastCookiesSave,
+                    lastCookiesUpdate: Tasker.Instance.lastCookiesUpdate
+                });
             }
         };
     }
@@ -909,24 +911,23 @@ class ZFunction {
             }
         }
     }
-    async popCookies(cookieDomain, cookieName) {
-        const self = this;
+    async popCookies(filter) {
         let cookies = [];
-        cookies = await this.getCookies(cookieDomain, cookieName);
-        await self.deleteCookiesSelection(cookies);
+        cookies = await this.getCookies(filter);
+        await this.deleteCookiesSelection(cookies);
         return cookies;
     }
-    async deleteCookies(cookieDomain, cookieName) {
-        const cookies = await this.getCookies(cookieDomain, cookieName);
+    async deleteCookies(filter) {
+        const cookies = await this.getCookies(filter);
         return await this.deleteCookiesSelection(cookies);
     }
-    async getCookies(cookieDomain, cookieName) {
+    async getCookies(filter) {
         let regDomain = null;
-        if (cookieDomain)
-            regDomain = RegExp(cookieDomain, 'i');
+        if (filter.domain)
+            regDomain = RegExp(filter.domain, 'i');
         let regName = null;
-        if (cookieName)
-            regName = RegExp(cookieName, 'i');
+        if (filter.name)
+            regName = RegExp(filter.name, 'i');
         const coos = [];
         const cookies = await chromep.cookies.getAllCookieStores();
         for (const cookie of cookies) {

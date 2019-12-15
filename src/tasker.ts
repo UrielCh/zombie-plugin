@@ -391,11 +391,10 @@ export default class Tasker {
                         }
                     }
                 });
-                if (username && password) {
+                if (username && password)
                     pluginStat.config.proxyAuth = JSON.stringify({username, password});
-                } else {
+                else
                     pluginStat.config.proxyAuth = '';
-                }
                 pluginStat.proxy = `${scheme}://${host}:${port}`;
             }
             await chromep.storage.local.set({ proxy });
