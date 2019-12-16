@@ -114,7 +114,7 @@ export default class ZFunction {
         return this.httpQuery(url, 'GET');
     }
 
-    public postJSON(url: string, data: any) {
+    public async postJSON(url: string, data: any) {
         return this.httpQuery(url, 'POST', data).then((response) => {
             if (!response)
                 return {};
@@ -128,26 +128,26 @@ export default class ZFunction {
         });
     }
 
-    public injectJavascript(tabId: number, code: string) {
+    public async injectJavascript(tabId: number, code: string) {
         return chromep.tabs.executeScript(tabId, {
             allFrames: false,
             code
         });
     }
 
-    public httpGetAll(urls: string[]) {
+    public async  httpGetAll(urls: string[]) {
         return Promise.all(urls.map(ZFunction._instance.httpGetCached));
     }
     /**
      * @param {string} url
      */
-    public httpGetCached(url: string) {
+    public async httpGetCached(url: string) {
         return ZFunction._instance.httpGetPromise(url, true);
     }
-    public flush() {
+    public async flush() {
         this.memoryCache = {};
         pluginStat.memoryCacheSize = 0;
-        return Promise.resolve();
+        return 'ok';
     }
     /**
      * @param {string} url
@@ -201,13 +201,9 @@ export default class ZFunction {
      * return deleted cookies count
      */
     public async deleteCookies(filter: CookiesFilter) {
-        try {
-            const cookies = await this.getCookies(filter);
-            return await this.deleteCookiesSelection(cookies);
-        } catch (e) {
-            console.log(e);
-            return 'Error';
-        }
+        return this.getCookies(filter).then(cookies => this.deleteCookiesSelection(cookies));
+        // const cookies = await this.getCookies(filter);
+        // return await this.deleteCookiesSelection(cookies);
     }
     /**
      * get mattring cookie and return them as promise

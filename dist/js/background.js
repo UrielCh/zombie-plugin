@@ -859,7 +859,7 @@ class ZFunction {
     async getHttp(url) {
         return this.httpQuery(url, 'GET');
     }
-    postJSON(url, data) {
+    async postJSON(url, data) {
         return this.httpQuery(url, 'POST', data).then((response) => {
             if (!response)
                 return {};
@@ -873,22 +873,22 @@ class ZFunction {
             return response;
         });
     }
-    injectJavascript(tabId, code) {
+    async injectJavascript(tabId, code) {
         return chromep.tabs.executeScript(tabId, {
             allFrames: false,
             code
         });
     }
-    httpGetAll(urls) {
+    async httpGetAll(urls) {
         return Promise.all(urls.map(ZFunction._instance.httpGetCached));
     }
-    httpGetCached(url) {
+    async httpGetCached(url) {
         return ZFunction._instance.httpGetPromise(url, true);
     }
-    flush() {
+    async flush() {
         this.memoryCache = {};
         pluginStat.memoryCacheSize = 0;
-        return Promise.resolve();
+        return 'ok';
     }
     async httpGetPromise(url, usecache) {
         const self = this;
@@ -934,14 +934,7 @@ class ZFunction {
         return cookies;
     }
     async deleteCookies(filter) {
-        try {
-            const cookies = await this.getCookies(filter);
-            return await this.deleteCookiesSelection(cookies);
-        }
-        catch (e) {
-            console.log(e);
-            return 'Error';
-        }
+        return this.getCookies(filter).then(cookies => this.deleteCookiesSelection(cookies));
     }
     async getCookies(filter) {
         let regDomain = null;
