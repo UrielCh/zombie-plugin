@@ -102,7 +102,7 @@ chrome.runtime.sendMessage({
         if (isProtected(window.location.href))
             return false;
         console.log(`data is missing from getTodo ${window.location.href} I may close this tab`);
-        chrome.runtime.sendMessage({ command: 'closeMe', lazy: true }, () => true);
+        chrome.runtime.sendMessage({ command: 'closeMe', lazy: true , reason: 'data is missing from getTodo'}, () => true);
         return true;
     }
     if (data.error) {
