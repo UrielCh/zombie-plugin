@@ -459,46 +459,61 @@ declare namespace chromepApi.commands {
     }
 }
 declare namespace chromepApi.contentSettings {
-    interface ContentSetting {
-        /**
-                 * Clear all content setting rules set by this extension.
-                 * @param callback If you specify the callback parameter, it should be a function that looks like this:
-                 * function() {...};
-                 */
-        clear(details: chrome.contentSettings.ClearDetails): Promise<void>;
-        /**
-                 * Applies a new content setting rule.
-                 * @param callback If you specify the callback parameter, it should be a function that looks like this:
-                 * function() {...};
-                 */
-        set(details: chrome.contentSettings.SetDetails): Promise<void>;
-        /**
-                 * @param callback The callback parameter should be a function that looks like this:
-                 * function(array of ResourceIdentifier resourceIdentifiers) {...};
-                 * Parameter resourceIdentifiers: A list of resource identifiers for this content type, or undefined if this content type does not use resource identifiers.
-                 */
-        getResourceIdentifiers(): Promise<chrome.contentSettings.ResourceIdentifier[]>;
-        /**
-                 * Gets the current content setting for a given pair of URLs.
-                 * @param callback The callback parameter should be a function that looks like this:
-                 * function(object details) {...};
-                 */
-        get(details: chrome.contentSettings.GetDetails): Promise<chrome.contentSettings.ReturnedDetails>;
-    }
-    export interface ContentSettings {
-        cookies: ContentSetting;
-        popups: ContentSetting;
-        javascript: ContentSetting;
-        notifications: ContentSetting;
-        plugins: ContentSetting;
-        images: ContentSetting;
-        location: ContentSetting;
-        fullscreen: ContentSetting;
-        mouselock: ContentSetting;
-        unsandboxedPlugins: ContentSetting;
-        automaticDownloads: ContentSetting;
-    }
-}
+     export interface CookieContentSetting extends chrome.contentSettings.ContentSetting {
+         set(details: chrome.contentSettings.CookieSetDetails): Promise<void>;
+     }
+     export interface PopupsContentSetting extends chrome.contentSettings.ContentSetting {
+         set(details: chrome.contentSettings.PopupsSetDetails): Promise<void>;
+     }
+     export interface JavascriptContentSetting extends chrome.contentSettings.ContentSetting {
+         set(details: chrome.contentSettings.JavascriptSetDetails): Promise<void>;
+     }
+     export interface NotificationsContentSetting extends chrome.contentSettings.ContentSetting {
+         set(details: chrome.contentSettings.NotificationsSetDetails): Promise<void>;
+     }
+     export interface PluginsContentSetting extends chrome.contentSettings.ContentSetting {
+         set(details: chrome.contentSettings.PluginsSetDetails): Promise<void>;
+     }
+     export interface ImagesContentSetting extends chrome.contentSettings.ContentSetting {
+         set(details: chrome.contentSettings.ImagesSetDetails): Promise<void>;
+     }
+     export interface LocationContentSetting extends chrome.contentSettings.ContentSetting {
+         set(details: chrome.contentSettings.LocationSetDetails): Promise<void>;
+     }
+     export interface FullscreenContentSetting extends chrome.contentSettings.ContentSetting {
+         set(details: chrome.contentSettings.FullscreenSetDetails): Promise<void>;
+     }
+     export interface MouselockContentSetting extends chrome.contentSettings.ContentSetting {
+         set(details: chrome.contentSettings.MouselockSetDetails): Promise<void>;
+     }
+     export interface MicrophoneContentSetting extends chrome.contentSettings.ContentSetting {
+         set(details: chrome.contentSettings.MicrophoneSetDetails): Promise<void>;
+     }
+     export interface CameraContentSetting extends chrome.contentSettings.ContentSetting {
+         set(details: chrome.contentSettings.CameraSetDetails): Promise<void>;
+     }
+     export interface PpapiBrokerContentSetting extends chrome.contentSettings.ContentSetting {
+         set(details: chrome.contentSettings.PpapiBrokerSetDetails): Promise<void>;
+     }
+     export interface MultipleAutomaticDownloadsContentSetting extends chrome.contentSettings.ContentSetting {
+         set(details: chrome.contentSettings.MultipleAutomaticDownloadsSetDetails): Promise<void>;
+     }
+     export interface ContentSettings {
+         cookies: CookieContentSetting;
+         popups: PopupsContentSetting;
+         javascript: JavascriptContentSetting;
+         notifications: NotificationsContentSetting;
+         plugins: PluginsContentSetting;
+         images: ImagesContentSetting;
+         location: LocationContentSetting;
+         fullscreen: FullscreenContentSetting;
+         mouselock: MouselockContentSetting;
+         microphone: MicrophoneContentSetting;
+         camera: CameraContentSetting;
+         unsandboxedPlugins: PpapiBrokerContentSetting;
+         automaticDownloads: MultipleAutomaticDownloadsContentSetting;
+     }
+ }
 declare namespace chromepApi.contextMenus {
     interface MenuClickedEvent extends chrome.events.Event<(info: chrome.contextMenus.OnClickData, tab?: chrome.tabs.Tab) => void> {
     }
@@ -555,7 +570,7 @@ declare namespace chromepApi.contextMenus {
     }
 }
 declare namespace chromepApi.cookies {
-    interface CookieChangedEvent extends chrome.events.Event<(changeInfo: chrome.cookies.CookieChangeInfo) => void> {
+    export interface CookieChangedEvent extends chrome.events.Event<(changeInfo: chrome.cookies.CookieChangeInfo) => void> {
     }
     export interface Cookies {
         /**
@@ -644,13 +659,13 @@ declare namespace chromepApi.documentScan {
     }
 }
 declare namespace chromepApi.downloads {
-    interface DownloadChangedEvent extends chrome.events.Event<(downloadDelta: chrome.downloads.DownloadDelta) => void> {
+    export interface DownloadChangedEvent extends chrome.events.Event<(downloadDelta: chrome.downloads.DownloadDelta) => void> {
     }
-    interface DownloadCreatedEvent extends chrome.events.Event<(downloadItem: chrome.downloads.DownloadItem) => void> {
+    export interface DownloadCreatedEvent extends chrome.events.Event<(downloadItem: chrome.downloads.DownloadItem) => void> {
     }
-    interface DownloadErasedEvent extends chrome.events.Event<(downloadId: number) => void> {
+    export interface DownloadErasedEvent extends chrome.events.Event<(downloadId: number) => void> {
     }
-    interface DownloadDeterminingFilenameEvent extends chrome.events.Event<(downloadItem: chrome.downloads.DownloadItem, suggest: (suggestion?: chrome.downloads.DownloadFilenameSuggestion) => void) => void> {
+    export interface DownloadDeterminingFilenameEvent extends chrome.events.Event<(downloadItem: chrome.downloads.DownloadItem, suggest: (suggestion?: chrome.downloads.DownloadFilenameSuggestion) => void) => void> {
     }
     export interface Downloads {
         /**
@@ -738,7 +753,7 @@ declare namespace chromepApi.events {
     }
 }
 declare namespace chromepApi.extension {
-    interface LastError {
+    export interface LastError {
     }
     export interface Extension {
         lastError: LastError;
@@ -778,33 +793,33 @@ declare namespace chromepApi.fileBrowserHandler {
     }
 }
 declare namespace chromepApi.fileSystemProvider {
-    interface RequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.RequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
+    export interface RequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.RequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
     }
-    interface MetadataRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.MetadataRequestedEventOptions, successCallback: (metadata: chrome.fileSystemProvider.EntryMetadata) => void, errorCallback: (error: string) => void) => void> {
+    export interface MetadataRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.MetadataRequestedEventOptions, successCallback: (metadata: chrome.fileSystemProvider.EntryMetadata) => void, errorCallback: (error: string) => void) => void> {
     }
-    interface DirectoryPathRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.DirectoryPathRequestedEventOptions, successCallback: (entries: chrome.fileSystemProvider.EntryMetadata[], hasMore: boolean) => void, errorCallback: (error: string) => void) => void> {
+    export interface DirectoryPathRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.DirectoryPathRequestedEventOptions, successCallback: (entries: chrome.fileSystemProvider.EntryMetadata[], hasMore: boolean) => void, errorCallback: (error: string) => void) => void> {
     }
-    interface OpenFileRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.OpenFileRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
+    export interface OpenFileRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.OpenFileRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
     }
-    interface OpenedFileRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.OpenedFileRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
+    export interface OpenedFileRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.OpenedFileRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
     }
-    interface OpenedFileOffsetRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.OpenedFileOffsetRequestedEventOptions, successCallback: (data: ArrayBuffer, hasMore: boolean) => void, errorCallback: (error: string) => void) => void> {
+    export interface OpenedFileOffsetRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.OpenedFileOffsetRequestedEventOptions, successCallback: (data: ArrayBuffer, hasMore: boolean) => void, errorCallback: (error: string) => void) => void> {
     }
-    interface DirectoryPathRecursiveRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.DirectoryPathRecursiveRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
+    export interface DirectoryPathRecursiveRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.DirectoryPathRecursiveRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
     }
-    interface EntryPathRecursiveRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.EntryPathRecursiveRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
+    export interface EntryPathRecursiveRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.EntryPathRecursiveRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
     }
-    interface FilePathRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.FilePathRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
+    export interface FilePathRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.FilePathRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
     }
-    interface SourceTargetPathRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.SourceTargetPathRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
+    export interface SourceTargetPathRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.SourceTargetPathRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
     }
-    interface FilePathLengthRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.FilePathLengthRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
+    export interface FilePathLengthRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.FilePathLengthRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
     }
-    interface OpenedFileIoRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.OpenedFileIoRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
+    export interface OpenedFileIoRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.OpenedFileIoRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
     }
-    interface OperationRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.OperationRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
+    export interface OperationRequestedEvent extends chrome.events.Event<(options: chrome.fileSystemProvider.OperationRequestedEventOptions, successCallback: Function, errorCallback: (error: string) => void) => void> {
     }
-    interface OptionlessRequestedEvent extends chrome.events.Event<(successCallback: Function, errorCallback: (error: string) => void) => void> {
+    export interface OptionlessRequestedEvent extends chrome.events.Event<(successCallback: Function, errorCallback: (error: string) => void) => void> {
     }
     export interface FileSystemProvider {
         /**
@@ -872,13 +887,13 @@ declare namespace chromepApi.fileSystemProvider {
     }
 }
 declare namespace chromepApi.fontSettings {
-    interface DefaultFixedFontSizeChangedEvent extends chrome.events.Event<(details: chrome.fontSettings.FontSizeDetails) => void> {
+    export interface DefaultFixedFontSizeChangedEvent extends chrome.events.Event<(details: chrome.fontSettings.FontSizeDetails) => void> {
     }
-    interface DefaultFontSizeChangedEvent extends chrome.events.Event<(details: chrome.fontSettings.FontSizeDetails) => void> {
+    export interface DefaultFontSizeChangedEvent extends chrome.events.Event<(details: chrome.fontSettings.FontSizeDetails) => void> {
     }
-    interface MinimumFontSizeChangedEvent extends chrome.events.Event<(details: chrome.fontSettings.FontSizeDetails) => void> {
+    export interface MinimumFontSizeChangedEvent extends chrome.events.Event<(details: chrome.fontSettings.FontSizeDetails) => void> {
     }
-    interface FontChangedEvent extends chrome.events.Event<(details: chrome.fontSettings.FullFontDetails) => void> {
+    export interface FontChangedEvent extends chrome.events.Event<(details: chrome.fontSettings.FullFontDetails) => void> {
     }
     export interface FontSettings {
         /**
@@ -972,11 +987,11 @@ declare namespace chromepApi.fontSettings {
     }
 }
 declare namespace chromepApi.gcm {
-    interface MessageReceptionEvent extends chrome.events.Event<(message: chrome.gcm.IncomingMessage) => void> {
+    export interface MessageReceptionEvent extends chrome.events.Event<(message: chrome.gcm.IncomingMessage) => void> {
     }
-    interface MessageDeletionEvent extends chrome.events.Event<() => void> {
+    export interface MessageDeletionEvent extends chrome.events.Event<() => void> {
     }
-    interface GcmErrorEvent extends chrome.events.Event<(error: chrome.gcm.GcmError) => void> {
+    export interface GcmErrorEvent extends chrome.events.Event<(error: chrome.gcm.GcmError) => void> {
     }
     export interface Gcm {
         /**
@@ -1010,9 +1025,9 @@ declare namespace chromepApi.gcm {
     }
 }
 declare namespace chromepApi.history {
-    interface HistoryVisitedEvent extends chrome.events.Event<(result: chrome.history.HistoryItem) => void> {
+    export interface HistoryVisitedEvent extends chrome.events.Event<(result: chrome.history.HistoryItem) => void> {
     }
-    interface HistoryVisitRemovedEvent extends chrome.events.Event<(removed: chrome.history.RemovedResult) => void> {
+    export interface HistoryVisitRemovedEvent extends chrome.events.Event<(removed: chrome.history.RemovedResult) => void> {
     }
     export interface History {
         /**
@@ -1072,7 +1087,7 @@ declare namespace chromepApi.i18n {
     }
 }
 declare namespace chromepApi.identity {
-    interface SignInChangeEvent extends chrome.events.Event<(account: chrome.identity.AccountInfo, signedIn: boolean) => void> {
+    export interface SignInChangeEvent extends chrome.events.Event<(account: chrome.identity.AccountInfo, signedIn: boolean) => void> {
     }
     export interface Identity {
         /**
@@ -1120,7 +1135,7 @@ declare namespace chromepApi.identity {
     }
 }
 declare namespace chromepApi.idle {
-    interface IdleStateChangedEvent extends chrome.events.Event<(newState: string) => void> {
+    export interface IdleStateChangedEvent extends chrome.events.Event<(newState: string) => void> {
     }
     export interface Idle {
         /**
@@ -1135,13 +1150,13 @@ declare namespace chromepApi.idle {
     }
 }
 declare namespace chromepApi.management {
-    interface ManagementDisabledEvent extends chrome.events.Event<(info: chrome.management.ExtensionInfo) => void> {
+    export interface ManagementDisabledEvent extends chrome.events.Event<(info: chrome.management.ExtensionInfo) => void> {
     }
-    interface ManagementUninstalledEvent extends chrome.events.Event<(id: string) => void> {
+    export interface ManagementUninstalledEvent extends chrome.events.Event<(id: string) => void> {
     }
-    interface ManagementInstalledEvent extends chrome.events.Event<(info: chrome.management.ExtensionInfo) => void> {
+    export interface ManagementInstalledEvent extends chrome.events.Event<(info: chrome.management.ExtensionInfo) => void> {
     }
-    interface ManagementEnabledEvent extends chrome.events.Event<(info: chrome.management.ExtensionInfo) => void> {
+    export interface ManagementEnabledEvent extends chrome.events.Event<(info: chrome.management.ExtensionInfo) => void> {
     }
     export interface Management {
         /**
@@ -1260,15 +1275,15 @@ declare namespace chromepApi.management {
     }
 }
 declare namespace chromepApi.notifications {
-    interface NotificationClosedEvent extends chrome.events.Event<(notificationId: string, byUser: boolean) => void> {
+    export interface NotificationClosedEvent extends chrome.events.Event<(notificationId: string, byUser: boolean) => void> {
     }
-    interface NotificationClickedEvent extends chrome.events.Event<(notificationId: string) => void> {
+    export interface NotificationClickedEvent extends chrome.events.Event<(notificationId: string) => void> {
     }
-    interface NotificationButtonClickedEvent extends chrome.events.Event<(notificationId: string, buttonIndex: number) => void> {
+    export interface NotificationButtonClickedEvent extends chrome.events.Event<(notificationId: string, buttonIndex: number) => void> {
     }
-    interface NotificationPermissionLevelChangedEvent extends chrome.events.Event<(level: string) => void> {
+    export interface NotificationPermissionLevelChangedEvent extends chrome.events.Event<(level: string) => void> {
     }
-    interface NotificationShowSettingsEvent extends chrome.events.Event<() => void> {
+    export interface NotificationShowSettingsEvent extends chrome.events.Event<() => void> {
     }
     export interface Notifications {
         onClosed: NotificationClosedEvent;
@@ -1336,13 +1351,13 @@ declare namespace chromepApi.notifications {
     }
 }
 declare namespace chromepApi.omnibox {
-    interface OmniboxInputEnteredEvent extends chrome.events.Event<(text: string) => void> {
+    export interface OmniboxInputEnteredEvent extends chrome.events.Event<(text: string) => void> {
     }
-    interface OmniboxInputChangedEvent extends chrome.events.Event<(text: string, suggest: (suggestResults: chrome.omnibox.SuggestResult[]) => void) => void> {
+    export interface OmniboxInputChangedEvent extends chrome.events.Event<(text: string, suggest: (suggestResults: chrome.omnibox.SuggestResult[]) => void) => void> {
     }
-    interface OmniboxInputStartedEvent extends chrome.events.Event<() => void> {
+    export interface OmniboxInputStartedEvent extends chrome.events.Event<() => void> {
     }
-    interface OmniboxInputCancelledEvent extends chrome.events.Event<() => void> {
+    export interface OmniboxInputCancelledEvent extends chrome.events.Event<() => void> {
     }
     export interface Omnibox {
         onInputEntered: OmniboxInputEnteredEvent;
@@ -1352,7 +1367,7 @@ declare namespace chromepApi.omnibox {
     }
 }
 declare namespace chromepApi.pageAction {
-    interface PageActionClickedEvent extends chrome.events.Event<(tab: chrome.tabs.Tab) => void> {
+    export interface PageActionClickedEvent extends chrome.events.Event<(tab: chrome.tabs.Tab) => void> {
     }
     export interface PageAction {
         /**
@@ -1391,7 +1406,7 @@ declare namespace chromepApi.pageCapture {
     }
 }
 declare namespace chromepApi.permissions {
-    interface PermissionsRemovedEvent {
+    export interface PermissionsRemovedEvent {
         /**
                  * @param callback The callback parameter should be a function that looks like this:
                  * function( Permissions permissions) {...};
@@ -1399,7 +1414,7 @@ declare namespace chromepApi.permissions {
                  */
         addListener(): Promise<chrome.permissions.Permissions>;
     }
-    interface PermissionsAddedEvent {
+    export interface PermissionsAddedEvent {
         /**
                  * @param callback The callback parameter should be a function that looks like this:
                  * function( Permissions permissions) {...};
@@ -1472,13 +1487,13 @@ declare namespace chromepApi.power {
     }
 }
 declare namespace chromepApi.printerProvider {
-    interface PrinterRequestedEvent extends chrome.events.Event<(resultCallback: (printerInfo: chrome.printerProvider.PrinterInfo[]) => void) => void> {
+    export interface PrinterRequestedEvent extends chrome.events.Event<(resultCallback: (printerInfo: chrome.printerProvider.PrinterInfo[]) => void) => void> {
     }
-    interface PrinterInfoRequestedEvent extends chrome.events.Event<(device: any, resultCallback: (printerInfo?: chrome.printerProvider.PrinterInfo) => void) => void> {
+    export interface PrinterInfoRequestedEvent extends chrome.events.Event<(device: any, resultCallback: (printerInfo?: chrome.printerProvider.PrinterInfo) => void) => void> {
     }
-    interface CapabilityRequestedEvent extends chrome.events.Event<(printerId: string, resultCallback: (capabilities: chrome.printerProvider.PrinterCapabilities) => void) => void> {
+    export interface CapabilityRequestedEvent extends chrome.events.Event<(printerId: string, resultCallback: (capabilities: chrome.printerProvider.PrinterCapabilities) => void) => void> {
     }
-    interface PrintRequestedEvent extends chrome.events.Event<(printJob: chrome.printerProvider.PrintJob, resultCallback: (result: string) => void) => void> {
+    export interface PrintRequestedEvent extends chrome.events.Event<(printJob: chrome.printerProvider.PrintJob, resultCallback: (result: string) => void) => void> {
     }
     export interface PrinterProvider {
         onGetPrintersRequested: PrinterRequestedEvent;
@@ -1488,11 +1503,11 @@ declare namespace chromepApi.printerProvider {
     }
 }
 declare namespace chromepApi.privacy {
-    interface Services {
+    export interface Services {
     }
-    interface Network {
+    export interface Network {
     }
-    interface Websites {
+    export interface Websites {
     }
     export interface Privacy {
         services: Services;
@@ -1501,7 +1516,7 @@ declare namespace chromepApi.privacy {
     }
 }
 declare namespace chromepApi.proxy {
-    interface ProxyErrorEvent extends chrome.events.Event<(details: chrome.proxy.ErrorDetails) => void> {
+    export interface ProxyErrorEvent extends chrome.events.Event<(details: chrome.proxy.ErrorDetails) => void> {
     }
     export interface Proxy {
         onProxyError: ProxyErrorEvent;
@@ -1530,17 +1545,17 @@ declare namespace chromepApi.proxy {
      }
 }
 declare namespace chromepApi.runtime {
-    interface ExtensionConnectEvent extends chrome.events.Event<(port: chrome.runtime.Port) => void> {
+    export interface ExtensionConnectEvent extends chrome.events.Event<(port: chrome.runtime.Port) => void> {
     }
-    interface RuntimeEvent extends chrome.events.Event<() => void> {
+    export interface RuntimeEvent extends chrome.events.Event<() => void> {
     }
-    interface RuntimeInstalledEvent extends chrome.events.Event<(details: chrome.runtime.InstalledDetails) => void> {
+    export interface RuntimeInstalledEvent extends chrome.events.Event<(details: chrome.runtime.InstalledDetails) => void> {
     }
-    interface ExtensionMessageEvent extends chrome.events.Event<(message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => void> {
+    export interface ExtensionMessageEvent extends chrome.events.Event<(message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => void> {
     }
-    interface RuntimeRestartRequiredEvent extends chrome.events.Event<(reason: string) => void> {
+    export interface RuntimeRestartRequiredEvent extends chrome.events.Event<(reason: string) => void> {
     }
-    interface RuntimeUpdateAvailableEvent extends chrome.events.Event<(details: chrome.runtime.UpdateAvailableDetails) => void> {
+    export interface RuntimeUpdateAvailableEvent extends chrome.events.Event<(details: chrome.runtime.UpdateAvailableDetails) => void> {
     }
     export interface Runtime {
          /** should be merge from XXXX.d.ts URIEL */
@@ -1595,7 +1610,7 @@ declare namespace chromepApi.runtime {
     }
 }
 declare namespace chromepApi.scriptBadge {
-    interface ScriptBadgeClickedEvent extends chrome.events.Event<(tab: chrome.tabs.Tab) => void> {
+    export interface ScriptBadgeClickedEvent extends chrome.events.Event<(tab: chrome.tabs.Tab) => void> {
     }
     export interface ScriptBadge {
         getPopup(details: chrome.scriptBadge.GetPopupDetails): Promise<void>;
@@ -1603,7 +1618,7 @@ declare namespace chromepApi.scriptBadge {
     }
 }
 declare namespace chromepApi.sessions {
-    interface SessionChangedEvent extends chrome.events.Event<() => void> {
+    export interface SessionChangedEvent extends chrome.events.Event<() => void> {
     }
     export interface Sessions {
         /**
@@ -1642,11 +1657,11 @@ declare namespace chromepApi.sessions {
     }
 }
 declare namespace chromepApi.storage {
-    interface LocalStorageArea extends StorageArea {
+    export interface LocalStorageArea extends StorageArea {
     }
-    interface SyncStorageArea extends StorageArea {
+    export interface SyncStorageArea extends StorageArea {
     }
-    interface StorageArea {
+    export interface StorageArea {
         /**
                  * Gets the amount of space (in bytes) being used by one or more items.
                  * @param callback Callback with the amount of space being used by storage, or on failure (in which case runtime.lastError will be set).
@@ -1707,7 +1722,7 @@ declare namespace chromepApi.storage {
                 [key: string]: any;
             }>;
     }
-    interface StorageChangedEvent extends chrome.events.Event<(changes: {
+    export interface StorageChangedEvent extends chrome.events.Event<(changes: {
                 [key: string]: chrome.storage.StorageChange;
             }, areaName: string) => void> {
     }
@@ -1754,27 +1769,27 @@ declare namespace chromepApi.tabCapture {
     }
 }
 declare namespace chromepApi.tabs {
-    interface TabHighlightedEvent extends chrome.events.Event<(highlightInfo: chrome.tabs.HighlightInfo) => void> {
+    export interface TabHighlightedEvent extends chrome.events.Event<(highlightInfo: chrome.tabs.HighlightInfo) => void> {
     }
-    interface TabRemovedEvent extends chrome.events.Event<(tabId: number, removeInfo: chrome.tabs.TabRemoveInfo) => void> {
+    export interface TabRemovedEvent extends chrome.events.Event<(tabId: number, removeInfo: chrome.tabs.TabRemoveInfo) => void> {
     }
-    interface TabUpdatedEvent extends chrome.events.Event<(tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => void> {
+    export interface TabUpdatedEvent extends chrome.events.Event<(tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => void> {
     }
-    interface TabAttachedEvent extends chrome.events.Event<(tabId: number, attachInfo: chrome.tabs.TabAttachInfo) => void> {
+    export interface TabAttachedEvent extends chrome.events.Event<(tabId: number, attachInfo: chrome.tabs.TabAttachInfo) => void> {
     }
-    interface TabMovedEvent extends chrome.events.Event<(tabId: number, moveInfo: chrome.tabs.TabMoveInfo) => void> {
+    export interface TabMovedEvent extends chrome.events.Event<(tabId: number, moveInfo: chrome.tabs.TabMoveInfo) => void> {
     }
-    interface TabDetachedEvent extends chrome.events.Event<(tabId: number, detachInfo: chrome.tabs.TabDetachInfo) => void> {
+    export interface TabDetachedEvent extends chrome.events.Event<(tabId: number, detachInfo: chrome.tabs.TabDetachInfo) => void> {
     }
-    interface TabCreatedEvent extends chrome.events.Event<(tab: chrome.tabs.Tab) => void> {
+    export interface TabCreatedEvent extends chrome.events.Event<(tab: chrome.tabs.Tab) => void> {
     }
-    interface TabActivatedEvent extends chrome.events.Event<(activeInfo: chrome.tabs.TabActiveInfo) => void> {
+    export interface TabActivatedEvent extends chrome.events.Event<(activeInfo: chrome.tabs.TabActiveInfo) => void> {
     }
-    interface TabReplacedEvent extends chrome.events.Event<(addedTabId: number, removedTabId: number) => void> {
+    export interface TabReplacedEvent extends chrome.events.Event<(addedTabId: number, removedTabId: number) => void> {
     }
-    interface TabSelectedEvent extends chrome.events.Event<(tabId: number, selectInfo: chrome.tabs.TabWindowInfo) => void> {
+    export interface TabSelectedEvent extends chrome.events.Event<(tabId: number, selectInfo: chrome.tabs.TabWindowInfo) => void> {
     }
-    interface TabZoomChangeEvent extends chrome.events.Event<(ZoomChangeInfo: chrome.tabs.ZoomChangeInfo) => void> {
+    export interface TabZoomChangeEvent extends chrome.events.Event<(ZoomChangeInfo: chrome.tabs.ZoomChangeInfo) => void> {
     }
     export interface Tabs {
         /**
@@ -2054,7 +2069,7 @@ declare namespace chromepApi.tts {
     }
 }
 declare namespace chromepApi.ttsEngine {
-    interface TtsEngineSpeakEvent extends chrome.events.Event<(utterance: string, options: chrome.ttsEngine.SpeakOptions, sendTtsEvent: (event: chrome.tts.TtsEvent) => void) => void> {
+    export interface TtsEngineSpeakEvent extends chrome.events.Event<(utterance: string, options: chrome.ttsEngine.SpeakOptions, sendTtsEvent: (event: chrome.tts.TtsEvent) => void) => void> {
     }
     export interface TtsEngine {
         onSpeak: TtsEngineSpeakEvent;
@@ -2065,15 +2080,15 @@ declare namespace chromepApi.types {
     }
 }
 declare namespace chromepApi.vpnProvider {
-    interface VpnPlatformMessageEvent extends chrome.events.Event<(id: string, message: string, error: string) => void> {
+    export interface VpnPlatformMessageEvent extends chrome.events.Event<(id: string, message: string, error: string) => void> {
     }
-    interface VpnPacketReceptionEvent extends chrome.events.Event<(data: ArrayBuffer) => void> {
+    export interface VpnPacketReceptionEvent extends chrome.events.Event<(data: ArrayBuffer) => void> {
     }
-    interface VpnConfigRemovalEvent extends chrome.events.Event<(id: string) => void> {
+    export interface VpnConfigRemovalEvent extends chrome.events.Event<(id: string) => void> {
     }
-    interface VpnConfigCreationEvent extends chrome.events.Event<(id: string, name: string, data: Object) => void> {
+    export interface VpnConfigCreationEvent extends chrome.events.Event<(id: string, name: string, data: Object) => void> {
     }
-    interface VpnUiEvent extends chrome.events.Event<(event: string, id?: string) => void> {
+    export interface VpnUiEvent extends chrome.events.Event<(event: string, id?: string) => void> {
     }
     export interface VpnProvider {
         /**
@@ -2161,9 +2176,9 @@ declare namespace chromepApi.webstore {
     }
 }
 declare namespace chromepApi.windows {
-    interface WindowIdEvent extends chrome.events.Event<(windowId: number, filters?: chrome.windows.WindowEventFilter) => void> {
+    export interface WindowIdEvent extends chrome.events.Event<(windowId: number, filters?: chrome.windows.WindowEventFilter) => void> {
     }
-    interface WindowReferenceEvent extends chrome.events.Event<(window: chrome.windows.Window, filters?: chrome.windows.WindowEventFilter) => void> {
+    export interface WindowReferenceEvent extends chrome.events.Event<(window: chrome.windows.Window, filters?: chrome.windows.WindowEventFilter) => void> {
     }
     export interface Windows {
         /** Gets details about a window. */
