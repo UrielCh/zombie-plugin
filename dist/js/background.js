@@ -123,6 +123,11 @@ if (chrome.webRequest) {
             tasker.mayCloseTabIn(details.tabId, 6003);
             return;
         }
+        if (details.error === 'net::ERR_BLOCKED_BY_CLIENT') {
+            await wait(1009);
+            zUtils_1.default.closeTab(details.tabId);
+            return;
+        }
         if (details.error === 'net::ERR_TUNNEL_CONNECTION_FAILED' ||
             details.error === 'net::ERR_ABORTED' ||
             details.error === 'net::ERR_EMPTY_RESPONSE') {
