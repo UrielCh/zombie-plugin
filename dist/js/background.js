@@ -548,7 +548,7 @@ class Tasker {
                 const { domain, name } = request;
                 if (domain || name) {
                     const cookies = await zFunction.popCookies({ domain, name });
-                    return sendResponse(toOk(cookies));
+                    sendResponse(toOk(cookies));
                 }
                 else
                     sendResponse(zUtils_1.default.toErr('Missing "domain" or "name" argument as regexp.'));
@@ -557,9 +557,8 @@ class Tasker {
                 const { domain, name } = request;
                 if (domain || name) {
                     const cookies = await zFunction.getCookies({ domain, name });
-                    return sendResponse(toOk(cookies));
-                }
-                else
+                    sendResponse(toOk(cookies));
+                } else
                     sendResponse(zUtils_1.default.toErr('Missing "domain" or "name" argument as regexp.'));
             },
             pushCookies: async (request, sender, sendResponse) => {

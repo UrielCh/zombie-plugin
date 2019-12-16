@@ -62,7 +62,7 @@ export default class ChromePromise {
     windows: chromepApi.windows.Windows;
 }
 declare namespace chromepApi.accessibilityFeatures {
-    interface AccessibilityFeaturesSetting {
+     export interface AccessibilityFeaturesSetting {
         /**
                  * Gets the value of a setting.
                  * @param details Which setting to consider.
@@ -99,7 +99,7 @@ declare namespace chromepApi.accessibilityFeatures {
     }
 }
 declare namespace chromepApi.alarms {
-    interface AlarmEvent extends chrome.events.Event<(alarm: chrome.alarms.Alarm) => void> {
+    export interface AlarmEvent extends chrome.events.Event<(alarm: chrome.alarms.Alarm) => void> {
     }
     export interface Alarms {
         /**
@@ -157,19 +157,19 @@ declare namespace chromepApi.browser {
     }
 }
 declare namespace chromepApi.bookmarks {
-    interface BookmarkRemovedEvent extends chrome.events.Event<(id: string, removeInfo: chrome.bookmarks.BookmarkRemoveInfo) => void> {
+    export interface BookmarkRemovedEvent extends chrome.events.Event<(id: string, removeInfo: chrome.bookmarks.BookmarkRemoveInfo) => void> {
     }
-    interface BookmarkImportEndedEvent extends chrome.events.Event<() => void> {
+    export interface BookmarkImportEndedEvent extends chrome.events.Event<() => void> {
     }
-    interface BookmarkImportBeganEvent extends chrome.events.Event<() => void> {
+    export interface BookmarkImportBeganEvent extends chrome.events.Event<() => void> {
     }
-    interface BookmarkChangedEvent extends chrome.events.Event<(id: string, changeInfo: chrome.bookmarks.BookmarkChangeInfo) => void> {
+    export interface BookmarkChangedEvent extends chrome.events.Event<(id: string, changeInfo: chrome.bookmarks.BookmarkChangeInfo) => void> {
     }
-    interface BookmarkMovedEvent extends chrome.events.Event<(id: string, moveInfo: chrome.bookmarks.BookmarkMoveInfo) => void> {
+    export interface BookmarkMovedEvent extends chrome.events.Event<(id: string, moveInfo: chrome.bookmarks.BookmarkMoveInfo) => void> {
     }
-    interface BookmarkCreatedEvent extends chrome.events.Event<(id: string, bookmark: chrome.bookmarks.BookmarkTreeNode) => void> {
+    export interface BookmarkCreatedEvent extends chrome.events.Event<(id: string, bookmark: chrome.bookmarks.BookmarkTreeNode) => void> {
     }
-    interface BookmarkChildrenReordered extends chrome.events.Event<(id: string, reorderInfo: chrome.bookmarks.BookmarkReorderInfo) => void> {
+    export interface BookmarkChildrenReordered extends chrome.events.Event<(id: string, reorderInfo: chrome.bookmarks.BookmarkReorderInfo) => void> {
     }
     export interface Bookmarks {
         /**
@@ -267,9 +267,31 @@ declare namespace chromepApi.bookmarks {
     }
 }
 declare namespace chromepApi.browserAction {
-    interface BrowserClickedEvent extends chrome.events.Event<(tab: chrome.tabs.Tab) => void> {
+    export interface BrowserClickedEvent extends chrome.events.Event<(tab: chrome.tabs.Tab) => void> {
     }
     export interface BrowserAction {
+         /**
+             * Since Chrome 22.
+             * Enables the browser action for a tab. By default, browser actions are enabled.
+             * @param tabId The id of the tab for which you want to modify the browser action.
+             * @param callback Supported since Chrome 67
+             */
+        enable(tabId?: number): Promise<void>;
+        /**
+             * Sets the background color for the badge.
+             * @param callback Supported since Chrome 67
+             */
+        setBadgeBackgroundColor(details: chrome.browserAction.BadgeBackgroundColorDetails): Promise<void>;
+        /**
+             * Sets the badge text for the browser action. The badge is displayed on top of the icon.
+             * @param callback Supported since Chrome 67
+             */
+        setBadgeText(details: chrome.browserAction.BadgeTextDetails): Promise<void>;
+        /**
+             * Sets the title of the browser action. This shows up in the tooltip.
+             * @param callback Supported since Chrome 67
+             */
+        setTitle(details: chrome.browserAction.TitleDetails): Promise<void>;
         /**
              * Since Chrome 19.
              * Gets the badge text of the browser action. If no tab is specified, the non-tab-specific badge text is returned.
@@ -277,7 +299,19 @@ declare namespace chromepApi.browserAction {
              * function(string result) {...};
              */
         getBadgeText(details: chrome.browserAction.TabDetails): Promise<string>;
-        /**
+         /**
+             * Sets the html document to be opened as a popup when the user clicks on the browser action's icon.
+             * @param callback Supported since Chrome 67
+             */
+        setPopup(details: chrome.browserAction.PopupDetails): Promise<void>;
+         /**
+             * Since Chrome 22.
+             * Disables the browser action for a tab.
+             * @param tabId The id of the tab for which you want to modify the browser action.
+             * @param callback Supported since Chrome 67
+             */
+        disable(tabId?: number): Promise<void>;
+            /**
              * Since Chrome 19.
              * Gets the title of the browser action.
              * @param callback The callback parameter should be a function that looks like this:
@@ -411,7 +445,7 @@ declare namespace chromepApi.browsingData {
     }
 }
 declare namespace chromepApi.commands {
-    interface CommandEvent extends chrome.events.Event<(command: string) => void> {
+    export interface CommandEvent extends chrome.events.Event<(command: string) => void> {
     }
     export interface Commands {
         /**
