@@ -79,8 +79,9 @@ const pluginListener = (internal: boolean) => async (request: any, sender: chrom
             if (!sendResponse)
                 sendResponse = console.log;
             await mtd(request, sender, sendResponse);
-        } catch (e) {
-            ZUtils.catchPromise(`${internal ? 'Internal' : 'External'}.${request.command}`)(e);
+        } catch (error) {
+            const msg = `${internal ? 'Internal' : 'External'}.${request.command}`;
+            console.log(msg, 'promise Failure', error);
         }
     else
         sendResponse(`command ${request.command} not found`);
@@ -103,8 +104,8 @@ if (chrome.webRequest) {
                 authCredentials: JSON.parse(pluginStat.config.proxyAuth)
             });
     },
-        { urls: ['<all_urls>'] },
-        ['asyncBlocking']);
+    { urls: ['<all_urls>'] },
+    ['asyncBlocking']);
 
     chrome.webRequest.onErrorOccurred.addListener(async (details) => {
         if (details.type !== 'main_frame')
@@ -117,7 +118,7 @@ if (chrome.webRequest) {
 
         if (details.error === 'net::ERR_BLOCKED_BY_CLIENT') {
             await wait(1009);
-            ZUtils.closeTab(details.tabId)
+            ZUtils.closeTab(details.tabId);
             return;
         }
 

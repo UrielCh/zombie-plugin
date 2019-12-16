@@ -201,8 +201,13 @@ export default class ZFunction {
      * return deleted cookies count
      */
     public async deleteCookies(filter: CookiesFilter) {
-        const cookies = await this.getCookies(filter);
-        return await this.deleteCookiesSelection(cookies);
+        try {
+            const cookies = await this.getCookies(filter);
+            return await this.deleteCookiesSelection(cookies);
+        } catch (e) {
+            console.log(e);
+            return 'Error';
+        }
     }
     /**
      * get mattring cookie and return them as promise
@@ -254,7 +259,7 @@ export default class ZFunction {
             try {
                 await chromep.cookies.set(cookieData);
             } catch (e) {
-                console.log(`failed to push Cooke`, cookieData, e);
+                console.log('failed to push Cookie', cookieData, e);
             }
         }
         return 'ok';

@@ -4,20 +4,38 @@ module.exports = {
         'node': true,
         'es6': true,
     },
-    'plugins': [],
-    'extends': 'eslint:recommended',
+    'extends': [
+        'eslint:recommended',
+        'plugin:@typescript-eslint/eslint-recommended'
+    ],
+    'globals': {
+        'Atomics': 'readonly',
+        'SharedArrayBuffer': 'readonly'
+    },
+    'parser': '@typescript-eslint/parser',
+    'parserOptions': {
+        'ecmaVersion': 2018,
+        'sourceType': 'module'
+    },
+    'plugins': [
+        '@typescript-eslint'
+    ],
     'rules': {
+        'indent': [
+            'error',
+            4
+        ],
+        'linebreak-style': [
+            'error',
+            'unix'
+        ],
+        'quotes': [
+            'error',
+            'single'
+        ],
         'semi': [
             'error',
             'always'
-        ],
-        'quotes': [2, 'single'],
-    },
-
-
-
-    'globals': {
-        '_': true,
-        '$': true,
+        ]
     }
 };

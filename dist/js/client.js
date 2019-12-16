@@ -2,7 +2,7 @@
 let zone = document.getElementById('tasker_id_loader');
 if (zone)
     zone.innerHTML = chrome.runtime.id;
-const get = (url) => jQuery.get(url).then((data, textStatus, jqXHR) => Promise.resolve(data), (jqXHR, textStatus, errorThrown) => Promise.reject(textStatus));
+const get = (url) => jQuery.get(url).then((data) => Promise.resolve(data), (jqXHR, textStatus) => Promise.reject(textStatus));
 const isProtected = (url) => {
     if (!url)
         return false;
@@ -38,7 +38,7 @@ const originalGeolocation = {
     clearWatch: navigator.geolocation.clearWatch,
 };
 function installGeolocationCode(coords) {
-    const myGetPos = (successCallback, error, options) => {
+    const myGetPos = (successCallback) => {
         if (!coords)
             return originalGeolocation.getCurrentPosition;
         successCallback({ coords, timestamp: new Date().getTime() });

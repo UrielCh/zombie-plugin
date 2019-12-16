@@ -96,8 +96,9 @@ const pluginListener = (internal) => async (request, sender, sendResponse) => {
                 sendResponse = console.log;
             await mtd(request, sender, sendResponse);
         }
-        catch (e) {
-            zUtils_1.default.catchPromise(`${internal ? 'Internal' : 'External'}.${request.command}`)(e);
+        catch (error) {
+            const msg = `${internal ? 'Internal' : 'External'}.${request.command}`;
+            console.log(msg, 'promise Failure', error);
         }
     else
         sendResponse(`command ${request.command} not found`);
@@ -379,9 +380,54 @@ class Tasker {
                     pError(sendResponse, `close tab ${sender.tab.id}`, e);
                 }
             },
-            saveCookies: async (request, sender, sendResponse) => {
-                this.lastCookiesSave = Date.now();
-                sendResponse(toOk('ok'));
+            preventPrompts: async (request, sender, sendResponse) => {
+                if (sender.tab && sender.tab.id) {
+                    const tabId = sender.tab.id;
+                    try {
+                        await zUtils_1.default.preventPrompts(tabId);
+                        sendResponse(toOk('ok'));
+                    }
+                    catch (e) {
+                        pError(sendResponse, `preventPrompts Tab:${tabId}`, e);
+                    }
+                }
+                else
+                    sendResponse(zUtils_1.default.toErr('missing tab'));
+            },
+            registerCommand: async (request, sender, sendResponse) => {
+                const params = {
+                    active: request.active || false,
+                    pinned: request.pinned || false,
+                    url: request.url
+                };
+                if (request.closeIrrelevantTabs === true || request.closeIrrelevantTabs === false)
+                    pluginStat.config.closeIrrelevantTabs = request.closeIrrelevantTabs;
+                const task = {
+                    action: request.action,
+                    depCss: request.depCss || [],
+                    deps: request.deps || [],
+                    target: request.target || ''
+                };
+                if (!task.action)
+                    return sendResponse(zUtils_1.default.toErr('action string is missing'));
+                let tab = null;
+                if (task.target && Tasker.Instance.namedTab[task.target]) {
+                    const tabOld = Tasker.Instance.namedTab[task.target];
+                    if (tabOld && tabOld.id)
+                        tab = await chromep.tabs.update(tabOld.id, params);
+                }
+                if (!tab)
+                    tab = await chromep.tabs.create(params);
+                if (!tab || !tab.id)
+                    return;
+                Tasker.Instance.registedActionTab[tab.id] = task;
+                pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
+                if (task.target) {
+                    Tasker.Instance.namedTab[task.target] = tab;
+                    pluginStat.nbNamedTab = Object.keys(Tasker.Instance.namedTab).length;
+                    Tasker.updateBadge();
+                }
+                sendResponse(toOk('done'));
             },
             readQrCode: async (request, sender, sendResponse) => {
                 let windowId = 0;
@@ -428,6 +474,10 @@ class Tasker {
                     });
                 });
             },
+            saveCookies: async (request, sender, sendResponse) => {
+                this.lastCookiesSave = Date.now();
+                sendResponse(toOk('ok'));
+            },
             setBlockedDomains: async (request, sender, sendResponse) => {
                 const { domains } = request;
                 Tasker.Instance.blockedDomains = domains;
@@ -469,20 +519,6 @@ class Tasker {
                 await chromep.storage.local.set({ proxy });
                 sendResponse(toOk('ok'));
             },
-            preventPrompts: async (request, sender, sendResponse) => {
-                if (sender.tab && sender.tab.id) {
-                    const tabId = sender.tab.id;
-                    try {
-                        await zUtils_1.default.preventPrompts(tabId);
-                        sendResponse(toOk('ok'));
-                    }
-                    catch (e) {
-                        pError(sendResponse, `preventPrompts Tab:${tabId}`, e);
-                    }
-                }
-                else
-                    sendResponse(zUtils_1.default.toErr('missing tab'));
-            },
             setGeoloc: async (request, sender, sendResponse) => {
                 const coords = (request);
                 if (coords.latitude && coords.latitude && coords.accuracy) {
@@ -499,41 +535,6 @@ class Tasker {
                 const task = Tasker.Instance.registedActionTab[sender.tab.id];
                 task.action = request.action;
                 return sendResponse(toOk('ok'));
-            },
-            registerCommand: async (request, sender, sendResponse) => {
-                const params = {
-                    active: request.active || false,
-                    pinned: request.pinned || false,
-                    url: request.url
-                };
-                if (request.closeIrrelevantTabs === true || request.closeIrrelevantTabs === false)
-                    pluginStat.config.closeIrrelevantTabs = request.closeIrrelevantTabs;
-                const task = {
-                    action: request.action,
-                    depCss: request.depCss || [],
-                    deps: request.deps || [],
-                    target: request.target || ''
-                };
-                if (!task.action)
-                    return sendResponse(zUtils_1.default.toErr('action string is missing'));
-                let tab = null;
-                if (task.target && Tasker.Instance.namedTab[task.target]) {
-                    const tabOld = Tasker.Instance.namedTab[task.target];
-                    if (tabOld && tabOld.id)
-                        tab = await chromep.tabs.update(tabOld.id, params);
-                }
-                if (!tab)
-                    tab = await chromep.tabs.create(params);
-                if (!tab || !tab.id)
-                    return;
-                Tasker.Instance.registedActionTab[tab.id] = task;
-                pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
-                if (task.target) {
-                    Tasker.Instance.namedTab[task.target] = tab;
-                    pluginStat.nbNamedTab = Object.keys(Tasker.Instance.namedTab).length;
-                    Tasker.updateBadge();
-                }
-                sendResponse(toOk('done'));
             },
             deleteCookies: async (request, sender, sendResponse) => {
                 const { domain, name } = request;
@@ -558,12 +559,13 @@ class Tasker {
                 if (domain || name) {
                     const cookies = await zFunction.getCookies({ domain, name });
                     sendResponse(toOk(cookies));
-                } else
+                }
+                else
                     sendResponse(zUtils_1.default.toErr('Missing "domain" or "name" argument as regexp.'));
             },
             pushCookies: async (request, sender, sendResponse) => {
                 try {
-                    const r = await zFunction.pushCookies(request.cookies);
+                    await zFunction.pushCookies(request.cookies);
                     Tasker.Instance.lastCookiesSave = Date.now();
                     sendResponse(toOk('ok'));
                 }
@@ -573,7 +575,7 @@ class Tasker {
             },
             putCookies: async (request, sender, sendResponse) => {
                 try {
-                    const r = await zFunction.pushCookies(request.cookies);
+                    await zFunction.pushCookies(request.cookies);
                     Tasker.Instance.lastCookiesSave = Date.now();
                     sendResponse(toOk('ok'));
                 }
@@ -932,8 +934,14 @@ class ZFunction {
         return cookies;
     }
     async deleteCookies(filter) {
-        const cookies = await this.getCookies(filter);
-        return await this.deleteCookiesSelection(cookies);
+        try {
+            const cookies = await this.getCookies(filter);
+            return await this.deleteCookiesSelection(cookies);
+        }
+        catch (e) {
+            console.log(e);
+            return 'Error';
+        }
     }
     async getCookies(filter) {
         let regDomain = null;
@@ -979,7 +987,7 @@ class ZFunction {
                 await chromep.cookies.set(cookieData);
             }
             catch (e) {
-                console.log(`failed to push Cooke`, cookieData, e);
+                console.log('failed to push Cookie', cookieData, e);
             }
         }
         return 'ok';
@@ -1030,11 +1038,6 @@ class ZUtils {
         if (!url)
             return false;
         return (~url.indexOf('chrome://')) || (~url.indexOf('127.0.0.1')) || (~url.indexOf('localhost')) || (~url.indexOf('.exs.fr'));
-    }
-    static catchPromise(name) {
-        return (error) => {
-            console.log(name, 'promise Failure', error);
-        };
     }
     static async preventPrompts(tabId) {
         try {

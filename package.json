@@ -17,7 +17,7 @@
     "browserify-POP": "browserify ./built/popup.js      -o ./dist/js/popup.js",
     "browserify-CLI": "cpx        ./built/client.js        ./dist/js/",
     "browserify": "concurrently npm:browserify-*",
-    "build": "npm run lint && npm run tsc && npm run browserify"
+    "build": "npm run tsc && npm run browserify"
   },
   "author": "",
   "license": "ISC",
@@ -38,10 +38,13 @@
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.12.18",
     "@types/puppeteer": "^2.0.0",
+    "@typescript-eslint/eslint-plugin": "^2.11.0",
+    "@typescript-eslint/parser": "^2.11.0",
     "bluebird": "^3.7.2",
     "chai": "^4.2.0",
     "concurrently": "^5.0.1",
     "cpx": "^1.5.0",
+    "eslint": "^6.7.2",
     "fs-extra": "^8.1.0",
     "mocha": "^6.2.2",
     "puppeteer": "^2.0.0",

@@ -298,11 +298,74 @@ export default class Tasker {
                 pError(sendResponse, `close tab ${sender.tab.id}`, e);
             }
         },
-        saveCookies: async (request, sender, sendResponse) => {
-            this.lastCookiesSave = Date.now();
-            // console.log(`lastCookiesSave updated`);
-            sendResponse(toOk('ok'));
+
+
+        /**
+         */
+        preventPrompts: async (request, sender, sendResponse) => {
+            if (sender.tab && sender.tab.id) {
+                const tabId = sender.tab.id;
+                try {
+                    await ZUtils.preventPrompts(tabId);
+                    sendResponse(toOk('ok'));
+                } catch (e) {
+                    pError(sendResponse, `preventPrompts Tab:${tabId}`, e);
+                }
+            } else
+                sendResponse(ZUtils.toErr('missing tab'));
         },
+
+
+
+
+
+
+
+
+
+        /**
+         * External
+         */
+        registerCommand: async (request: RegisterCommandMessage, sender, sendResponse) => {
+            const params: chrome.tabs.CreateProperties = {
+                active: request.active || false,
+                pinned: request.pinned || false,
+                url: request.url
+            };
+            if (request.closeIrrelevantTabs === true || request.closeIrrelevantTabs === false)
+                pluginStat.config.closeIrrelevantTabs = request.closeIrrelevantTabs;
+            const task: ZTask = {
+                action: request.action,
+                depCss: request.depCss || [],
+                deps: request.deps || [],
+                target: request.target || ''
+            };
+            if (!task.action)
+                return sendResponse(ZUtils.toErr('action string is missing'));
+
+            let tab: chrome.tabs.Tab | null = null;
+            if (task.target && Tasker.Instance.namedTab[task.target]) {
+                const tabOld = Tasker.Instance.namedTab[task.target];
+                if (tabOld && tabOld.id)
+                    tab = await chromep.tabs.update(tabOld.id, params);
+            }
+            // si pas d'ancien TASK create
+            // new TAB
+            if (!tab)
+                tab = await chromep.tabs.create(params);
+
+            if (!tab || !tab.id)
+                return;
+            Tasker.Instance.registedActionTab[tab.id] = task;
+            pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
+            if (task.target) {
+                Tasker.Instance.namedTab[task.target] = tab;
+                pluginStat.nbNamedTab = Object.keys(Tasker.Instance.namedTab).length;
+                Tasker.updateBadge();
+            }
+            sendResponse(toOk('done'));
+        },
+
 
         readQrCode: async (request, sender, sendResponse) => {
             let windowId = 0;
@@ -356,6 +419,13 @@ export default class Tasker {
                 });
             });
         },
+
+        saveCookies: async (request, sender, sendResponse) => {
+            this.lastCookiesSave = Date.now();
+            // console.log(`lastCookiesSave updated`);
+            sendResponse(toOk('ok'));
+        },
+
         /**
          * setBlockedDomains {domains:[dom1, dom2 ...]}
          */
@@ -401,27 +471,13 @@ export default class Tasker {
                     }
                 });
                 if (username && password)
-                    pluginStat.config.proxyAuth = JSON.stringify({username, password});
+                    pluginStat.config.proxyAuth = JSON.stringify({ username, password });
                 else
                     pluginStat.config.proxyAuth = '';
                 pluginStat.proxy = `${scheme}://${host}:${port}`;
             }
             await chromep.storage.local.set({ proxy });
             sendResponse(toOk('ok'));
-        },
-        /**
-         */
-        preventPrompts: async (request, sender, sendResponse) => {
-            if (sender.tab && sender.tab.id) {
-                const tabId = sender.tab.id;
-                try {
-                    await ZUtils.preventPrompts(tabId);
-                    sendResponse(toOk('ok'));
-                } catch (e) {
-                    pError(sendResponse, `preventPrompts Tab:${tabId}`, e);
-                }
-            } else
-                sendResponse(ZUtils.toErr('missing tab'));
         },
         /**
          */
@@ -448,56 +504,13 @@ export default class Tasker {
         /**
          * External
          */
-        registerCommand: async (request: RegisterCommandMessage, sender, sendResponse) => {
-            const params: chrome.tabs.CreateProperties = {
-                active: request.active || false,
-                pinned: request.pinned || false,
-                url: request.url
-            };
-            if (request.closeIrrelevantTabs === true || request.closeIrrelevantTabs === false)
-                pluginStat.config.closeIrrelevantTabs = request.closeIrrelevantTabs;
-            const task: ZTask = {
-                action: request.action,
-                depCss: request.depCss || [],
-                deps: request.deps || [],
-                target: request.target || ''
-            };
-            if (!task.action)
-                return sendResponse(ZUtils.toErr('action string is missing'));
-
-            let tab: chrome.tabs.Tab | null = null;
-            if (task.target && Tasker.Instance.namedTab[task.target]) {
-                const tabOld = Tasker.Instance.namedTab[task.target];
-                if (tabOld && tabOld.id)
-                    tab = await chromep.tabs.update(tabOld.id, params);
-            }
-            // si pas d'ancien TASK create
-            // new TAB
-            if (!tab)
-                tab = await chromep.tabs.create(params);
-
-            if (!tab || !tab.id)
-                return;
-            Tasker.Instance.registedActionTab[tab.id] = task;
-            pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
-            if (task.target) {
-                Tasker.Instance.namedTab[task.target] = tab;
-                pluginStat.nbNamedTab = Object.keys(Tasker.Instance.namedTab).length;
-                Tasker.updateBadge();
-            }
-            sendResponse(toOk('done'));
-        },
-
-        /**
-         * External
-         */
         deleteCookies: async (request, sender, sendResponse) => {
             const {
                 domain,
                 name
             } = request;
             if (domain || name) {
-                const count = await zFunction.deleteCookies({domain, name});
+                const count = await zFunction.deleteCookies({ domain, name });
                 sendResponse(toOk(count));
             } else
                 sendResponse(ZUtils.toErr('Missing "domain" or "name" argument as regexp.'));
@@ -512,7 +525,7 @@ export default class Tasker {
                 name
             } = request;
             if (domain || name) {
-                const cookies = await zFunction.popCookies({domain, name});
+                const cookies = await zFunction.popCookies({ domain, name });
                 sendResponse(toOk(cookies));
             } else
                 sendResponse(ZUtils.toErr('Missing "domain" or "name" argument as regexp.'));
@@ -526,7 +539,7 @@ export default class Tasker {
                 name
             } = request;
             if (domain || name) {
-                const cookies = await zFunction.getCookies({domain, name});
+                const cookies = await zFunction.getCookies({ domain, name });
                 sendResponse(toOk(cookies));
             } else
                 sendResponse(ZUtils.toErr('Missing "domain" or "name" argument as regexp.'));
@@ -537,7 +550,7 @@ export default class Tasker {
          */
         pushCookies: async (request, sender, sendResponse) => {
             try {
-                const r = await zFunction.pushCookies(request.cookies);
+                await zFunction.pushCookies(request.cookies);
                 Tasker.Instance.lastCookiesSave = Date.now();
                 sendResponse(toOk('ok'));
             } catch (e) {
@@ -547,7 +560,7 @@ export default class Tasker {
 
         putCookies: async (request, sender, sendResponse) => {
             try {
-                const r = await zFunction.pushCookies(request.cookies);
+                await zFunction.pushCookies(request.cookies);
                 Tasker.Instance.lastCookiesSave = Date.now();
                 sendResponse(toOk('ok'));
             } catch (e) {

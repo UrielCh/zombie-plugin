@@ -26,12 +26,6 @@ export default class ZUtils {
         return (~url.indexOf('chrome://')) || (~url.indexOf('127.0.0.1')) || (~url.indexOf('localhost')) || (~url.indexOf('.exs.fr'));
     }
 
-    public static catchPromise(name: string) {
-        return (error: Error) => {
-            console.log(name, 'promise Failure', error);
-        };
-    }
-
     public static async preventPrompts(tabId: number) {
         try {
             await chromep.tabs.update(tabId, {

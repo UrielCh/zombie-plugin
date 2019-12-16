@@ -10,7 +10,7 @@ if (zone)
 // zoneVerion.innerHTML = chrome.app.getDetails().version;
 // }
 
-const get = (url: string) => jQuery.get(url).then((data, textStatus, jqXHR) => Promise.resolve(data), (jqXHR, textStatus, errorThrown) => Promise.reject(textStatus));
+const get = (url: string) => jQuery.get(url).then((data/*, textStatus, jqXHR*/) => Promise.resolve(data), (jqXHR, textStatus/*, errorThrown*/) => Promise.reject(textStatus));
 
 const isProtected = (url?: string) => {
     if (!url)
@@ -64,7 +64,7 @@ function installGeolocationCode(coords: Coordinates) {
      * @param error {PositionErrorCallback}
      * @param options {PositionOptions}
      */
-    const myGetPos = (successCallback: PositionCallback, error: PositionErrorCallback, options: PositionOptions) => {
+    const myGetPos = (successCallback: PositionCallback/*, error: PositionErrorCallback, options: PositionOptions*/) => {
         if (!coords)
             return originalGeolocation.getCurrentPosition;
         successCallback({ coords, timestamp: new Date().getTime() });
