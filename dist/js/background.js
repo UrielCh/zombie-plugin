@@ -120,14 +120,14 @@ if (chrome.webRequest) {
             return;
         if (details.error === 'net::ERR_FILE_NOT_FOUND' || details.error === 'net::ERR_NAME_NOT_RESOLVED') {
             console.log('onErrorOccurred close 1 sec', details.error);
-            tasker.mayCloseTabIn(details.tabId, 1000);
+            tasker.mayCloseTabIn(details.tabId, 6003);
             return;
         }
         if (details.error === 'net::ERR_TUNNEL_CONNECTION_FAILED' ||
             details.error === 'net::ERR_ABORTED' ||
             details.error === 'net::ERR_EMPTY_RESPONSE') {
             if (souldCloseTabId === details.tabId) {
-                tasker.mayCloseTabIn(details.tabId, 1000);
+                tasker.mayCloseTabIn(details.tabId, 6004);
                 console.log(`${details.error} 2 ${details.error} ${details.url} Close in 1 sec`, details);
                 return;
             }
@@ -138,7 +138,7 @@ if (chrome.webRequest) {
             return;
         }
         console.log('chrome.webRequest.onErrorOccurred close 5 sec [close Forced]', details);
-        tasker.mayCloseTabIn(details.tabId, 5000);
+        tasker.mayCloseTabIn(details.tabId, 5005);
         console.log(`${details.error} X ${details.error} ${details.url} Close in 5 sec`, details);
     }, {
         urls: ['<all_urls>']
@@ -206,7 +206,7 @@ if (chrome.tabs)
                 console.log('chrome.webRequest.onErrorOccurred close 20 sec [close DROPED]');
                 await wait(20000);
                 if (tab2 && tab2.id)
-                    tasker.mayCloseTabIn(tab2.id, 10);
+                    tasker.mayCloseTabIn(tab2.id, 2006);
                 return;
             }
         }
@@ -219,7 +219,7 @@ if (chrome.tabs)
     });
 setInterval(async () => {
     const tabs = await chromep.tabs.query({});
-    tabs.forEach(tab => {
+    tabs.forEach((tab) => {
         const tabInformation = tasker.getTabInformation(tab);
         if (tabInformation)
             return;
@@ -227,7 +227,7 @@ setInterval(async () => {
             return;
         if (zUtils_1.default.isProtected(tab.url))
             return;
-        tasker.mayCloseTabIn(tab.id, 20);
+        tasker.mayCloseTabIn(tab.id, 5007);
     });
 }, 5 * 60000);
 if (chrome.storage) {
@@ -362,7 +362,7 @@ class Tasker {
                 }
                 try {
                     if (request.lazy) {
-                        await this.mayCloseTabIn(sender.tab.id, 5000);
+                        await this.mayCloseTabIn(sender.tab.id, 5001);
                         sendResponse(toOk('ok'));
                     }
                     else {
@@ -685,7 +685,7 @@ class Tasker {
                     if (!tabInformation) {
                         if (zUtils_1.default.isProtected(tab.url))
                             return;
-                        await this.mayCloseTabIn(tabId, 10000);
+                        await this.mayCloseTabIn(tabId, 10002);
                         sendResponse(toOk('NOOP'));
                         return;
                     }
@@ -739,14 +739,16 @@ class Tasker {
     static get Instance() {
         return this._instance || (this._instance = new this());
     }
-    mayCloseTabIn(tabId, ms) {
+    async mayCloseTabIn(tabId, ms) {
         if (!tabId)
-            return (Promise.reject('missing tabId'));
+            throw Error('missing tabId');
         ms = ms || 10000;
-        const value = pluginStat.config.closeIrrelevantTabs;
-        if (value)
-            setTimeout(zUtils_1.default.closeTab, ms, tabId);
-        return Promise.resolve('ok');
+        if (pluginStat.config.closeIrrelevantTabs) {
+            console.log(`Will Close tab ${tabId} in ${ms} ms`);
+            await wait(ms);
+            zUtils_1.default.closeTab(tabId);
+        }
+        return 'ok';
     }
     getTabInformation(tab) {
         const tasker = this;

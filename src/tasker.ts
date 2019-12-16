@@ -181,14 +181,16 @@ export default class Tasker {
      * @param {number} tabId - tabId to close
      * @param {number} ms - milliSec to wait before close
      */
-    public mayCloseTabIn(tabId: number, ms: number) {
+    public async mayCloseTabIn(tabId: number, ms: number) {
         if (!tabId)
-            return /** @type {Promise<string>} */ (Promise.reject('missing tabId'));
+            throw Error('missing tabId');
         ms = ms || 10000;
-        const value = pluginStat.config.closeIrrelevantTabs;
-        if (value)
-            setTimeout(ZUtils.closeTab, ms, tabId);
-        return Promise.resolve('ok');
+        if (pluginStat.config.closeIrrelevantTabs) {
+            console.log(`Will Close tab ${tabId} in ${ms} ms`);
+            await wait(ms);
+            ZUtils.closeTab(tabId);
+        }
+        return 'ok';
     }
 
     /**
@@ -278,7 +280,7 @@ export default class Tasker {
             }
             try {
                 if (request.lazy) {
-                    await this.mayCloseTabIn(sender.tab.id, 5000);
+                    await this.mayCloseTabIn(sender.tab.id, 5001);
                     sendResponse(toOk('ok'));
                 } else {
                     await ZUtils.closeTab(sender.tab.id);
@@ -682,7 +684,7 @@ export default class Tasker {
                     // mo job for this tabs
                     if (ZUtils.isProtected(tab.url))
                         return;
-                    await this.mayCloseTabIn(tabId, 10000);
+                    await this.mayCloseTabIn(tabId, 10002);
                     sendResponse(toOk('NOOP'));
                     return;
                 }

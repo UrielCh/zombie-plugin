@@ -111,7 +111,7 @@ if (chrome.webRequest) {
             return;
         if (details.error === 'net::ERR_FILE_NOT_FOUND' || details.error === 'net::ERR_NAME_NOT_RESOLVED') {
             console.log('onErrorOccurred close 1 sec', details.error);
-            tasker.mayCloseTabIn(details.tabId, 1000);
+            tasker.mayCloseTabIn(details.tabId, 6003);
             return;
         }
         if (
@@ -120,7 +120,7 @@ if (chrome.webRequest) {
             details.error === 'net::ERR_EMPTY_RESPONSE'
         ) {
             if (souldCloseTabId === details.tabId) {
-                tasker.mayCloseTabIn(details.tabId, 1000);
+                tasker.mayCloseTabIn(details.tabId, 6004);
                 console.log(`${details.error} 2 ${details.error} ${details.url} Close in 1 sec`, details);
                 return;
             }
@@ -131,7 +131,7 @@ if (chrome.webRequest) {
             return;
         }
         console.log('chrome.webRequest.onErrorOccurred close 5 sec [close Forced]', details);
-        tasker.mayCloseTabIn(details.tabId, 5000);
+        tasker.mayCloseTabIn(details.tabId, 5005);
         console.log(`${details.error} X ${details.error} ${details.url} Close in 5 sec`, details);
     }, {
         urls: ['<all_urls>']
@@ -208,7 +208,7 @@ if (chrome.tabs)
                 console.log('chrome.webRequest.onErrorOccurred close 20 sec [close DROPED]');
                 await wait(20000);
                 if (tab2 && tab2.id)
-                    tasker.mayCloseTabIn(tab2.id, 10);
+                    tasker.mayCloseTabIn(tab2.id, 2006);
                 return;
             }
         } catch (error) {
@@ -225,7 +225,7 @@ if (chrome.tabs)
  */
 setInterval(async () => {
     const tabs = await chromep.tabs.query({});
-    tabs.forEach(tab => {
+    tabs.forEach((tab: chrome.tabs.Tab) => {
         /**
          * @var {ZTask}
          */
@@ -236,7 +236,7 @@ setInterval(async () => {
             return;
         if (ZUtils.isProtected(tab.url))
             return;
-        tasker.mayCloseTabIn(tab.id, 20);
+        tasker.mayCloseTabIn(tab.id, 5007);
     });
 }, 5 * 60000); // 5 min
 
