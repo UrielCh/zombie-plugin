@@ -199,16 +199,15 @@ export default class Tasker {
      * @returns {ZTask|null} todo
      */
     public getTabInformation(tab: chrome.tabs.Tab) {
-        const tasker = this;
         if (!tab || !tab.id)
             return null;
         const parentTabId = tab.openerTabId;
         // Get tab info
-        let taskParameters = tasker.registedActionTab[tab.id] || null;
+        let taskParameters = this.registedActionTab[tab.id] || null;
         if ((parentTabId || parentTabId === 0) && !taskParameters) {
-            taskParameters = tasker.registedActionTab[parentTabId] || null;
+            taskParameters = this.registedActionTab[parentTabId] || null;
             if (taskParameters)
-                tasker.registedActionTab[tab.id] = taskParameters;
+                this.registedActionTab[tab.id] = taskParameters;
         }
         return taskParameters;
     }
