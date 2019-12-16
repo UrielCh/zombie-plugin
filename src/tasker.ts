@@ -188,7 +188,15 @@ export default class Tasker {
         if (pluginStat.config.closeIrrelevantTabs) {
             console.log(`Will Close tab ${tabId} in ${ms} ms`);
             await wait(ms);
-            ZUtils.closeTab(tabId);
+            const tab = await chromep.tabs.get(tabId);
+            if (tab) {
+                const tabInformation = Tasker.Instance.getTabInformation(tab);
+                if (tabInformation) {
+                    console.log(`Tab ${tabId} is now registred, abord close`);
+                } else {
+                    ZUtils.closeTab(tabId);
+                }
+            }
         }
         return 'ok';
     }
