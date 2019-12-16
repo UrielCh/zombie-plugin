@@ -551,7 +551,7 @@ class Tasker {
             getCookies: async (request, sender, sendResponse) => {
                 const { domain, name } = request;
                 if (domain || name) {
-                    const cookies = zFunction.getCookies({ domain, name });
+                    const cookies = await zFunction.getCookies({ domain, name });
                     return sendResponse(toOk(cookies));
                 }
                 else
