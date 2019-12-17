@@ -102,12 +102,13 @@ export default class ZFunction {
         // jQuery 3+
         // dataType: 'json',
         const data: string = postData ? JSON.stringify(postData) : '';
-        return jQuery.ajax({
+        const response = await jQuery.ajax({
             contentType: 'application/json',
             data,
             type: method,
             url
         });
+        return response;
     }
 
     public async getHttp(url: string) {
@@ -163,12 +164,12 @@ export default class ZFunction {
             if (value && value.lastUpdated > limit)
                 return value;
             else {
-                const val: CacheHttpData = await this.httpGetPromise(url, false);
+                const value: CacheHttpData = await this.httpGetPromise(url, false);
                 if (key) {
                     self.memoryCache[key] = value;
                     pluginStat.memoryCacheSize = Object.keys(self.memoryCache).length;
                 }
-                return val;
+                return value;
             }
         }
         const retries = 5;

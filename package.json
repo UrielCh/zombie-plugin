@@ -1,6 +1,6 @@
 {
   "name": "plugin",
-  "version": "4.0.11",
+  "version": "4.1.0",
   "description": "",
   "main": ".eslintrc.js",
   "scripts": {
@@ -8,14 +8,14 @@
     "clean": "rimraf built",
     "tsc": "tsc -p .",
     "tsc:watch": "tsc --watch -p .",
-    "browserifyBG:watch": "watchify ./built/background.js -o ./dist/js/background.js",
+    "browserifyBG:watch": "watchify  ./built/background.js -o ./dist/js/background.js",
     "browserifyPOP:watch": "watchify ./built/popup.js     -o ./dist/js/popup.js",
-    "browserifyCLI:watch": "cpx --watch ./built/client.js    ./dist/js/",
+    "browserifyCLI:watch": "watchify ./built/client.js    -o ./dist/js/client.js",
     "watch": "concurrently npm:*:watch",
     "lint": "tslint -p .",
     "browserify-BG": "browserify  ./built/background.js -o ./dist/js/background.js",
     "browserify-POP": "browserify ./built/popup.js      -o ./dist/js/popup.js",
-    "browserify-CLI": "cpx        ./built/client.js        ./dist/js/",
+    "browserify-CLI": "browserify ./built/client.js     -o ./dist/js/client.js",
     "browserify": "concurrently npm:browserify-*",
     "build": "npm run tsc && npm run browserify"
   },

@@ -1,5 +1,5 @@
-import ChromePromise from '../vendor/chrome-promise';
 import PluginStat, { PluginStatValue } from './PluginStat';
+import sendMessage from './SendMessage';
 
 /// <reference path="typings/jquery/jquery.d.ts" />
 interface BackGroundPage extends Window {
@@ -15,8 +15,7 @@ $(() => {
     if (chrome.extension)
         bg = (chrome.extension.getBackgroundPage()) as BackGroundPage;
     const pluginStat: PluginStatValue = (bg && bg.pluginStat) ? bg.pluginStat : PluginStat();
-
-    const chromep = new ChromePromise();
+    // const chromep = new ChromePromise();
     let lastCode = 'N/A';
 
     const updateDisplay = () => {
@@ -79,12 +78,12 @@ $(() => {
 
     for (const elm of ['closeIrrelevantTabs', 'debuggerStatement', 'pauseProcess', 'injectProcess', 'noClose']) {
         const jq = $(`#${elm}`);
-        jq.on('change', function() {
+        jq.on('change', function () {
             const value = $(this).is(':checked');
             // Can be fix with moderne TS
             // tasker.config[elm] = value;
             (pluginStat.config as any)[elm] = value;
-            chromep.runtime.sendMessage({
+            sendMessage({
                 command: 'updateBadge',
             });
         });
@@ -93,21 +92,21 @@ $(() => {
 
     const flushCache = () => {
         // console.log('flushCache');
-        chromep.runtime.sendMessage({
+        sendMessage({
             command: 'flushCache',
         });
     };
 
     const flushProxy = () => {
         // console.log('setProxy');
-        chromep.runtime.sendMessage({
+        sendMessage({
             command: 'setProxy',
         });
     };
 
     const readQrCode = () => {
         // console.log('readQrCode');
-        chromep.runtime.sendMessage({
+        sendMessage({
             command: 'readQrCode',
         }).then((result) => {
             console.log(result);

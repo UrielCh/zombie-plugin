@@ -84,29 +84,62 @@ if (chrome.tabs)
             console.log(Error(error));
         }
     });
-const pluginListener = (internal) => async (request, sender, sendResponse) => {
-    if (!request.command) {
-        sendResponse(zUtils_1.default.toErr(`Error all call must contains "command" name recieve: ${JSON.stringify(request)}`));
+const pluginListener = (source) => async (message, sender, sendResponse) => {
+    if (!message.command) {
+        sendResponse({ error: `Error all call must contains "command" name recieve: ${JSON.stringify(message)}` });
         return true;
     }
-    const mtd = tasker.commands[request.command];
+    const mtd = tasker.commands[message.command];
     if (mtd)
         try {
             if (!sendResponse)
                 sendResponse = console.log;
-            await mtd(request, sender, sendResponse);
+            await mtd(message, sender, sendResponse);
         }
         catch (error) {
-            const msg = `${internal ? 'Internal' : 'External'}.${request.command}`;
+            const msg = `${source}.${message.command}`;
             console.log(msg, 'promise Failure', error);
+            sendResponse({ error: `${msg} Failed ${error.message}` });
         }
     else
-        sendResponse(`command ${request.command} not found`);
+        sendResponse(`command ${message.command} not found`);
+    return true;
+};
+const pluginListenerCnx = (source) => async (message, port) => {
+    const { requestId, data } = message;
+    if (!data.command) {
+        port.postMessage({ requestId, error: `Error all call must contains "command" name recieve: ${JSON.stringify(message)}` });
+        return true;
+    }
+    const mtd = tasker.commands[data.command];
+    if (mtd)
+        try {
+            const sendResponse = (response) => {
+                try {
+                    port.postMessage({ requestId, data: response });
+                }
+                catch (e) {
+                    console.log(`RQ: ${requestId}, PostResponse Failed`, message, e);
+                }
+            };
+            await mtd(data, port.sender, sendResponse);
+        }
+        catch (e) {
+            const msg = `${source}.${data.command}`;
+            console.log(msg, 'promise Failure', e);
+            const error = e.message | e.toString();
+            port.postMessage({ requestId, error, stack: e.stack });
+        }
+    else
+        port.postMessage({ requestId, error: `command ${data.command} not found` });
     return true;
 };
 if (chrome.runtime) {
-    chrome.runtime.onMessageExternal.addListener(pluginListener(false));
-    chrome.runtime.onMessage.addListener(pluginListener(true));
+    chrome.runtime.onConnect.addListener(port => {
+        port.onMessage.addListener(pluginListenerCnx('Connect'));
+    });
+    chrome.runtime.onMessageExternal.addListener(pluginListener('External'));
+    chrome.runtime.onMessage.addListener(pluginListener('Internal'));
 }
 let souldCloseTabId = 0;
 if (chrome.webRequest) {
@@ -248,7 +281,6 @@ if (chrome.storage) {
             const newVal = JSON.stringify(pluginStat.config);
             if (newVal === lastValue)
                 continue;
-            console.log('calling await chromep.storage.local.set');
             await chromep.storage.local.set(pluginStat.config);
             lastValue = newVal;
         }
@@ -275,13 +307,6 @@ const zFunction = zFunction_1.default.Instance;
 const chromep = new chrome_promise_1.default();
 const pluginStat = PluginStat_1.default();
 const toOk = (message) => (message);
-const pError = (sendResponse, prefix, error) => {
-    prefix = prefix || '';
-    const errorMsg = `${prefix} ${error.message}`.trim();
-    console.error(`chrome error message ${prefix}: `, error);
-    if (sendResponse)
-        return sendResponse(zUtils_1.default.toErr(errorMsg));
-};
 const wait = (duration) => new Promise(resolve => setTimeout(() => (resolve()), duration));
 function setPromiseFunction(fn, thisArg) {
     return (...arg) => {
@@ -325,74 +350,53 @@ class Tasker {
             },
             sendCommand: async (request, sender, sendResponse) => {
                 const { method, commandParams } = request;
-                try {
-                    console.log({ method, commandParams });
-                    if (!sender.tab || !sender.tab.id)
-                        return sendResponse(zUtils_1.default.toErr('sender.tab is missing'));
-                    const tabId = sender.tab.id;
-                    if (sender.tab.id !== Tasker.Instance.debuggerTabId) {
-                        if (Tasker.Instance.debuggerTabId)
-                            await chrome_debugger_detach({ tabId: Tasker.Instance.debuggerTabId });
-                        await chrome_debugger_attach({ tabId }, '1.3');
-                        Tasker.Instance.debuggerTabId = tabId;
-                    }
-                    console.log({ target: { tabId }, method, commandParams });
-                    await chrome_debugger_sendCommand({ tabId }, method, commandParams);
-                    sendResponse(toOk('ok'));
+                console.log({ method, commandParams });
+                if (!sender || !sender.tab || !sender.tab.id)
+                    throw Error('sender.tab is missing');
+                const tabId = sender.tab.id;
+                if (sender.tab.id !== Tasker.Instance.debuggerTabId) {
+                    if (Tasker.Instance.debuggerTabId)
+                        await chrome_debugger_detach({ tabId: Tasker.Instance.debuggerTabId });
+                    await chrome_debugger_attach({ tabId }, '1.3');
+                    Tasker.Instance.debuggerTabId = tabId;
                 }
-                catch (e) {
-                    pError(sendResponse, `sendCommand ${method}`, e);
-                }
+                console.log({ target: { tabId }, method, commandParams });
+                await chrome_debugger_sendCommand({ tabId }, method, commandParams);
+                sendResponse(toOk('ok'));
             },
             close: async (request, sender, sendResponse) => {
-                try {
-                    if (pluginStat.config.noClose) {
-                        sendResponse(toOk('ok'));
-                        return true;
-                    }
-                    await zUtils_1.default.closeAllTabExept(0);
+                if (pluginStat.config.noClose) {
                     sendResponse(toOk('ok'));
+                    return true;
                 }
-                catch (e) {
-                    pError(sendResponse, 'close all Tab', e);
-                }
+                await zUtils_1.default.closeAllTabExept(0);
+                sendResponse(toOk('ok'));
             },
             closeMe: async (request, sender, sendResponse) => {
                 if (pluginStat.config.noClose) {
                     sendResponse(toOk('ok'));
                     return true;
                 }
-                if (!sender.tab || !sender.tab.id) {
-                    await sendResponse(zUtils_1.default.toErr('sender.tab is missing'));
-                    return false;
+                if (!sender || !sender.tab || !sender.tab.id) {
+                    throw Error('sender.tab is missing');
                 }
-                try {
-                    if (request.lazy) {
-                        await this.mayCloseTabIn(sender.tab.id, 5001);
-                        sendResponse(toOk('ok'));
-                    }
-                    else {
-                        await zUtils_1.default.closeTab(sender.tab.id);
-                        sendResponse(toOk('ok'));
-                    }
+                if (request.lazy) {
+                    await this.mayCloseTabIn(sender.tab.id, 5001);
+                    sendResponse(toOk('ok'));
                 }
-                catch (e) {
-                    pError(sendResponse, `close tab ${sender.tab.id}`, e);
+                else {
+                    await zUtils_1.default.closeTab(sender.tab.id);
+                    sendResponse(toOk('ok'));
                 }
             },
             preventPrompts: async (request, sender, sendResponse) => {
-                if (sender.tab && sender.tab.id) {
+                if (sender && sender.tab && sender.tab.id) {
                     const tabId = sender.tab.id;
-                    try {
-                        await zUtils_1.default.preventPrompts(tabId);
-                        sendResponse(toOk('ok'));
-                    }
-                    catch (e) {
-                        pError(sendResponse, `preventPrompts Tab:${tabId}`, e);
-                    }
+                    await zUtils_1.default.preventPrompts(tabId);
+                    sendResponse(toOk('ok'));
                 }
                 else
-                    sendResponse(zUtils_1.default.toErr('missing tab'));
+                    throw Error('missing tab');
             },
             registerCommand: async (request, sender, sendResponse) => {
                 const params = {
@@ -409,7 +413,7 @@ class Tasker {
                     target: request.target || ''
                 };
                 if (!task.action)
-                    return sendResponse(zUtils_1.default.toErr('action string is missing'));
+                    throw Error('action string is missing');
                 let tab = null;
                 if (task.target && Tasker.Instance.namedTab[task.target]) {
                     const tabOld = Tasker.Instance.namedTab[task.target];
@@ -431,7 +435,7 @@ class Tasker {
             },
             readQrCode: async (request, sender, sendResponse) => {
                 let windowId = 0;
-                if (sender.tab && sender.tab.windowId)
+                if (sender && sender.tab && sender.tab.windowId)
                     windowId = sender.tab.windowId;
                 else {
                     const tabs = await chromep.tabs.query({
@@ -530,8 +534,10 @@ class Tasker {
                 return sendResponse(toOk('ok'));
             },
             updateAction: async (request, sender, sendResponse) => {
-                if (!sender.tab || !sender.tab.id)
+                if (!sender || !sender.tab || !sender.tab.id)
                     return sendResponse(toOk('ok'));
+                if (typeof request.action === 'undefined')
+                    throw Error('updateAction must contains action parameter');
                 const task = Tasker.Instance.registedActionTab[sender.tab.id];
                 task.action = request.action;
                 return sendResponse(toOk('ok'));
@@ -539,11 +545,10 @@ class Tasker {
             deleteCookies: async (request, sender, sendResponse) => {
                 const { domain, name } = request;
                 if (domain || name) {
-                    const count = await zFunction.deleteCookies({ domain, name });
-                    sendResponse(toOk(count));
+                    zFunction.deleteCookies({ domain, name }).then(count => sendResponse(toOk(count)));
                 }
                 else
-                    sendResponse(zUtils_1.default.toErr('Missing "domain" or "name" argument as regexp.'));
+                    throw Error('Missing "domain" or "name" argument as regexp.');
             },
             popCookies: async (request, sender, sendResponse) => {
                 const { domain, name } = request;
@@ -552,7 +557,7 @@ class Tasker {
                     sendResponse(toOk(cookies));
                 }
                 else
-                    sendResponse(zUtils_1.default.toErr('Missing "domain" or "name" argument as regexp.'));
+                    throw Error('Missing "domain" or "name" argument as regexp.');
             },
             getCookies: async (request, sender, sendResponse) => {
                 const { domain, name } = request;
@@ -561,27 +566,17 @@ class Tasker {
                     sendResponse(toOk(cookies));
                 }
                 else
-                    sendResponse(zUtils_1.default.toErr('Missing "domain" or "name" argument as regexp.'));
+                    throw Error('Missing "domain" or "name" argument as regexp.');
             },
             pushCookies: async (request, sender, sendResponse) => {
-                try {
-                    await zFunction.pushCookies(request.cookies);
-                    Tasker.Instance.lastCookiesSave = Date.now();
-                    sendResponse(toOk('ok'));
-                }
-                catch (e) {
-                    pError(sendResponse, 'pushCookies', e);
-                }
+                await zFunction.pushCookies(request.cookies);
+                Tasker.Instance.lastCookiesSave = Date.now();
+                sendResponse(toOk('ok'));
             },
             putCookies: async (request, sender, sendResponse) => {
-                try {
-                    await zFunction.pushCookies(request.cookies);
-                    Tasker.Instance.lastCookiesSave = Date.now();
-                    sendResponse(toOk('ok'));
-                }
-                catch (e) {
-                    pError(sendResponse, 'putCookies', e);
-                }
+                await zFunction.pushCookies(request.cookies);
+                Tasker.Instance.lastCookiesSave = Date.now();
+                sendResponse(toOk('ok'));
             },
             clean: async (request, sender, sendResponse) => {
                 const options = {
@@ -613,73 +608,40 @@ class Tasker {
                 sendResponse(toOk(count));
             },
             get: async (request, sender, sendResponse) => {
-                try {
-                    const r = await zFunction.httpGetPromise(request.url);
-                    sendResponse(toOk(r.data));
-                }
-                catch (error) {
-                    pError(sendResponse, `http get ${request.url}`, error);
-                }
+                const r = await zFunction.httpGetPromise(request.url);
+                sendResponse(toOk(r.data));
             },
             flushCache: async (request, sender, sendResponse) => {
-                try {
-                    await zFunction.flush();
-                    sendResponse(toOk('ok'));
-                }
-                catch (error) {
-                    pError(sendResponse, 'flushCache', error);
-                }
+                await zFunction.flush();
+                sendResponse(toOk('ok'));
             },
             post: async (request, sender, sendResponse) => {
-                try {
-                    const response = await zFunction.postJSON(request.url, request.data);
-                    sendResponse(toOk(response));
-                }
-                catch (error) {
-                    pError(sendResponse, `http post ${request.url}`, error);
-                }
+                const response = await zFunction.postJSON(request.url, request.data);
+                sendResponse(toOk(response));
             },
             storageGet: async (request, sender, sendResponse) => {
-                try {
-                    const result = await chromep.storage.local.get(request.key);
-                    sendResponse(toOk(result[request.key] || request.defaultValue));
-                }
-                catch (error) {
-                    pError(sendResponse, `storageGet ${request.key}`, error);
-                }
+                const result = await chromep.storage.local.get(request.key);
+                sendResponse(toOk(result[request.key] || request.defaultValue));
             },
             storageSet: async (request, sender, sendResponse) => {
-                try {
-                    await chromep.storage.local.set({
-                        [request.key]: request.value
-                    });
-                    sendResponse(toOk('ok'));
-                }
-                catch (error) {
-                    pError(sendResponse, `storageSet ${request.key}`, error);
-                }
+                await chromep.storage.local.set({
+                    [request.key]: request.value
+                });
+                sendResponse(toOk('ok'));
             },
             storageRemove: async (request, sender, sendResponse) => {
-                try {
-                    await chromep.storage.local.remove(request.key);
-                    sendResponse(toOk('ok'));
-                }
-                catch (error) {
-                    pError(sendResponse, `storageRemove ${request.key}`, error);
-                }
+                await chromep.storage.local.remove(request.key);
+                sendResponse(toOk('ok'));
             },
             openExtensionManager: async (request, sender, sendResponse) => {
-                try {
-                    await chromep.tabs.create({
-                        url: 'chrome://extensions'
-                    });
-                    sendResponse(toOk('ok'));
-                }
-                catch (error) {
-                    pError(sendResponse, 'openExtensionManager', error);
-                }
+                await chromep.tabs.create({
+                    url: 'chrome://extensions'
+                });
+                sendResponse(toOk('ok'));
             },
             getTodo: async (request, sender, sendResponse) => {
+                if (!sender)
+                    return;
                 const tab = sender.tab;
                 if (!tab || !tab.id)
                     return;
@@ -687,31 +649,20 @@ class Tasker {
                     return;
                 const tabId = tab.id;
                 const tabInformation = Tasker.Instance.getTabInformation(tab);
-                try {
-                    if (!tabInformation) {
-                        if (zUtils_1.default.isProtected(tab.url))
-                            return;
-                        await this.mayCloseTabIn(tabId, 10002);
-                        sendResponse(toOk('NOOP'));
+                if (!tabInformation) {
+                    if (zUtils_1.default.isProtected(tab.url))
                         return;
-                    }
-                    const javascriptIncludes = tabInformation.deps || [];
-                    const debugText = '// sources:\r\n// ' + zFunction_1.default.flat(javascriptIncludes).join('\r\n// ');
-                    await zFunction.injectCSS(tabId, tabInformation.depCss);
-                    await zFunction.injectJS(tabId, javascriptIncludes);
-                    await zFunction.injectJavascript(tabId, '\"use strict\";\n' + debugText + '\r\n' + (pluginStat.config.debuggerStatement ? 'debugger;' : '') + tabInformation.action);
-                    sendResponse(toOk('code injected'));
+                    await this.mayCloseTabIn(tabId, 10002);
+                    sendResponse(toOk('NOOP'));
+                    return;
                 }
-                catch (e) {
-                    try {
-                        pError(sendResponse, 'injectCSS', e);
-                    }
-                    catch (error) {
-                        console.log(`code injected Failed, Should refresh/Kill tab:${tabId}`, error);
-                        await wait(2500);
-                        await zUtils_1.default.refreshTab(tabId);
-                    }
-                }
+                const javascriptIncludes = tabInformation.deps || [];
+                const debugText = '// sources:\r\n// ' + zFunction_1.default.flat(javascriptIncludes).join('\r\n// ');
+                await zFunction.injectCSS(tabId, tabInformation.depCss);
+                await zFunction.injectJS(tabId, javascriptIncludes);
+                const jsBootstrap = '\"use strict\";\n' + debugText + '\r\n' + (pluginStat.config.debuggerStatement ? 'debugger;' : '');
+                await zFunction.injectJavascript(tabId, jsBootstrap + tabInformation.action);
+                sendResponse(toOk('code injected'));
             },
             setUserAgent: async (request, sender, sendResponse) => {
                 pluginStat.userAgent = request.userAgent;
@@ -849,12 +800,13 @@ class ZFunction {
     }
     async httpQuery(url, method, postData) {
         const data = postData ? JSON.stringify(postData) : '';
-        return jQuery.ajax({
+        const response = await jQuery.ajax({
             contentType: 'application/json',
             data,
             type: method,
             url
         });
+        return response;
     }
     async getHttp(url) {
         return this.httpQuery(url, 'GET');
@@ -899,12 +851,12 @@ class ZFunction {
             if (value && value.lastUpdated > limit)
                 return value;
             else {
-                const val = await this.httpGetPromise(url, false);
+                const value = await this.httpGetPromise(url, false);
                 if (key) {
                     self.memoryCache[key] = value;
                     pluginStat.memoryCacheSize = Object.keys(self.memoryCache).length;
                 }
-                return val;
+                return value;
             }
         }
         const retries = 5;
@@ -1056,9 +1008,6 @@ class ZUtils {
             if (tabId && tabId !== ignoreId)
                 await ZUtils.closeTab(tabId);
         }
-    }
-    static toErr(error) {
-        return { error };
     }
 }
 exports.default = ZUtils;

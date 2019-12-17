@@ -68,23 +68,55 @@ if (chrome.tabs)
 /**
  * onMessage function reciever
  */
-const pluginListener = (internal: boolean) => async (request: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
-    if (!request.command) {
-        sendResponse(ZUtils.toErr(`Error all call must contains "command" name recieve: ${JSON.stringify(request)}`));
+const pluginListener = (source: string) => async (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
+    if (!message.command) {
+        sendResponse({ error: `Error all call must contains "command" name recieve: ${JSON.stringify(message)}` });
         return true;
     }
-    const mtd = tasker.commands[request.command];
+    const mtd = tasker.commands[message.command];
     if (mtd)
         try {
             if (!sendResponse)
                 sendResponse = console.log;
-            await mtd(request, sender, sendResponse);
+            await mtd(message, sender, sendResponse);
         } catch (error) {
-            const msg = `${internal ? 'Internal' : 'External'}.${request.command}`;
+            const msg = `${source}.${message.command}`;
             console.log(msg, 'promise Failure', error);
+            sendResponse({ error: `${msg} Failed ${error.message}` });
         }
     else
-        sendResponse(`command ${request.command} not found`);
+        sendResponse(`command ${message.command} not found`);
+    return true;
+};
+
+/**
+ * onMessage function reciever
+ */
+const pluginListenerCnx = (source: string) => async (message: { requestId: number, data: any }, port: chrome.runtime.Port) => {
+    const { requestId, data } = message;
+    if (!data.command) {
+        port.postMessage({ requestId, error: `Error all call must contains "command" name recieve: ${JSON.stringify(message)}` });
+        return true;
+    }
+    const mtd = tasker.commands[data.command];
+    if (mtd)
+        try {
+            const sendResponse = (response: any) => {
+                try {
+                    port.postMessage({ requestId, data: response });
+                } catch (e) {
+                    console.log(`RQ: ${requestId}, PostResponse Failed`, message, e);
+                }
+            };
+            await mtd(data, port.sender, sendResponse);
+        } catch (e) {
+            const msg = `${source}.${data.command}`;
+            console.log(msg, 'promise Failure', e);
+            const error = e.message | e.toString();
+            port.postMessage({ requestId, error, stack: e.stack });
+        }
+    else
+        port.postMessage({ requestId, error: `command ${data.command} not found` });
     return true;
 };
 
@@ -92,8 +124,12 @@ const pluginListener = (internal: boolean) => async (request: any, sender: chrom
  * https://developer.chrome.com/extensions/runtime#event-onMessageExternal
  */
 if (chrome.runtime) {
-    chrome.runtime.onMessageExternal.addListener(pluginListener(false));
-    chrome.runtime.onMessage.addListener(pluginListener(true));
+    chrome.runtime.onConnect.addListener(port => {
+        // console.log('connected ', port);
+        port.onMessage.addListener(pluginListenerCnx('Connect'));
+    });
+    chrome.runtime.onMessageExternal.addListener(pluginListener('External'));
+    chrome.runtime.onMessage.addListener(pluginListener('Internal'));
 }
 
 let souldCloseTabId = 0;
@@ -104,8 +140,8 @@ if (chrome.webRequest) {
                 authCredentials: JSON.parse(pluginStat.config.proxyAuth)
             });
     },
-    { urls: ['<all_urls>'] },
-    ['asyncBlocking']);
+        { urls: ['<all_urls>'] },
+        ['asyncBlocking']);
 
     chrome.webRequest.onErrorOccurred.addListener(async (details) => {
         if (details.type !== 'main_frame')
@@ -265,7 +301,7 @@ if (chrome.storage) {
                     continue;
                 // Tasker.updateBadge();
                 // console.log('Sync tasker.config value');
-                console.log('calling await chromep.storage.local.set');
+                // console.log('calling await chromep.storage.local.set');
                 await chromep.storage.local.set(pluginStat.config);
                 lastValue = newVal;
             }

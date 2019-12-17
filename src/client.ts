@@ -1,3 +1,4 @@
+import sendMessage from './SendMessage';
 /**
  * injected in all pages
  */
@@ -94,15 +95,17 @@ if (document.documentElement.tagName.toLowerCase() === 'html')  // Skip non-html
         // else console.log('NOGEOLOC data');
     });
 
-chrome.runtime.sendMessage({
+sendMessage({
     command: 'getTodo'
-}, async (message: any) => {
+}).then (async (message: any) => {
     const data = /** @type {{task:any} | 'code injected' | null | undefined} */ (message);
     if (!data) {
         if (isProtected(window.location.href))
             return false;
         console.log(`data is missing from getTodo ${window.location.href} I may close this tab`);
-        chrome.runtime.sendMessage({ command: 'closeMe', lazy: true , reason: 'data is missing from getTodo'}, () => true);
+        try {
+            await sendMessage({ command: 'closeMe', lazy: true, reason: 'data is missing from getTodo'});
+        } catch (e) {}
         return true;
     }
     if (data.error) {
@@ -122,4 +125,4 @@ chrome.runtime.sendMessage({
         virtualScript += '\r\n' + data2;
     }
     return execute(virtualScript);
-});
+}, (error) => console.error(error));

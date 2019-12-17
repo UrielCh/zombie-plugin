@@ -1,4 +1,51 @@
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+let rqId = 1;
+let port = null;
+exports.sendMessage = (message) => {
+    const prom = (resolve, reject) => {
+        let port2 = port;
+        if (!port2) {
+            port2 = chrome.runtime.connect(chrome.runtime.id);
+            port2.onDisconnect.addListener(() => {
+                port = null;
+            });
+            port = port2;
+        }
+        const requestId = rqId++;
+        const listener = (response, port) => {
+            if (requestId != response.requestId)
+                return;
+            console.log(`Q: ${requestId} CMD:${message.command} RCV:`, response);
+            port.onMessage.removeListener(listener);
+            if (response.error)
+                reject(Error(response.error));
+            else
+                resolve(response.data);
+        };
+        port2.onMessage.addListener(listener);
+        try {
+            port2.postMessage({ requestId, data: message });
+        }
+        catch (e) {
+            if (e.message == 'Attempting to use a disconnected port object') {
+                port = null;
+                setTimeout(prom, 100, resolve, reject);
+            }
+        }
+    };
+    return new Promise(prom);
+};
+exports.default = exports.sendMessage;
+
+},{}],2:[function(require,module,exports){
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const SendMessage_1 = __importDefault(require("./SendMessage"));
 let zone = document.getElementById('tasker_id_loader');
 if (zone)
     zone.innerHTML = chrome.runtime.id;
@@ -56,15 +103,18 @@ if (document.documentElement.tagName.toLowerCase() === 'html')
         if (data.coords)
             injectScript(installGeolocationCode, [data.coords]);
     });
-chrome.runtime.sendMessage({
+SendMessage_1.default({
     command: 'getTodo'
-}, async (message) => {
+}).then(async (message) => {
     const data = (message);
     if (!data) {
         if (isProtected(window.location.href))
             return false;
         console.log(`data is missing from getTodo ${window.location.href} I may close this tab`);
-        chrome.runtime.sendMessage({ command: 'closeMe', lazy: true, reason: 'data is missing from getTodo' }, () => true);
+        try {
+            await SendMessage_1.default({ command: 'closeMe', lazy: true, reason: 'data is missing from getTodo' });
+        }
+        catch (e) { }
         return true;
     }
     if (data.error) {
@@ -84,4 +134,6 @@ chrome.runtime.sendMessage({
         virtualScript += '\r\n' + data2;
     }
     return execute(virtualScript);
-});
+}, (error) => console.error(error));
+
+},{"./SendMessage":1}]},{},[2]);
