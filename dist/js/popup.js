@@ -30,51 +30,57 @@ exports.default = value;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("./common");
+const extensionId = chrome.runtime.id;
 let rqId = 1;
 let port = null;
+const callbacks = {};
+const msgListener = async (response, port) => {
+    const callback = callbacks[response.requestId];
+    if (!callback)
+        return;
+    const { message, resolve, reject } = callback;
+    const { requestId, error } = response;
+    console.log(`CMD:${message.command} Q: ${requestId} RCV:`, response);
+    if (error) {
+        if (++callback.retries > 3) {
+            debugger;
+            await common_1.wait(500);
+            promFilled(requestId, message)(resolve, reject);
+        }
+        else {
+            delete callbacks[response.requestId];
+            callback.reject(Error(error));
+        }
+    }
+    else {
+        delete callbacks[requestId];
+        callback.resolve(response.data);
+    }
+};
+const promFilled = (requestId, message) => async (resolve, reject) => {
+    let usedPort = port;
+    if (!usedPort) {
+        usedPort = chrome.runtime.connect(extensionId);
+        usedPort.onDisconnect.addListener(() => port = null);
+        usedPort.onMessage.addListener(msgListener);
+        port = usedPort;
+    }
+    try {
+        callbacks[requestId] = { resolve, reject, message, retries: 0 };
+        usedPort.postMessage({ requestId, data: message });
+    }
+    catch (e) {
+        if (e.message == 'Attempting to use a disconnected port object') {
+            console.error('Plugin connexion Error. (may be inf-loop.)');
+            if (usedPort === port)
+                port = null;
+            await common_1.wait(150);
+            promFilled(requestId, message)(resolve, reject);
+        }
+    }
+};
 exports.sendMessage = (message) => {
-    const requestId = rqId++;
-    const extensionId = chrome.runtime.id;
-    let errorCnt = 0;
-    const prom = (resolve, reject) => {
-        let usedPort = port;
-        if (!usedPort) {
-            usedPort = chrome.runtime.connect(extensionId);
-            usedPort.onDisconnect.addListener(() => port = null);
-            port = usedPort;
-        }
-        const listener = async (response, port) => {
-            if (requestId != response.requestId)
-                return;
-            console.log(`CMD:${message.command} Q: ${requestId} RCV:`, response);
-            port.onMessage.removeListener(listener);
-            if (response.error) {
-                if (++errorCnt > 3) {
-                    debugger;
-                    await common_1.wait(500);
-                    prom(resolve, reject);
-                }
-                else {
-                    reject(Error(response.error));
-                }
-            }
-            else {
-                resolve(response.data);
-            }
-        };
-        usedPort.onMessage.addListener(listener);
-        try {
-            usedPort.postMessage({ requestId, data: message });
-        }
-        catch (e) {
-            if (e.message == 'Attempting to use a disconnected port object') {
-                if (usedPort === port)
-                    port = null;
-                setTimeout(prom, 100, resolve, reject);
-            }
-        }
-    };
-    return new Promise(prom);
+    return new Promise(promFilled(rqId++, message));
 };
 exports.default = exports.sendMessage;
 
