@@ -29,36 +29,47 @@ exports.default = value;
 },{}],2:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const common_1 = require("./common");
 let rqId = 1;
 let port = null;
 exports.sendMessage = (message) => {
+    const requestId = rqId++;
+    const extensionId = chrome.runtime.id;
+    let errorCnt = 0;
     const prom = (resolve, reject) => {
-        let port2 = port;
-        if (!port2) {
-            port2 = chrome.runtime.connect(chrome.runtime.id);
-            port2.onDisconnect.addListener(() => {
-                port = null;
-            });
-            port = port2;
+        let usedPort = port;
+        if (!usedPort) {
+            usedPort = chrome.runtime.connect(extensionId);
+            usedPort.onDisconnect.addListener(() => port = null);
+            port = usedPort;
         }
-        const requestId = rqId++;
-        const listener = (response, port) => {
+        const listener = async (response, port) => {
             if (requestId != response.requestId)
                 return;
-            console.log(`Q: ${requestId} CMD:${message.command} RCV:`, response);
+            console.log(`CMD:${message.command} Q: ${requestId} RCV:`, response);
             port.onMessage.removeListener(listener);
-            if (response.error)
-                reject(Error(response.error));
-            else
+            if (response.error) {
+                if (++errorCnt > 3) {
+                    debugger;
+                    await common_1.wait(500);
+                    prom(resolve, reject);
+                }
+                else {
+                    reject(Error(response.error));
+                }
+            }
+            else {
                 resolve(response.data);
+            }
         };
-        port2.onMessage.addListener(listener);
+        usedPort.onMessage.addListener(listener);
         try {
-            port2.postMessage({ requestId, data: message });
+            usedPort.postMessage({ requestId, data: message });
         }
         catch (e) {
             if (e.message == 'Attempting to use a disconnected port object') {
-                port = null;
+                if (usedPort === port)
+                    port = null;
                 setTimeout(prom, 100, resolve, reject);
             }
         }
@@ -67,7 +78,12 @@ exports.sendMessage = (message) => {
 };
 exports.default = exports.sendMessage;
 
-},{}],3:[function(require,module,exports){
+},{"./common":3}],3:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.wait = (duration) => new Promise(resolve => setTimeout(() => (resolve()), duration));
+
+},{}],4:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -170,4 +186,4 @@ $(() => {
     });
 });
 
-},{"./PluginStat":1,"./SendMessage":2}]},{},[3]);
+},{"./PluginStat":1,"./SendMessage":2}]},{},[4]);

@@ -2,12 +2,11 @@ import ChromePromise from '../vendor/chrome-promise';
 import PluginStat, { PluginSavedState, PluginStatValue } from './PluginStat';
 import Tasker from './tasker';
 import ZUtils from './zUtils';
+import { wait } from './common';
 
 const tasker = Tasker.Instance;
 const chromep = new ChromePromise();
 const pluginStat: PluginStatValue = PluginStat();
-
-const wait = (duration: number) => new Promise(resolve => setTimeout(() => (resolve()), duration));
 
 if (chrome.cookies)
     chrome.cookies.onChanged.addListener((changeInfo) => {

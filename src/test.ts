@@ -69,6 +69,9 @@ async function getbrowser() {
     return _browser;
 }
 
+/**
+ * get Background page from plugin
+ */
 async function getBGTarget(): Promise<Target> {
     const browser: Browser = await getbrowser();
     const targets = await browser.targets();
@@ -142,8 +145,6 @@ describe('InitEnv', () => {
     it('Should start a webserver and a chronme windows', async () => {
         await startSrv(3000);
         // await enableDevMode();
-        // const bgTarget = await getBGTarget();
-        // const page0 = await getMainPage();
     });
 });
 

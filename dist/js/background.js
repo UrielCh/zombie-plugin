@@ -36,10 +36,10 @@ const chrome_promise_1 = __importDefault(require("../vendor/chrome-promise"));
 const PluginStat_1 = __importDefault(require("./PluginStat"));
 const tasker_1 = __importDefault(require("./tasker"));
 const zUtils_1 = __importDefault(require("./zUtils"));
+const common_1 = require("./common");
 const tasker = tasker_1.default.Instance;
 const chromep = new chrome_promise_1.default();
 const pluginStat = PluginStat_1.default();
-const wait = (duration) => new Promise(resolve => setTimeout(() => (resolve()), duration));
 if (chrome.cookies)
     chrome.cookies.onChanged.addListener((changeInfo) => {
         const { cookie, cause } = changeInfo;
@@ -158,7 +158,7 @@ if (chrome.webRequest) {
             return;
         }
         if (details.error === 'net::ERR_BLOCKED_BY_CLIENT') {
-            await wait(1009);
+            await common_1.wait(1009);
             zUtils_1.default.closeTab(details.tabId);
             return;
         }
@@ -172,7 +172,7 @@ if (chrome.webRequest) {
             }
             souldCloseTabId = details.tabId;
             console.log(`${details.error} ${details.error} ${details.url} Refresh in 5 sec`, details);
-            await wait(5000);
+            await common_1.wait(5000);
             zUtils_1.default.refreshTab(details.tabId);
             return;
         }
@@ -228,7 +228,7 @@ if (chrome.tabs)
         if (!tab.id)
             return;
         const tabId = tab.id;
-        await wait(500);
+        await common_1.wait(500);
         try {
             const tab2 = await chromep.tabs.get(tabId);
             if (!tab2)
@@ -243,7 +243,7 @@ if (chrome.tabs)
             if (sslError) {
                 console.log('closing tab due to ssl error [close DROPED]', title);
                 console.log('chrome.webRequest.onErrorOccurred close 20 sec [close DROPED]');
-                await wait(20000);
+                await common_1.wait(20000);
                 if (tab2 && tab2.id)
                     tasker.mayCloseTabIn(tab2.id, 2006);
                 return;
@@ -277,7 +277,7 @@ if (chrome.storage) {
         lastValue = JSON.stringify(pluginStat.config);
         tasker_1.default.updateBadge();
         while (true) {
-            await wait(3000);
+            await common_1.wait(3000);
             const newVal = JSON.stringify(pluginStat.config);
             if (newVal === lastValue)
                 continue;
@@ -292,7 +292,12 @@ chromep.proxy.settings.get({
     pluginStat.proxy = config.value.mode;
 });
 
-},{"../vendor/chrome-promise":6,"./PluginStat":1,"./tasker":3,"./zUtils":5}],3:[function(require,module,exports){
+},{"../vendor/chrome-promise":7,"./PluginStat":1,"./common":3,"./tasker":4,"./zUtils":6}],3:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.wait = (duration) => new Promise(resolve => setTimeout(() => (resolve()), duration));
+
+},{}],4:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -303,11 +308,11 @@ const jsqr_1 = __importDefault(require("../vendor/jsqr"));
 const PluginStat_1 = __importDefault(require("./PluginStat"));
 const zFunction_1 = __importDefault(require("./zFunction"));
 const zUtils_1 = __importDefault(require("./zUtils"));
+const common_1 = require("./common");
 const zFunction = zFunction_1.default.Instance;
 const chromep = new chrome_promise_1.default();
 const pluginStat = PluginStat_1.default();
 const toOk = (message) => (message);
-const wait = (duration) => new Promise(resolve => setTimeout(() => (resolve()), duration));
 function setPromiseFunction(fn, thisArg) {
     return (...arg) => {
         const args = Array.prototype.slice.call(arg);
@@ -597,7 +602,7 @@ class Tasker {
                 };
                 if (chrome.browsingData.removeCacheStorage)
                     dataToRemove.cacheStorage = true;
-                await Promise.race([() => chromep.browsingData.remove(options, dataToRemove), () => wait(500)]);
+                await Promise.race([() => chromep.browsingData.remove(options, dataToRemove), () => common_1.wait(500)]);
                 sendResponse(toOk(1));
             },
             isOpen: async (request, sender, sendResponse) => {
@@ -702,7 +707,7 @@ class Tasker {
         ms = ms || 10000;
         if (pluginStat.config.closeIrrelevantTabs) {
             console.log(`Will Close tab ${tabId} in ${ms} ms`);
-            await wait(ms);
+            await common_1.wait(ms);
             const tab = await chromep.tabs.get(tabId);
             if (tab) {
                 const tabInformation = Tasker.Instance.getTabInformation(tab);
@@ -731,7 +736,7 @@ class Tasker {
 }
 exports.default = Tasker;
 
-},{"../vendor/chrome-promise":6,"../vendor/jsqr":7,"./PluginStat":1,"./zFunction":4,"./zUtils":5}],4:[function(require,module,exports){
+},{"../vendor/chrome-promise":7,"../vendor/jsqr":8,"./PluginStat":1,"./common":3,"./zFunction":5,"./zUtils":6}],5:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -739,6 +744,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const chrome_promise_1 = __importDefault(require("../vendor/chrome-promise"));
 const PluginStat_1 = __importDefault(require("./PluginStat"));
+const common_1 = require("./common");
 const pluginStat = PluginStat_1.default();
 const chromep = new chrome_promise_1.default();
 const filterJs = (code) => {
@@ -750,7 +756,6 @@ const filterJs = (code) => {
     code = code.replace(/import\s+[^ ]+\s*=\s*require\([^)]+\);?/g, '');
     return code;
 };
-const wait = (duration) => new Promise(resolve => setTimeout(() => (resolve()), duration));
 class ZFunction {
     constructor() {
         this.memoryCache = {};
@@ -875,7 +880,7 @@ class ZFunction {
             catch (error) {
                 if (counter > retries)
                     throw Error(`giving url ${url} up after ${retries} retries`);
-                await wait(1000);
+                await common_1.wait(1000);
             }
         }
     }
@@ -956,7 +961,7 @@ class ZFunction {
 }
 exports.default = ZFunction;
 
-},{"../vendor/chrome-promise":6,"./PluginStat":1}],5:[function(require,module,exports){
+},{"../vendor/chrome-promise":7,"./PluginStat":1,"./common":3}],6:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -1012,7 +1017,7 @@ class ZUtils {
 }
 exports.default = ZUtils;
 
-},{"../vendor/chrome-promise":6}],6:[function(require,module,exports){
+},{"../vendor/chrome-promise":7}],7:[function(require,module,exports){
 /*!
  * chrome-promise
  * https://github.com/tfoxy/chrome-promise
@@ -1164,7 +1169,7 @@ exports.default = ZUtils;
     }
   }));
   
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory();

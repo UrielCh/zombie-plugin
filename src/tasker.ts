@@ -3,6 +3,7 @@ import jsQR from '../vendor/jsqr';
 import PluginStat, { PluginStatValue } from './PluginStat';
 import ZFunction from './zFunction';
 import ZUtils from './zUtils';
+import { wait } from './common';
 
 interface RegisterCommandMessage {
     command: string;
@@ -49,8 +50,6 @@ const pError = (sendResponse: (response: any) => void, prefix: string, error: Er
         return sendResponse(ZUtils.toErr(errorMsg));
 };
 */
-const wait = (duration: number) => new Promise(resolve => setTimeout(() => (resolve()), duration));
-
 //  to promis Keeping this
 function setPromiseFunction(fn: ((...args: any) => any), thisArg: any) {
     return (...arg: any[]) => {

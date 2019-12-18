@@ -1,5 +1,6 @@
 import ChromePromise from '../vendor/chrome-promise';
 import PluginStat, { PluginStatValue } from './PluginStat';
+import { wait } from './common';
 
 const pluginStat: PluginStatValue = PluginStat();
 
@@ -30,8 +31,6 @@ const filterJs = (code: string) => {
     // console.log("eval return " + code);
     return code;
 };
-
-const wait = (duration: number) => new Promise(resolve => setTimeout(() => (resolve()), duration));
 
 export default class ZFunction {
 
