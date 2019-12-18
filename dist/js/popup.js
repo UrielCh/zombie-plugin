@@ -34,13 +34,13 @@ const extensionId = chrome.runtime.id;
 let rqId = 1;
 let port = null;
 const callbacks = {};
-const msgListener = async (response, port) => {
+const msgListener = async (response) => {
     const callback = callbacks[response.requestId];
     if (!callback)
         return;
     const { message, resolve, reject } = callback;
     const { requestId, error } = response;
-    console.log(`CMD:${message.command} Q: ${requestId} RCV:`, response);
+    console.log(`Q:${requestId} CMD:${message.command} RCV:`, response);
     if (error) {
         if (++callback.retries > 3) {
             debugger;
