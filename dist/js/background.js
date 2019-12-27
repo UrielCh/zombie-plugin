@@ -918,27 +918,35 @@ class ZFunction {
     }
     async pushCookies(cookies) {
         cookies = cookies || [];
-        for (const c of cookies) {
-            const domain = c.domain.replace(/^\./, '');
-            const cookieData = {
-                domain,
-                expirationDate: c.expirationDate,
-                httpOnly: c.httpOnly,
-                name: c.name,
-                path: c.path,
-                secure: c.secure,
-                url: ((c.secure) ? 'https://' : 'http://') + domain + c.path,
-                value: c.value
-            };
-            const { sameSite } = c;
-            if (sameSite)
-                cookieData.sameSite = sameSite;
-            try {
-                await chromep.cookies.set(cookieData);
+        if (!cookies.length)
+            return 'ok';
+        try {
+            for (const c of cookies) {
+                const domain = c.domain.replace(/^\./, '');
+                const cookieData = {
+                    domain,
+                    expirationDate: c.expirationDate,
+                    httpOnly: c.httpOnly,
+                    name: c.name,
+                    path: c.path,
+                    secure: c.secure,
+                    url: ((c.secure) ? 'https://' : 'http://') + domain + c.path,
+                    value: c.value
+                };
+                const { sameSite } = c;
+                if (sameSite)
+                    cookieData.sameSite = sameSite;
+                try {
+                    await chromep.cookies.set(cookieData);
+                }
+                catch (e) {
+                    console.log('failed to push Cookie', cookieData, e);
+                }
             }
-            catch (e) {
-                console.log('failed to push Cookie', cookieData, e);
-            }
+        }
+        catch (e) {
+            console.log('Failed to Push Cookies');
+            debugger;
         }
         return 'ok';
     }

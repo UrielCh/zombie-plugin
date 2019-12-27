@@ -528,7 +528,9 @@ export default class Tasker {
             Tasker.Instance.lastCookiesSave = Date.now();
             sendResponse(toOk('ok'));
         },
-
+        /**
+         * Deprecated
+         */
         putCookies: async (request, sender, sendResponse) => {
             await zFunction.pushCookies(request.cookies);
             Tasker.Instance.lastCookiesSave = Date.now();

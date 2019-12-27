@@ -40,6 +40,12 @@ echo zombie-v${version}.tar.gz generated
 
 ### changelog:
 
+* V 4.1.2
+    - small bug fix
+
+* V 4.1.0
+    - replace sendmessage by a connect loop
+
 * V 4.0.12
     - improve plugin script, add puppeteer test unit.
 
