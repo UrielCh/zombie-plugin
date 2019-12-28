@@ -31,7 +31,6 @@ exports.default = value;
 Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("./common");
 const extensionId = chrome.runtime.id;
-let rqId = 1;
 let port = null;
 const callbacks = {};
 const msgListener = async (response) => {
@@ -79,8 +78,10 @@ const promFilled = (requestId, message) => async (resolve, reject) => {
         }
     }
 };
+let rqId = 1;
 exports.sendMessage = (message) => {
-    return new Promise(promFilled(rqId++, message));
+    let next = rqId++;
+    return new Promise(promFilled(next, message));
 };
 exports.default = exports.sendMessage;
 

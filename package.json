@@ -17,7 +17,8 @@
     "browserify-POP": "browserify ./built/popup.js      -o ./dist/js/popup.js",
     "browserify-CLI": "browserify ./built/client.js     -o ./dist/js/client.js",
     "browserify": "concurrently npm:browserify-*",
-    "build": "npm run tsc && npm run browserify"
+    "build": "npm run tsc && npm run browserify",
+    "install": "npm run build"
   },
   "author": "",
   "license": "ISC",

@@ -1,6 +1,5 @@
 import { wait } from './common';
 const extensionId = chrome.runtime.id;
-let rqId = 1;
 let port: chrome.runtime.Port | null = null;
 
 const callbacks: { [key: number]: {
@@ -63,8 +62,10 @@ const promFilled = (requestId: number, message: IPluginMessage) => async (resolv
     }
 };
 
+let rqId = 1;
 export const sendMessage = (message: IPluginMessage): Promise<any> => {
-    return new Promise(promFilled(rqId++, message));
+    let next = rqId++;
+    return new Promise(promFilled(next, message));
 }
 
 export default sendMessage;
