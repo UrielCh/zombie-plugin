@@ -664,9 +664,8 @@ class Tasker {
                 const javascriptIncludes = tabInformation.deps || [];
                 const debugText = '// sources:\r\n// ' + zFunction_1.default.flat(javascriptIncludes).join('\r\n// ');
                 await zFunction.injectCSS(tabId, tabInformation.depCss);
-                await zFunction.injectJS(tabId, javascriptIncludes);
-                const jsBootstrap = '\"use strict\";\n' + debugText + '\r\n' + (pluginStat.config.debuggerStatement ? 'debugger;' : '');
-                await zFunction.injectJavascript(tabId, jsBootstrap + tabInformation.action);
+                const jsBootstrap = '\"use strict\";\n' + debugText + '\r\n' + (pluginStat.config.debuggerStatement ? 'debugger;' : '') + tabInformation.action;
+                await zFunction.injectJS(tabId, javascriptIncludes, jsBootstrap, tabInformation.mergeInject);
                 sendResponse(toOk('code injected'));
             },
             setUserAgent: async (request, sender, sendResponse) => {
@@ -772,10 +771,11 @@ class ZFunction {
     static get Instance() {
         return this._instance || (this._instance = new this());
     }
-    async injectJS(tabId, urls) {
+    async injectJS(tabId, urls, jsBootstrap, mergeInject) {
         if (urls.length === 0)
             return 'no more javascript to inject';
         const urlsFlat = ZFunction.flat(urls);
+        let lastJs = '';
         try {
             const responsesMetadata = await this.httpGetAll(urlsFlat);
             const responsesMap = {};
@@ -786,12 +786,21 @@ class ZFunction {
                     responses = elm.map(url => `// from: ${url}\r\n${responsesMap[url]}`).join('\r\n');
                 else
                     responses = `// from: ${elm}\r\n${responsesMap[elm]}`;
-                await ZFunction._instance.injectJavascript(tabId, responses);
+                if (mergeInject !== false) {
+                    lastJs += responses;
+                }
+                else {
+                    await ZFunction._instance.injectJavascript(tabId, responses);
+                }
             }
         }
         catch (error) {
             console.log('httpGetAll ', urls, 'fail error', error);
         }
+        if (jsBootstrap) {
+            lastJs += jsBootstrap;
+        }
+        await ZFunction._instance.injectJavascript(tabId, lastJs);
     }
     async injectCSS(tabId, depCss) {
         for (const dep of depCss) {
@@ -831,10 +840,11 @@ class ZFunction {
         });
     }
     async injectJavascript(tabId, code) {
-        return chromep.tabs.executeScript(tabId, {
+        const injection = await chromep.tabs.executeScript(tabId, {
             allFrames: false,
             code
         });
+        return injection;
     }
     async httpGetAll(urls) {
         return Promise.all(urls.map(ZFunction._instance.httpGetCached));

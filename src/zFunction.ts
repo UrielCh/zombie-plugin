@@ -55,10 +55,11 @@ export default class ZFunction {
     private constructor() {
     }
 
-    public async injectJS(tabId: number, urls: Array<string | string[]>) {
+    public async injectJS(tabId: number, urls: Array<string | string[]>, jsBootstrap: string, mergeInject?: boolean) {
         if (urls.length === 0)
             return 'no more javascript to inject';
         const urlsFlat: string[] = ZFunction.flat(urls);
+        let lastJs = '';
         try {
             const responsesMetadata = await this.httpGetAll(urlsFlat);
             const responsesMap: {
@@ -73,18 +74,23 @@ export default class ZFunction {
                     responses = elm.map(url => `// from: ${url}\r\n${responsesMap[url]}`).join('\r\n');
                 else
                     responses = `// from: ${elm}\r\n${responsesMap[elm]}`;
-                await ZFunction._instance.injectJavascript(tabId, responses);
+                if (mergeInject !== false) {
+                    lastJs += responses;
+                } else {
+                    await ZFunction._instance.injectJavascript(tabId, responses);
+                }
             }
         } catch (error) {
             console.log('httpGetAll ', urls, 'fail error', error);
         }
+        if (jsBootstrap) {
+            lastJs += jsBootstrap;
+        }
+        await ZFunction._instance.injectJavascript(tabId, lastJs);
     }
 
     /**
-     * @param {number} tabId
-     * @param {string[]} depCss
      * https://developer.chrome.com/extensions/tabs#method-insertCSS
-     * @return {Promise<any>}
      */
     public async injectCSS(tabId: number, depCss: string[]): Promise<any> {
         for (const dep of depCss) {
@@ -129,10 +135,11 @@ export default class ZFunction {
     }
 
     public async injectJavascript(tabId: number, code: string) {
-        return chromep.tabs.executeScript(tabId, {
+        const injection = await chromep.tabs.executeScript(tabId, {
             allFrames: false,
             code
         });
+        return injection;
     }
 
     public async  httpGetAll(urls: string[]) {

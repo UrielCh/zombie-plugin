@@ -31,6 +31,7 @@ interface ZTask {
      * css url to inject
      */
     depCss: string[];
+    mergeInject?: boolean;
     target: string;
 }
 
@@ -201,10 +202,8 @@ export default class Tasker {
 
     /**
      * copy parent tab task to chidlren tab task
-     * @param {chrome.tabs.Tab} tab
-     * @returns {ZTask|null} todo
      */
-    public getTabInformation(tab: chrome.tabs.Tab) {
+    public getTabInformation(tab: chrome.tabs.Tab): ZTask | null {
         if (!tab || !tab.id)
             return null;
         const parentTabId = tab.openerTabId;
@@ -252,8 +251,6 @@ export default class Tasker {
          */
 
         /**
-         * @param {any} request
-         * @param {chrome.runtime.MessageSender} sender
          */
         close: async (request, sender, sendResponse) => {
             if (pluginStat.config.noClose) {
@@ -590,7 +587,7 @@ export default class Tasker {
         /**
          * Internal http POST
          */
-        post: async (request, sender, sendResponse) => {
+        post: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             const response = await zFunction.postJSON(request.url, request.data);
             sendResponse(toOk(response));
         },
@@ -598,14 +595,14 @@ export default class Tasker {
         /**
          *
          */
-        storageGet: async (request, sender, sendResponse) => {
+        storageGet: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             const result = await chromep.storage.local.get(request.key);
             sendResponse(toOk(result[request.key] || request.defaultValue));
         },
 
         /**
          */
-        storageSet: async (request, sender, sendResponse) => {
+        storageSet: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             await chromep.storage.local.set({
                 [request.key]: request.value
             });
@@ -613,13 +610,13 @@ export default class Tasker {
         },
         /**
          */
-        storageRemove: async (request, sender, sendResponse) => {
+        storageRemove: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             await chromep.storage.local.remove(request.key);
             sendResponse(toOk('ok'));
         },
         /**
          */
-        openExtensionManager: async (request, sender, sendResponse) => {
+        openExtensionManager: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             await chromep.tabs.create({
                 url: 'chrome://extensions'
             });
@@ -627,11 +624,10 @@ export default class Tasker {
         },
         /**
          * Internal
-         * @param {any} request
          * @param {chrome.runtime.MessageSender} sender
          * @param {(response: any) => void} sendResponse
          */
-        getTodo: async (request, sender, sendResponse) => {
+        getTodo: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             if (!sender)
                 return;
             const tab = sender.tab;
@@ -642,23 +638,24 @@ export default class Tasker {
             const tabId = tab.id;
             const tabInformation = Tasker.Instance.getTabInformation(tab);
             //try {
-                if (!tabInformation) {
-                    // mo job for this tabs
-                    if (ZUtils.isProtected(tab.url))
-                        return;
-                    await this.mayCloseTabIn(tabId, 10002);
-                    sendResponse(toOk('NOOP'));
+            if (!tabInformation) {
+                // mo job for this tabs
+                if (ZUtils.isProtected(tab.url))
                     return;
-                }
-                const javascriptIncludes = tabInformation.deps || [];
-                const debugText = '// sources:\r\n// ' + ZFunction.flat(javascriptIncludes).join('\r\n// ');
-                // if this tab has parent that we known of
-                // table of parent
-                await zFunction.injectCSS(tabId, tabInformation.depCss);
-                await zFunction.injectJS(tabId, javascriptIncludes);
-                const jsBootstrap = '\"use strict\";\n' + debugText + '\r\n' + (pluginStat.config.debuggerStatement ? 'debugger;' : '');
-                await zFunction.injectJavascript(tabId, jsBootstrap + tabInformation.action);
-                sendResponse(toOk('code injected'));
+                await this.mayCloseTabIn(tabId, 10002);
+                sendResponse(toOk('NOOP'));
+                return;
+            }
+            const javascriptIncludes = tabInformation.deps || [];
+            const debugText = '// sources:\r\n// ' + ZFunction.flat(javascriptIncludes).join('\r\n// ');
+            // if this tab has parent that we known of
+            // table of parent
+            await zFunction.injectCSS(tabId, tabInformation.depCss);
+            const jsBootstrap = '\"use strict\";\n' + debugText + '\r\n' + (pluginStat.config.debuggerStatement ? 'debugger;' : '') + tabInformation.action;
+            await zFunction.injectJS(tabId, javascriptIncludes, jsBootstrap, tabInformation.mergeInject);
+
+            //await zFunction.injectJavascript(tabId, jsBootstrap);
+            sendResponse(toOk('code injected'));
             //} catch (e) {
             //    try {
             //        pError(sendResponse, 'injectCSS', e);

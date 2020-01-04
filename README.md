@@ -40,6 +40,9 @@ echo zombie-v${version}.tar.gz generated
 
 ### changelog:
 
+* V 4.1.3
+    - add mergeInject in ZTask
+
 * V 4.1.2
     - small bug fix
 
