@@ -127,8 +127,8 @@ const pluginListenerCnx = (source) => async (message, port) => {
         catch (e) {
             const msg = `${source}.${data.command}`;
             console.log(msg, 'promise Failure', e);
-            const error = e.message | e.toString();
-            port.postMessage({ requestId, error, stack: e.stack });
+            const error = e.message || e.statusText || e.toString();
+            port.postMessage({ requestId, error: `${msg} ${error}`, stack: e.stack || '' });
         }
     else
         port.postMessage({ requestId, error: `command ${data.command} not found` });
