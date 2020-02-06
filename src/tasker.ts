@@ -588,6 +588,7 @@ export default class Tasker {
          * Internal http POST
          */
         post: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
+            // todo improve error message
             const response = await zFunction.postJSON(request.url, request.data);
             sendResponse(toOk(response));
         },
@@ -596,6 +597,7 @@ export default class Tasker {
          *
          */
         storageGet: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
+            // todo improve error message
             const result = await chromep.storage.local.get(request.key);
             sendResponse(toOk(result[request.key] || request.defaultValue));
         },

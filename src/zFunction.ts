@@ -128,7 +128,7 @@ export default class ZFunction {
                 try {
                     return JSON.parse(response);
                 } catch (ex) {
-                    return response; // return Promise.reject(ex);
+                    return response;
                 }
             return response;
         });
@@ -142,7 +142,7 @@ export default class ZFunction {
         return injection;
     }
 
-    public async  httpGetAll(urls: string[]) {
+    public async httpGetAll(urls: string[]) {
         return Promise.all(urls.map(ZFunction._instance.httpGetCached));
     }
     /**
