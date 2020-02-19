@@ -73,7 +73,7 @@ interface RecaptchaTaskResponse {
                     proxyPort: purl.port,
                     proxyLogin: username,
                     proxyPassword: password,
-                    userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Safari/537.36', // fix me
+                    userAgent: navigator.userAgent,
                 },
                 softId: 0,
                 languagePool: 'en'
@@ -100,6 +100,7 @@ interface RecaptchaTaskResponse {
                 console.log(result2);
                 await wait(5000);
             }
+            // see https://2captcha.com/2captcha-api#solving_captchas
         }
     }
 })();
