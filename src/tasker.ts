@@ -1,9 +1,12 @@
 import ChromePromise from '../vendor/chrome-promise';
 import jsQR from '../vendor/jsqr';
-import PluginStat, { PluginStatValue } from './PluginStat';
+import PluginStat from './PluginStat';
 import ZFunction from './zFunction';
 import ZUtils from './zUtils';
 import { wait } from './common';
+// eslint-disable-next-line no-unused-vars
+import { PluginStatValue } from './interfaces';
+import { all } from 'bluebird';
 
 interface RegisterCommandMessage {
     command: string;
@@ -39,18 +42,7 @@ const zFunction = ZFunction.Instance;
 
 const chromep = new ChromePromise();
 const pluginStat: PluginStatValue = PluginStat();
-const toOk = (message: any) => (message);
 
-/*
-const pError = (sendResponse: (response: any) => void, prefix: string, error: Error) => {
-    prefix = prefix || '';
-    // const stack = Error(prefix);
-    const errorMsg = `${prefix} ${error.message}`.trim();
-    console.error(`chrome error message ${prefix}: `, error);
-    if (sendResponse)
-        return sendResponse(ZUtils.toErr(errorMsg));
-};
-*/
 //  to promis Keeping this
 function setPromiseFunction(fn: ((...args: any) => any), thisArg: any) {
     return (...arg: any[]) => {
@@ -244,7 +236,7 @@ export default class Tasker {
             }
             console.log({ target: { tabId }, method, commandParams });
             await chrome_debugger_sendCommand({ tabId }, method, commandParams);
-            sendResponse(toOk('ok'));
+            sendResponse('ok');
         },
         /**
          * External
@@ -254,18 +246,18 @@ export default class Tasker {
          */
         close: async (request, sender, sendResponse) => {
             if (pluginStat.config.noClose) {
-                sendResponse(toOk('ok'));
+                sendResponse('ok');
                 return true;
             }
             await ZUtils.closeAllTabExept(0);
-            sendResponse(toOk('ok'));
+            sendResponse('ok');
         },
         /**
          * External Close caller Tab
          */
         closeMe: async (request, sender, sendResponse) => {
             if (pluginStat.config.noClose) {
-                sendResponse(toOk('ok'));
+                sendResponse('ok');
                 return true;
             }
             if (!sender || !sender.tab || !sender.tab.id) {
@@ -273,10 +265,10 @@ export default class Tasker {
             }
             if (request.lazy) {
                 await this.mayCloseTabIn(sender.tab.id, 5001);
-                sendResponse(toOk('ok'));
+                sendResponse('ok');
             } else {
                 await ZUtils.closeTab(sender.tab.id);
-                sendResponse(toOk('ok'));
+                sendResponse('ok');
             }
             // drop Internal.closeMe promise Failure Error: Attempting to use a disconnected port object
         },
@@ -288,7 +280,7 @@ export default class Tasker {
             if (sender && sender.tab && sender.tab.id) {
                 const tabId = sender.tab.id;
                 await ZUtils.preventPrompts(tabId);
-                sendResponse(toOk('ok'));
+                sendResponse('ok');
             } else
                 throw Error('missing tab');
         },
@@ -333,7 +325,7 @@ export default class Tasker {
                 pluginStat.nbNamedTab = Object.keys(Tasker.Instance.namedTab).length;
                 Tasker.updateBadge();
             }
-            sendResponse(toOk('done'));
+            sendResponse('done');
         },
 
         readQrCode: async (request, sender, sendResponse) => {
@@ -392,7 +384,7 @@ export default class Tasker {
         saveCookies: async (request, sender, sendResponse) => {
             this.lastCookiesSave = Date.now();
             // console.log(`lastCookiesSave updated`);
-            sendResponse(toOk('ok'));
+            sendResponse('ok');
         },
 
         /**
@@ -402,6 +394,45 @@ export default class Tasker {
             const { domains } = request;
             Tasker.Instance.blockedDomains = domains;
             return sendResponse('updated');
+        },
+        getParentUrl: async (request, sender, sendResponse) => {
+            if (sender && sender.tab) {
+                const curentFrameId = sender.frameId as number;
+                const tabId = sender.tab.id as number;
+                // const frame = await chromep.webNavigation.getFrame({ frameId, tabId });
+                const allFrames = await chromep.webNavigation.getAllFrames({ tabId });
+                if (allFrames) {
+                    const [current] = allFrames.filter(({frameId})=> frameId === curentFrameId);
+                    if (!current)
+                        throw Error('can not find caller frame');
+                    const {parentFrameId} = current;
+                    if (!parentFrameId) 
+                        return sendResponse(current.url);
+                    const [parent] = allFrames.filter(({frameId})=> frameId === parentFrameId);
+                    if (!parent) 
+                        throw Error('can not find caller parent frame');
+                    return sendResponse(parent.url);
+                }
+            }
+        },
+        getProxy: async (request, sender, sendResponse) => {
+            const { proxyAuth } = pluginStat.config;
+
+            const proxySettings = await chromep.proxy.settings.get({});
+            const { value } = proxySettings;
+            let proxy = '';
+            if (value && value.rules && value.rules.singleProxy) {
+                const {host, port, scheme} = value.rules.singleProxy;
+                proxy = `${scheme}://${host}:${port}`;
+            } else {
+                proxy = pluginStat.proxy;
+            }
+            console.log(proxySettings);
+            if (proxy) {
+                sendResponse({ proxy, auth: proxyAuth });
+            } else {
+                sendResponse({});
+            }
         },
         /**
          * setProxy {scheme, host, port}
@@ -446,7 +477,7 @@ export default class Tasker {
                 pluginStat.proxy = `${scheme}://${host}:${port}`;
             }
             await chromep.storage.local.set({ proxy });
-            sendResponse(toOk('ok'));
+            sendResponse('ok');
         },
         /**
          */
@@ -458,19 +489,33 @@ export default class Tasker {
                 await chromep.storage.local.set({ coords });
             } else
                 await chromep.storage.local.remove('coords');
-            return sendResponse(toOk('ok'));
+            return sendResponse('ok');
+        },
+        /**
+         */
+        setAnticaptchaKey: async (request, sender, sendResponse) => {
+            const key = request.key as string;
+            if (key && key.length === 32) {
+                delete request.command;
+                await chromep.storage.local.set({ AnticaptchaKey: key });
+            } else if (key === '') {
+                await chromep.storage.local.remove('AnticaptchaKey');
+            } else {
+                throw Error('key must be a 32 char long string');
+            }
+            return sendResponse('ok');
         },
         /**
          * External
          */
         updateAction: async (request, sender, sendResponse) => {
             if (!sender || !sender.tab || !sender.tab.id)
-                return sendResponse(toOk('ok'));
+                return sendResponse('ok');
             if (typeof request.action === 'undefined')
                 throw Error('updateAction must contains action parameter');
             const task = Tasker.Instance.registedActionTab[sender.tab.id];
             task.action = request.action;
-            return sendResponse(toOk('ok'));
+            return sendResponse('ok');
         },
         /**
          * External
@@ -482,7 +527,8 @@ export default class Tasker {
             } = request;
             if (domain || name) {
                 //const count = await 
-                zFunction.deleteCookies({ domain, name }).then(count => sendResponse(toOk(count)));
+                const count = await zFunction.deleteCookies({ domain, name });
+                sendResponse(count);
                 // sendResponse(toOk(count));
             } else
                 throw Error('Missing "domain" or "name" argument as regexp.');
@@ -498,7 +544,7 @@ export default class Tasker {
             } = request;
             if (domain || name) {
                 const cookies = await zFunction.popCookies({ domain, name });
-                sendResponse(toOk(cookies));
+                sendResponse(cookies);
             } else
                 throw Error('Missing "domain" or "name" argument as regexp.');
         },
@@ -512,7 +558,7 @@ export default class Tasker {
             } = request;
             if (domain || name) {
                 const cookies = await zFunction.getCookies({ domain, name });
-                sendResponse(toOk(cookies));
+                sendResponse(cookies);
             } else
                 throw Error('Missing "domain" or "name" argument as regexp.');
         },
@@ -523,7 +569,7 @@ export default class Tasker {
         pushCookies: async (request, sender, sendResponse) => {
             await zFunction.pushCookies(request.cookies);
             Tasker.Instance.lastCookiesSave = Date.now();
-            sendResponse(toOk('ok'));
+            sendResponse('ok');
         },
         /**
          * Deprecated
@@ -531,7 +577,7 @@ export default class Tasker {
         putCookies: async (request, sender, sendResponse) => {
             await zFunction.pushCookies(request.cookies);
             Tasker.Instance.lastCookiesSave = Date.now();
-            sendResponse(toOk('ok'));
+            sendResponse('ok');
         },
         /**
          * External
@@ -560,7 +606,7 @@ export default class Tasker {
                 (dataToRemove as any).cacheStorage = true; // Since Chrome 72.
             // chrome.browsingData.remove bug and use not to be call
             await Promise.race([() => chromep.browsingData.remove(options, dataToRemove), () => wait(500)]);
-            sendResponse(toOk(1));
+            sendResponse(1);
 
         },
         isOpen: async (request, sender, sendResponse) => {
@@ -568,21 +614,21 @@ export default class Tasker {
             let count = '0';
             if (target != null && Tasker.Instance.namedTab[target])
                 count = '1';
-            sendResponse(toOk(count));
+            sendResponse(count);
         },
         /**
          * Internal
          */
         get: async (request, sender, sendResponse) => {
             const r = await zFunction.httpGetPromise(request.url);
-            sendResponse(toOk(r.data));
+            sendResponse(r.data);
         },
         /**
          * Remove all cached Script
          */
         flushCache: async (request, sender, sendResponse) => {
             await zFunction.flush();
-            sendResponse(toOk('ok'));
+            sendResponse('ok');
         },
         /**
          * Internal http POST
@@ -590,7 +636,7 @@ export default class Tasker {
         post: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             // todo improve error message
             const response = await zFunction.postJSON(request.url, request.data);
-            sendResponse(toOk(response));
+            sendResponse(response);
         },
 
         /**
@@ -599,7 +645,7 @@ export default class Tasker {
         storageGet: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             // todo improve error message
             const result = await chromep.storage.local.get(request.key);
-            sendResponse(toOk(result[request.key] || request.defaultValue));
+            sendResponse(result[request.key] || request.defaultValue);
         },
 
         /**
@@ -608,13 +654,13 @@ export default class Tasker {
             await chromep.storage.local.set({
                 [request.key]: request.value
             });
-            sendResponse(toOk('ok'));
+            sendResponse('ok');
         },
         /**
          */
         storageRemove: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             await chromep.storage.local.remove(request.key);
-            sendResponse(toOk('ok'));
+            sendResponse('ok');
         },
         /**
          */
@@ -622,7 +668,7 @@ export default class Tasker {
             await chromep.tabs.create({
                 url: 'chrome://extensions'
             });
-            sendResponse(toOk('ok'));
+            sendResponse('ok');
         },
         /**
          * Internal
@@ -645,7 +691,7 @@ export default class Tasker {
                 if (ZUtils.isProtected(tab.url))
                     return;
                 await this.mayCloseTabIn(tabId, 10002);
-                sendResponse(toOk('NOOP'));
+                sendResponse('NOOP');
                 return;
             }
             const javascriptIncludes = tabInformation.deps || [];
@@ -653,11 +699,11 @@ export default class Tasker {
             // if this tab has parent that we known of
             // table of parent
             await zFunction.injectCSS(tabId, tabInformation.depCss);
-            const jsBootstrap = '\"use strict\";\n' + debugText + '\r\n' + (pluginStat.config.debuggerStatement ? 'debugger;' : '') + tabInformation.action;
+            const jsBootstrap = '"use strict";\n' + debugText + '\r\n' + (pluginStat.config.debuggerStatement ? 'debugger;' : '') + tabInformation.action;
             await zFunction.injectJS(tabId, javascriptIncludes, jsBootstrap, tabInformation.mergeInject);
 
             //await zFunction.injectJavascript(tabId, jsBootstrap);
-            sendResponse(toOk('code injected'));
+            sendResponse('code injected');
             //} catch (e) {
             //    try {
             //        pError(sendResponse, 'injectCSS', e);
@@ -670,7 +716,7 @@ export default class Tasker {
         },
         setUserAgent: async (request, sender, sendResponse) => {
             pluginStat.userAgent = request.userAgent;
-            sendResponse(toOk('ok'));
+            sendResponse('ok');
         },
         getConfigs: async (request, sender, sendResponse) => {
             sendResponse({

@@ -1,10 +1,12 @@
-import PluginStat, { PluginStatValue } from './PluginStat';
+// eslint-disable-next-line no-unused-vars
+import PluginStat from './PluginStat';
+
+// eslint-disable-next-line no-unused-vars
+import { PluginStatValue, BackGroundPage } from './interfaces';
+
 import sendMessage from './SendMessage';
 
 /// <reference path="typings/jquery/jquery.d.ts" />
-interface BackGroundPage extends Window {
-    pluginStat: PluginStatValue;
-}
 
 interface MyJQ extends JQuery<HTMLElement> {
     bootstrapToggle(opt: bootstrapToggleConfig): JQuery<HTMLElement>;

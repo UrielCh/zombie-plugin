@@ -6,6 +6,13 @@
     "page": "files/background.html",
     "persistent": true
   },
+
+  "options_ui": {
+    "page": "files/options.html",
+    "chrome_style": true
+  },
+  "options_page": "files/options.html",
+
   "browser_action": {
     "default_icon": "files/icon.png",
     "default_popup": "files/popup.html",
@@ -23,7 +30,18 @@
         "https://*/*"
       ],
       "run_at": "document_start"
-    }
+    }, {
+        "all_frames": true,
+        "js": [
+          "/vendor/jquery.3.min.js",
+          "/js/idle.js"
+        ],
+        "matches": [
+          "http://*/*",
+          "https://*/*"
+        ],
+        "run_at": "document_idle"
+      }  
   ],
   "devtools_page": "devtools.html",
   "externally_connectable": {

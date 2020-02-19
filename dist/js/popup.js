@@ -18,6 +18,7 @@ function value() {
             memoryCacheSize: 0,
             proxy: '',
             userAgent: '',
+            anticaptchaClientKey: '',
         };
         window.pluginStat = stats;
         return stats;
@@ -39,7 +40,6 @@ const msgListener = async (response) => {
         return;
     const { message, resolve, reject } = callback;
     const { requestId, error } = response;
-    console.log(`Q:${requestId} CMD:${message.command} RCV:`, response);
     if (error) {
         if (++callback.retries > 3) {
             debugger;

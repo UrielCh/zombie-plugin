@@ -1,35 +1,5 @@
-// type ConfigEntry = 'closeIrrelevantTabs' | 'debuggerStatement' | 'pauseProcess';
-
-interface BackGroundPage extends Window {
-    pluginStat: PluginStatValue;
-}
-
-/**
- * This part of the conf is saved in plugin storage
- */
-export interface PluginSavedState {
-    closeIrrelevantTabs: boolean;
-    debuggerStatement: boolean;
-    pauseProcess: boolean;
-    injectProcess: boolean;
-    noClose: boolean;
-    // Proxy auth must be save to keep proxy config running between runs
-    proxyAuth: string; // { username: string, password: string };
-}
-/**
- * Volatile configuration go here
- */
-export interface PluginStatValue {
-    /**
-     * those option are saved in local storage
-     */
-    config: PluginSavedState;
-    nbRegistedActionTab: number;
-    nbNamedTab: number;
-    memoryCacheSize: number;
-    proxy: string;
-    userAgent: string;
-}
+// eslint-disable-next-line no-unused-vars
+import { PluginStatValue, BackGroundPage } from './interfaces';
 
 export default function value() {
     const old: PluginStatValue = (window as any as BackGroundPage).pluginStat;
@@ -49,6 +19,7 @@ export default function value() {
             memoryCacheSize: 0,
             proxy: '',
             userAgent: '',
+            anticaptchaClientKey: '',
         };
         (window as any as BackGroundPage).pluginStat = stats;
         return stats;

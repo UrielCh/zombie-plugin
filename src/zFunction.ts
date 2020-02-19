@@ -1,6 +1,8 @@
 import ChromePromise from '../vendor/chrome-promise';
-import PluginStat, { PluginStatValue } from './PluginStat';
+import PluginStat from './PluginStat';
 import { wait } from './common';
+// eslint-disable-next-line no-unused-vars
+import { PluginStatValue } from './interfaces';
 
 const pluginStat: PluginStatValue = PluginStat();
 
@@ -180,6 +182,7 @@ export default class ZFunction {
         }
         const retries = 5;
         let counter = 0;
+        // eslint-disable-next-line no-constant-condition
         while (true) {
             counter++;
             try {
@@ -270,6 +273,7 @@ export default class ZFunction {
             }
         } catch (e) {
             console.log('Failed to Push Cookies');
+            // eslint-disable-next-line no-debugger
             debugger;
         }
         return 'ok';

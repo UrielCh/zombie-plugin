@@ -1,5 +1,7 @@
 import ChromePromise from '../vendor/chrome-promise';
-import PluginStat, { PluginSavedState, PluginStatValue } from './PluginStat';
+import PluginStat from './PluginStat';
+// eslint-disable-next-line no-unused-vars
+import { PluginStatValue, PluginSavedState } from './interfaces';
 import Tasker from './tasker';
 import ZUtils from './zUtils';
 import { wait } from './common';
@@ -29,7 +31,7 @@ if (chrome.cookies)
     });
 
 if (chrome.tabs)
-    chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+    chrome.tabs.onRemoved.addListener((tabId/*, removeInfo*/) => {
         const oldTask = tasker.registedActionTab[tabId];
         delete tasker.registedActionTab[tabId];
         pluginStat.nbRegistedActionTab = Object.keys(tasker.registedActionTab).length;
@@ -139,8 +141,8 @@ if (chrome.webRequest) {
                 authCredentials: JSON.parse(pluginStat.config.proxyAuth)
             });
     },
-        { urls: ['<all_urls>'] },
-        ['asyncBlocking']);
+    { urls: ['<all_urls>'] },
+    ['asyncBlocking']);
 
     chrome.webRequest.onErrorOccurred.addListener(async (details) => {
         if (details.type !== 'main_frame')
@@ -292,6 +294,7 @@ if (chrome.storage) {
             pluginStat.config = items as PluginSavedState;
             lastValue = JSON.stringify(pluginStat.config);
             Tasker.updateBadge();
+            // eslint-disable-next-line no-constant-condition
             while (true) {
                 await wait(3000);
                 const newVal = JSON.stringify(pluginStat.config);

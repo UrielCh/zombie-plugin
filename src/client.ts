@@ -5,11 +5,6 @@ import sendMessage from './SendMessage';
 let zone = document.getElementById('tasker_id_loader');
 if (zone)
     zone.innerHTML = chrome.runtime.id;
-// let zoneVerion = document.getElementById('tasker_id_loader_version');
-// if (zoneVerion && chrome.app) {
-// console.log(chrome.app.installState());
-// zoneVerion.innerHTML = chrome.app.getDetails().version;
-// }
 
 const get = (url: string) => jQuery.get(url).then((data/*, textStatus, jqXHR*/) => Promise.resolve(data), (jqXHR, textStatus/*, errorThrown*/) => Promise.reject(textStatus));
 
@@ -105,6 +100,7 @@ sendMessage({
         console.log(`data is missing from getTodo ${window.location.href} I may close this tab`);
         try {
             await sendMessage({ command: 'closeMe', lazy: true, reason: 'data is missing from getTodo'});
+        // eslint-disable-next-line no-empty
         } catch (e) {}
         return true;
     }
