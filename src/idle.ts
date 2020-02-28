@@ -29,11 +29,10 @@ interface RecaptchaTaskResponse {
 (async function () {
     const chromep = new ChromePromise();
     const captchcaOption = await chromep.storage.local.get('AnticaptchaKey');
-
-    if (!captchcaOption)
+    if (!captchcaOption.AnticaptchaKey)
         return;
     console.log(captchcaOption);
-    let {anticaptchaClientKey} = captchcaOption.AnticaptchaKey;
+    let anticaptchaClientKey = captchcaOption.AnticaptchaKey;
     if (document.URL && document.URL.startsWith('https://www.google.com/recaptcha/api2/anchor')) {
         const url = new URL(document.URL);
         const websiteKey = url.searchParams.get('k');
