@@ -72,7 +72,11 @@ const SendMessage_1 = __importDefault(require("./SendMessage"));
 const common_1 = require("./common");
 (async function () {
     const chromep = new chrome_promise_1.default();
-    let { anticaptchaClientKey } = (await chromep.storage.local.get('AnticaptchaKey')).AnticaptchaKey;
+    const captchcaOption = await chromep.storage.local.get('AnticaptchaKey');
+    if (!captchcaOption)
+        return;
+    console.log(captchcaOption);
+    let { anticaptchaClientKey } = captchcaOption.AnticaptchaKey;
     if (document.URL && document.URL.startsWith('https://www.google.com/recaptcha/api2/anchor')) {
         const url = new URL(document.URL);
         const websiteKey = url.searchParams.get('k');
