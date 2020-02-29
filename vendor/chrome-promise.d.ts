@@ -1,9 +1,10 @@
+/* eslint-disable no-unused-vars */
 // Type definitions for chrome-promise
 // Project: https://github.com/tfoxy/chrome-promise
 // Definitions by: Tomás Fox <https://github.com/tfoxy>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
 export default class ChromePromise {
-     constructor(options?: {
+    constructor(options?: {
              chrome?: object;
              Promise?: Function;
          });
@@ -61,7 +62,7 @@ export default class ChromePromise {
      webRequest: chromepApi.webRequest.WebRequest;
      webstore: chromepApi.webstore.Webstore;
      windows: chromepApi.windows.Windows;
- }
+}
  declare namespace chromepApi.accessibilityFeatures {
      export interface AccessibilityFeaturesSetting {
          /**
@@ -70,7 +71,7 @@ export default class ChromePromise {
                   * @param callback The callback parameter should be a function that looks like this:
                   * function(object details) {...};
                   */
-         get(details: chrome.accessibilityFeatures.AccessibilityFeaturesGetArg): Promise<chrome.accessibilityFeatures.AccessibilityFeaturesCallbackArg>;
+         get(details: chrome.types.ChromeSettingSetDetails): Promise<chrome.types.ChromeSettingSetDetails>;
          /**
                   * Sets the value of a setting.
                   * @param details Which setting to change.
@@ -78,7 +79,7 @@ export default class ChromePromise {
                   * If you specify the callback parameter, it should be a function that looks like this:
                   * function() {...};
                   */
-         set(details: chrome.accessibilityFeatures.AccessibilityFeaturesSetArg): Promise<void>;
+         set(details: chrome.types.ChromeSettingSetDetails): Promise<void>;
          /**
                   * Clears the setting, restoring any default value.
                   * @param details Which setting to clear.
@@ -86,7 +87,7 @@ export default class ChromePromise {
                   * If you specify the callback parameter, it should be a function that looks like this:
                   * function() {...};
                   */
-         clear(details: chrome.accessibilityFeatures.AccessibilityFeaturesClearArg): Promise<void>;
+         clear(details: chrome.types.ChromeSettingSetDetails): Promise<void>;
      }
      export interface AccessibilityFeatures {
          spokenFeedback: AccessibilityFeaturesSetting;

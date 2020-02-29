@@ -35,7 +35,7 @@
     "@types/base64-js": "^1.2.5",
     "@types/bluebird": "^3.5.29",
     "@types/chai": "^4.2.9",
-    "@types/chrome": "0.0.96",
+    "@types/chrome": "0.0.98",
     "@types/fs-extra": "^8.1.0",
     "@types/jquery": "^3.3.33",
     "@types/mocha": "^7.0.1",
