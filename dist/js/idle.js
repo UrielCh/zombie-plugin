@@ -126,7 +126,6 @@ const common_1 = require("./common");
             const createTask = 'http://api.anti-captcha.com/createTask';
             const getTaskResult = 'https://api.anti-captcha.com/getTaskResult';
             const result = (await SendMessage_1.default({ command: 'post', url: createTask, data: task }));
-            debugger;
             if (result.errorId) {
                 console.log(`createTask retyurn error: ${JSON.stringify(result)}`);
                 return;
@@ -142,6 +141,13 @@ const common_1 = require("./common");
                     }
                 });
                 console.log(result2);
+                if (result2.solution && result2.solution.gRecaptchaResponse) {
+                    debugger;
+                    const gRecaptchaResponse = document.getElementById("g-recaptcha-response");
+                    if (gRecaptchaResponse)
+                        gRecaptchaResponse.innerHTML = result2.solution.gRecaptchaResponse;
+                    await common_1.wait(5000);
+                }
                 await common_1.wait(5000);
             }
         }

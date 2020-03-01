@@ -15,6 +15,7 @@ interface RecaptchaTaskResponse {
     status: "ready",
     solution:
     {
+        gRecaptchaResponse: string,
         text: string,
         url: string,
     },
@@ -88,7 +89,6 @@ interface RecaptchaTaskResponse {
             const getTaskResult = 'https://api.anti-captcha.com/getTaskResult';
 
             const result = (await sendMessage({ command: 'post', url: createTask, data: task } as IPluginMessage)) as { errorId: number, taskId: number };
-            debugger;
             if (result.errorId) {
                 console.log(`createTask retyurn error: ${JSON.stringify(result)}`);
                 return;
@@ -103,7 +103,15 @@ interface RecaptchaTaskResponse {
                         taskId: result.taskId
                     }
                 } as IPluginMessage);
+
                 console.log(result2);
+                if (result2.solution && result2.solution.gRecaptchaResponse) {
+                    debugger;
+                    const gRecaptchaResponse = document.getElementById("g-recaptcha-response");
+                    if (gRecaptchaResponse)
+                        gRecaptchaResponse.innerHTML = result2.solution.gRecaptchaResponse;
+                    await wait(5000);
+                }
                 await wait(5000);
             }
             // see https://2captcha.com/2captcha-api#solving_captchas
