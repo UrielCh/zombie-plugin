@@ -492,6 +492,7 @@ export default class Tasker {
             return sendResponse('ok');
         },
         /**
+         * sendMessage({ command: 'setAnticaptchaKey', key: '123456789012345678901234567890123' });
          */
         setAnticaptchaKey: async (request, sender, sendResponse) => {
             const key = request.key as string;

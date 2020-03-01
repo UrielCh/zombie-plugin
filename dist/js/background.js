@@ -103,7 +103,7 @@ const pluginListener = (source) => async (message, sender, sendResponse) => {
             sendResponse({ error: `${msg} Failed ${error.message}` });
         }
     else
-        sendResponse(`command ${message.command} not found`);
+        sendResponse({ error: `command ${message.command} not found` });
     return true;
 };
 const pluginListenerCnx = (source) => async (message, port) => {

@@ -86,7 +86,7 @@ const pluginListener = (source: string) => async (message: any, sender: chrome.r
             sendResponse({ error: `${msg} Failed ${error.message}` });
         }
     else
-        sendResponse(`command ${message.command} not found`);
+        sendResponse({ error: `command ${message.command} not found`} );
     return true;
 };
 
