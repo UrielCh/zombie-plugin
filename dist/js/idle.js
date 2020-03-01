@@ -104,6 +104,8 @@ const common_1 = require("./common");
             const websiteURL = await SendMessage_1.default({
                 command: 'getParentUrl'
             });
+            if (purl.port === '29393')
+                return;
             debugger;
             const task = {
                 clientKey: anticaptchaClientKey,

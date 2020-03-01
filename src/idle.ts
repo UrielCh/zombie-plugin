@@ -64,6 +64,8 @@ interface RecaptchaTaskResponse {
             const websiteURL = await sendMessage({
                 command: 'getParentUrl'
             });
+            if (purl.port === '29393')
+                return;
             debugger;
             const task = {
                 clientKey: anticaptchaClientKey,
