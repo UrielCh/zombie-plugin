@@ -44,15 +44,15 @@ const getAnticaptchaClientKey = async () => {
 (async function () {
     const captchaBoxs = $('iframe[src^="https://www.google.com/recaptcha/api2/anchor"]');
     if (captchaBoxs.length === 1) {
-        const url = new URL(captchaBoxs.attr('src') as string);
-        const websiteKey = url.searchParams.get('k');
-        console.log('siteKey:', websiteKey);
-        const ctxt = captchaBoxs.contents();
-        const element = this.jQuery('#recaptcha-token', ctxt);
         let disable = 1;
         debugger;
         if (disable)
             return;
+        const url = new URL(captchaBoxs.attr('src') as string);
+        const websiteKey = url.searchParams.get('k');
+        console.log('siteKey:', websiteKey);
+        const ctxt = captchaBoxs.contents();
+        const element = jQuery('#recaptcha-token', ctxt);
 
         if (element.length) {
             const chalange = element[0].getAttribute('value');
