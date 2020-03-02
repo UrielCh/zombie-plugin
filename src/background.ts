@@ -310,10 +310,10 @@ if (chrome.storage) {
         });
 }
 
-chromep.proxy.settings.get({
-    incognito: false
-}).then((config) => {
-    // console.log('Load PROXY conf: ', config);
-    pluginStat.proxy = config.value.mode;
-    // console.log(pluginStat);
-});
+// chromep.proxy.settings.get({
+//    incognito: false
+// }).then((config) => {
+//    // console.log('Load PROXY conf: ', config);
+//    /// pluginStat.proxy = config.value.mode;
+//    // console.log(pluginStat);
+// });

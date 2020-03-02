@@ -287,11 +287,6 @@ if (chrome.storage) {
         }
     });
 }
-chromep.proxy.settings.get({
-    incognito: false
-}).then((config) => {
-    pluginStat.proxy = config.value.mode;
-});
 
 },{"../vendor/chrome-promise":7,"./PluginStat":1,"./common":3,"./tasker":4,"./zUtils":6}],3:[function(require,module,exports){
 "use strict";
@@ -512,18 +507,23 @@ class Tasker {
                 }
             },
             getProxy: async (request, sender, sendResponse) => {
-                const { proxyAuth } = pluginStat.config;
+                const proxyAuth = pluginStat.config.proxyAuth;
+                let proxy = '';
                 const proxySettings = await chromep.proxy.settings.get({});
                 const { value } = proxySettings;
-                let proxy = '';
                 if (value && value.rules && value.rules.singleProxy) {
                     const { host, port, scheme } = value.rules.singleProxy;
                     proxy = `${scheme}://${host}:${port}`;
                 }
-                else {
-                    proxy = pluginStat.proxy;
+                else if (value.mode) {
+                    proxy = value.mode;
+                    if (proxy !== 'system') {
+                        console.log('Non System proxy double check:', proxySettings);
+                    }
                 }
-                console.log(proxySettings);
+                else {
+                    proxy = 'none';
+                }
                 if (proxy) {
                     sendResponse({ proxy, auth: proxyAuth });
                 }
@@ -540,7 +540,6 @@ class Tasker {
                         scope: 'regular'
                     });
                     pluginStat.config.proxyAuth = '';
-                    pluginStat.proxy = 'system';
                 }
                 else {
                     proxy = `${scheme}://${host}:${port}`;
@@ -562,7 +561,6 @@ class Tasker {
                         pluginStat.config.proxyAuth = JSON.stringify({ username, password });
                     else
                         pluginStat.config.proxyAuth = '';
-                    pluginStat.proxy = `${scheme}://${host}:${port}`;
                 }
                 await chromep.storage.local.set({ proxy });
                 sendResponse('ok');

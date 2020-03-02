@@ -10,22 +10,27 @@ import { wait } from './common';
 
 /* eslint-disable no-debugger */
 
-interface RecaptchaTaskResponse {
+interface RecaptchaTaskResponseProcessing {
+    errorId: number,
+    status: "processing",
+}
+
+interface RecaptchaTaskResponseReady {
     errorId: number,
     status: "ready",
     solution:
     {
         gRecaptchaResponse: string,
-        text: string,
-        url: string,
+        // text: string,
+        // url: string,
     },
     cost: number,
     ip: string,
     createTime: number,
     endTime: number,
     solveCount: string,
-    gRecaptchaResponse: string,
 }
+type RecaptchaTaskResponse = RecaptchaTaskResponseProcessing | RecaptchaTaskResponseReady;
 
 (async function () {
     const chromep = new ChromePromise();
@@ -105,7 +110,7 @@ interface RecaptchaTaskResponse {
                 } as IPluginMessage);
 
                 console.log(result2);
-                if (result2.solution && result2.solution.gRecaptchaResponse) {
+                if (result2.status == 'ready' && result2.solution && result2.solution.gRecaptchaResponse) {
                     debugger;
                     const gRecaptchaResponse = document.getElementById("g-recaptcha-response");
                     if (gRecaptchaResponse)

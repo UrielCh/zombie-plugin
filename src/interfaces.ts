@@ -23,7 +23,7 @@ export interface PluginStatValue {
     nbRegistedActionTab: number;
     nbNamedTab: number;
     memoryCacheSize: number;
-    proxy: string;
+    // proxy: string;
     userAgent: string;
     anticaptchaClientKey?: string;
 }

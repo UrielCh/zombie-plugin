@@ -141,7 +141,7 @@ const common_1 = require("./common");
                     }
                 });
                 console.log(result2);
-                if (result2.solution && result2.solution.gRecaptchaResponse) {
+                if (result2.status == 'ready' && result2.solution && result2.solution.gRecaptchaResponse) {
                     debugger;
                     const gRecaptchaResponse = document.getElementById("g-recaptcha-response");
                     if (gRecaptchaResponse)

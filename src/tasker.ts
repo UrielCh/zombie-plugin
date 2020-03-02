@@ -6,7 +6,7 @@ import ZUtils from './zUtils';
 import { wait } from './common';
 // eslint-disable-next-line no-unused-vars
 import { PluginStatValue } from './interfaces';
-import { all } from 'bluebird';
+// import { all } from 'bluebird';
 
 interface RegisterCommandMessage {
     command: string;
@@ -54,12 +54,12 @@ function setPromiseFunction(fn: ((...args: any) => any), thisArg: any) {
                     return reject(err);
                 const results = Array.prototype.slice.call(arg2);
                 switch (results.length) {
-                    case 0:
-                        return resolve();
-                    case 1:
-                        return resolve(results[0]);
-                    default:
-                        return resolve(results);
+                case 0:
+                    return resolve();
+                case 1:
+                    return resolve(results[0]);
+                default:
+                    return resolve(results);
                 }
             }
             args.push(callback);
@@ -416,18 +416,23 @@ export default class Tasker {
             }
         },
         getProxy: async (request, sender, sendResponse) => {
-            const { proxyAuth } = pluginStat.config;
-
+            const proxyAuth: string = pluginStat.config.proxyAuth;
+            let proxy: string = '';
             const proxySettings = await chromep.proxy.settings.get({});
             const { value } = proxySettings;
-            let proxy = '';
+            // eslint-disable-next-line no-debugger
             if (value && value.rules && value.rules.singleProxy) {
                 const {host, port, scheme} = value.rules.singleProxy;
                 proxy = `${scheme}://${host}:${port}`;
+            } else if (value.mode) {
+                proxy = value.mode;
+                if (proxy !== 'system') {
+                    console.log('Non System proxy double check:', proxySettings);
+                }
             } else {
-                proxy = pluginStat.proxy;
+                proxy = 'none'; // pluginStat.proxy;
             }
-            console.log(proxySettings);
+            // console.log(proxySettings);
             if (proxy) {
                 sendResponse({ proxy, auth: proxyAuth });
             } else {
@@ -452,7 +457,7 @@ export default class Tasker {
                     scope: 'regular'
                 });
                 pluginStat.config.proxyAuth = '';
-                pluginStat.proxy = 'system';
+                // pluginStat.proxy = 'system';
             } else {
                 // enable proxy
                 proxy = `${scheme}://${host}:${port}`;
@@ -474,7 +479,7 @@ export default class Tasker {
                     pluginStat.config.proxyAuth = JSON.stringify({ username, password });
                 else
                     pluginStat.config.proxyAuth = '';
-                pluginStat.proxy = `${scheme}://${host}:${port}`;
+                // pluginStat.proxy = `${scheme}://${host}:${port}`;
             }
             await chromep.storage.local.set({ proxy });
             sendResponse('ok');

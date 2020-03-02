@@ -98,18 +98,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const PluginStat_1 = __importDefault(require("./PluginStat"));
 const SendMessage_1 = __importDefault(require("./SendMessage"));
-$(() => {
+$(async () => {
     let bg;
     if (chrome.extension)
         bg = (chrome.extension.getBackgroundPage());
     const pluginStat = (bg && bg.pluginStat) ? bg.pluginStat : PluginStat_1.default();
+    let proxyInfo;
     let lastCode = 'N/A';
     const updateDisplay = () => {
         const data = {
             tasker_nbRegistedActionTab: pluginStat.nbRegistedActionTab,
             tasker_nbNamedTab: pluginStat.nbNamedTab,
             zFunction_memoryCacheSize: pluginStat.memoryCacheSize,
-            tasker_proxy: pluginStat.proxy,
+            tasker_proxy: proxyInfo.proxy || '',
             config_userAgent: pluginStat.userAgent,
             code: lastCode,
             version: 'v' + chrome.runtime.getManifest().version,
@@ -117,6 +118,13 @@ $(() => {
         for (const key of Object.keys(data))
             $(`#${key}`).text(data[key]);
     };
+    async function reloadConfig() {
+        proxyInfo = await SendMessage_1.default({
+            command: 'getProxy',
+        });
+        updateDisplay();
+    }
+    await reloadConfig();
     $('#closeIrrelevantTabs').prop('checked', pluginStat.config.closeIrrelevantTabs).bootstrapToggle({
         on: '💣',
         off: 'off',
@@ -163,27 +171,26 @@ $(() => {
         });
     }
     updateDisplay();
-    const flushCache = () => {
-        SendMessage_1.default({
+    const flushCache = async () => {
+        await SendMessage_1.default({
             command: 'flushCache',
         });
     };
-    const flushProxy = () => {
-        SendMessage_1.default({
+    const flushProxy = async () => {
+        await SendMessage_1.default({
             command: 'setProxy',
         });
     };
-    const readQrCode = () => {
-        SendMessage_1.default({
+    const readQrCode = async () => {
+        const result = await SendMessage_1.default({
             command: 'readQrCode',
-        }).then((result) => {
-            console.log(result);
-            if (result.error)
-                lastCode = 'error:' + JSON.stringify(result.error);
-            else
-                lastCode = result[0].text;
-            updateDisplay();
         });
+        console.log(result);
+        if (result.error)
+            lastCode = 'error:' + JSON.stringify(result.error);
+        else
+            lastCode = result[0].text;
+        updateDisplay();
     };
     $('button[action="flushCache"]').on('click', flushCache);
     $('button[action="flushProxy"]').on('click', flushProxy);

@@ -2,30 +2,35 @@
 import PluginStat from './PluginStat';
 
 // eslint-disable-next-line no-unused-vars
-import { PluginStatValue, BackGroundPage } from './interfaces';
+import { PluginStatValue, PluginSavedState, BackGroundPage } from './interfaces';
 
 import sendMessage from './SendMessage';
 
 /// <reference path="typings/jquery/jquery.d.ts" />
 
+type ConfigKey = keyof PluginSavedState;
+
 interface MyJQ extends JQuery<HTMLElement> {
     bootstrapToggle(opt: bootstrapToggleConfig): JQuery<HTMLElement>;
 }
 
-$(() => {
+$(async () => {
     let bg: BackGroundPage | undefined;
     if (chrome.extension)
         bg = (chrome.extension.getBackgroundPage()) as BackGroundPage;
     const pluginStat: PluginStatValue = (bg && bg.pluginStat) ? bg.pluginStat : PluginStat();
-    // const chromep = new ChromePromise();
+    let proxyInfo: { proxy?: string, auth?: string };
     let lastCode = 'N/A';
 
+    /**
+     * update html Data using jQuery
+     */
     const updateDisplay = () => {
         const data: { [key: string]: any } = {
             tasker_nbRegistedActionTab: pluginStat.nbRegistedActionTab,
             tasker_nbNamedTab: pluginStat.nbNamedTab,
             zFunction_memoryCacheSize: pluginStat.memoryCacheSize,
-            tasker_proxy: pluginStat.proxy,
+            tasker_proxy: proxyInfo.proxy || '',
             config_userAgent: pluginStat.userAgent,
             code: lastCode,
             version: 'v' + chrome.runtime.getManifest().version,
@@ -34,6 +39,19 @@ $(() => {
             $(`#${key}`).text(data[key]);
     };
 
+    /**
+     * reload data form extention
+     */
+    async function reloadConfig() {
+        proxyInfo = await sendMessage({
+            command: 'getProxy',
+        });
+        updateDisplay();
+    }
+    await reloadConfig();
+    /**
+     * config buttons styles
+     */
     ($('#closeIrrelevantTabs') as MyJQ).prop('checked', pluginStat.config.closeIrrelevantTabs).bootstrapToggle({
         on: '💣',
         off: 'off',
@@ -78,7 +96,10 @@ $(() => {
     //    console.log(key, value);
     // });
 
-    for (const elm of ['closeIrrelevantTabs', 'debuggerStatement', 'pauseProcess', 'injectProcess', 'noClose']) {
+    /**
+     * config buttons actions
+     */
+    for (const elm of ['closeIrrelevantTabs', 'debuggerStatement', 'pauseProcess', 'injectProcess', 'noClose'] as ConfigKey[]) {
         const jq = $(`#${elm}`);
         jq.on('change', function () {
             const value = $(this).is(':checked');
@@ -92,33 +113,33 @@ $(() => {
     }
     updateDisplay();
 
-    const flushCache = () => {
+    const flushCache = async () => {
         // console.log('flushCache');
-        sendMessage({
+        await sendMessage({
             command: 'flushCache',
         });
     };
 
-    const flushProxy = () => {
+    const flushProxy = async () => {
         // console.log('setProxy');
-        sendMessage({
+        await sendMessage({
             command: 'setProxy',
         });
     };
 
-    const readQrCode = () => {
+    const readQrCode = async () => {
         // console.log('readQrCode');
-        sendMessage({
+        const result = await sendMessage({
             command: 'readQrCode',
-        }).then((result) => {
-            console.log(result);
-            if (result.error)
-                lastCode = 'error:' + JSON.stringify(result.error);
-            else
-                lastCode = result[0].text;
-            updateDisplay();
         });
+        console.log(result);
+        if (result.error)
+            lastCode = 'error:' + JSON.stringify(result.error);
+        else
+            lastCode = result[0].text;
+        updateDisplay();
     };
+
     $('button[action="flushCache"]').on('click', flushCache);
     $('button[action="flushProxy"]').on('click', flushProxy);
     $('button[action="readQrCode"]').on('click', readQrCode);
