@@ -70,13 +70,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const chrome_promise_1 = __importDefault(require("../vendor/chrome-promise"));
 const SendMessage_1 = __importDefault(require("./SendMessage"));
 const common_1 = require("./common");
-(async function () {
+const getAnticaptchaClientKey = async () => {
     const chromep = new chrome_promise_1.default();
     const captchcaOption = await chromep.storage.local.get('AnticaptchaKey');
     if (!captchcaOption.AnticaptchaKey)
-        return;
-    console.log(captchcaOption);
+        return '';
     let anticaptchaClientKey = captchcaOption.AnticaptchaKey;
+    return anticaptchaClientKey;
+};
+(async function () {
     if (document.URL && document.URL.startsWith('https://www.google.com/recaptcha/api2/anchor')) {
         const url = new URL(document.URL);
         const websiteKey = url.searchParams.get('k');
@@ -106,7 +108,10 @@ const common_1 = require("./common");
             });
             if (purl.port === '29393')
                 return;
+            let anticaptchaClientKey = await getAnticaptchaClientKey();
             debugger;
+            if (!anticaptchaClientKey)
+                return;
             const task = {
                 clientKey: anticaptchaClientKey,
                 task: {

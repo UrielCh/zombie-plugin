@@ -32,13 +32,16 @@ interface RecaptchaTaskResponseReady {
 }
 type RecaptchaTaskResponse = RecaptchaTaskResponseProcessing | RecaptchaTaskResponseReady;
 
-(async function () {
+const getAnticaptchaClientKey = async () => {
     const chromep = new ChromePromise();
     const captchcaOption = await chromep.storage.local.get('AnticaptchaKey');
     if (!captchcaOption.AnticaptchaKey)
-        return;
-    console.log(captchcaOption);
+        return '';
     let anticaptchaClientKey = captchcaOption.AnticaptchaKey;
+    return anticaptchaClientKey;
+};
+
+(async function () {
     if (document.URL && document.URL.startsWith('https://www.google.com/recaptcha/api2/anchor')) {
         const url = new URL(document.URL);
         const websiteKey = url.searchParams.get('k');
@@ -72,7 +75,11 @@ type RecaptchaTaskResponse = RecaptchaTaskResponseProcessing | RecaptchaTaskResp
             });
             if (purl.port === '29393')
                 return;
+            let anticaptchaClientKey = await getAnticaptchaClientKey();
             debugger;
+            if (!anticaptchaClientKey)
+                return;
+
             const task = {
                 clientKey: anticaptchaClientKey,
                 task:
