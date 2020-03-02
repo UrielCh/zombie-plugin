@@ -106,11 +106,16 @@ $(async () => {
     let proxyInfo;
     let lastCode = 'N/A';
     const updateDisplay = () => {
+        let tasker_proxy = '';
+        if (proxyInfo.proxy)
+            tasker_proxy = proxyInfo.proxy;
+        if (proxyInfo.auth)
+            tasker_proxy += '<br>' + proxyInfo.auth;
         const data = {
             tasker_nbRegistedActionTab: pluginStat.nbRegistedActionTab,
             tasker_nbNamedTab: pluginStat.nbNamedTab,
             zFunction_memoryCacheSize: pluginStat.memoryCacheSize,
-            tasker_proxy: proxyInfo.proxy || '',
+            tasker_proxy,
             config_userAgent: pluginStat.userAgent,
             code: lastCode,
             version: 'v' + chrome.runtime.getManifest().version,
