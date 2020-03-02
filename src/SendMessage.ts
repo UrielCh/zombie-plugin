@@ -13,6 +13,9 @@ export interface IPluginMessage {
     command: string;
     lazy?: boolean;
     reason?: string;
+    // if command === 'storageSet'
+    key?: string;
+    value?: string;
 }
 
 const msgListener = async (response: { requestId: number, error?: string, data?: any }/*, port: chrome.runtime.Port*/) => {

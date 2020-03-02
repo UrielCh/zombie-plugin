@@ -78,86 +78,119 @@ const getAnticaptchaClientKey = async () => {
     let anticaptchaClientKey = captchcaOption.AnticaptchaKey;
     return anticaptchaClientKey;
 };
+const getWebsiteKey = (url) => {
+    const url2 = new URL(url);
+    const websiteKey = url2.searchParams.get('k');
+    return websiteKey;
+};
 (async function () {
+    if (document.URL && document.URL.startsWith('https://www.google.com/recaptcha/api2/anchor')) {
+        const tokebnElm = document.getElementById('recaptcha-token');
+        if (tokebnElm && tokebnElm.value) {
+            const websiteKey = getWebsiteKey(document.URL);
+            let token = tokebnElm.value;
+            const key = `recap_${websiteKey}`;
+            await SendMessage_1.default({
+                command: 'storageSet',
+                key,
+                value: token,
+            });
+            while (token) {
+                await common_1.wait(1000);
+                token = await SendMessage_1.default({
+                    command: 'storageGet',
+                    key,
+                });
+            }
+            while (!token) {
+                await common_1.wait(5000);
+                console.log('consumed');
+            }
+        }
+        return;
+    }
+    await common_1.wait(1000);
     const captchaBoxs = $('iframe[src^="https://www.google.com/recaptcha/api2/anchor"]');
     if (captchaBoxs.length === 1) {
-        let disable = 1;
-        debugger;
-        if (disable)
-            return;
-        const url = new URL(captchaBoxs.attr('src'));
-        const websiteKey = url.searchParams.get('k');
-        console.log('siteKey:', websiteKey);
-        const ctxt = captchaBoxs.contents();
-        const element = jQuery('#recaptcha-token', ctxt);
-        if (element.length) {
-            const chalange = element[0].getAttribute('value');
-            console.log('chalange:', chalange);
-            const proxyData = await SendMessage_1.default({
-                command: 'getProxy'
+        const websiteKey = getWebsiteKey(captchaBoxs.attr('src'));
+        const key = `recap_${websiteKey}`;
+        let token = '';
+        await common_1.wait(1000);
+        while (!token) {
+            await common_1.wait(1000);
+            token = await SendMessage_1.default({
+                command: 'storageGet',
+                key,
             });
-            const proxy = proxyData.proxy;
-            const auth = proxyData.auth;
-            if (!proxy || !auth)
-                return;
-            if (proxy == 'fixed_servers')
-                return;
-            const { username, password } = JSON.parse(auth);
-            console.log('parsing PROXY:' + proxy);
-            if (!proxy.startsWith('http')) {
-                console.error('unknown proxy');
-                return;
-            }
-            const purl = new URL(proxy);
-            const websiteURL = document.URL;
-            if (purl.port === '29393')
-                return;
-            let anticaptchaClientKey = await getAnticaptchaClientKey();
-            if (!anticaptchaClientKey)
-                return;
-            const task = {
-                clientKey: anticaptchaClientKey,
-                task: {
-                    type: 'NoCaptchaTask',
-                    websiteURL,
-                    websiteKey,
-                    proxyType: purl.protocol.replace(':', ''),
-                    proxyAddress: purl.hostname,
-                    proxyPort: purl.port,
-                    proxyLogin: username,
-                    proxyPassword: password,
-                    userAgent: navigator.userAgent,
-                },
-                softId: 0,
-                languagePool: 'en'
-            };
-            const createTask = 'http://api.anti-captcha.com/createTask';
-            const getTaskResult = 'https://api.anti-captcha.com/getTaskResult';
-            const result = (await SendMessage_1.default({ command: 'post', url: createTask, data: task }));
-            if (result.errorId) {
-                console.log(`createTask retyurn error: ${JSON.stringify(result)}`);
-                return;
-            }
-            console.log(`wait 10 sec for resolution check TaskID:${result.taskId}`);
-            await common_1.wait(10000);
-            let resolved = false;
-            while (!resolved) {
-                const result2 = await SendMessage_1.default({
-                    command: 'post', url: getTaskResult, data: {
-                        clientKey: anticaptchaClientKey,
-                        taskId: result.taskId
-                    }
-                });
-                console.log(result2);
-                if (result2.status == 'ready' && result2.solution && result2.solution.gRecaptchaResponse) {
-                    debugger;
-                    const gRecaptchaResponse = document.getElementById("g-recaptcha-response");
-                    if (gRecaptchaResponse)
-                        gRecaptchaResponse.innerHTML = result2.solution.gRecaptchaResponse;
-                    await common_1.wait(5000);
+        }
+        await SendMessage_1.default({
+            command: 'storageRemove',
+            key: key,
+        });
+        const proxyData = await SendMessage_1.default({
+            command: 'getProxy'
+        });
+        const proxy = proxyData.proxy;
+        const auth = proxyData.auth;
+        if (!proxy || !auth)
+            return;
+        if (proxy == 'fixed_servers')
+            return;
+        const { username, password } = JSON.parse(auth);
+        if (!proxy.startsWith('http')) {
+            console.error('unknown proxy');
+            return;
+        }
+        const purl = new URL(proxy);
+        const websiteURL = document.URL;
+        if (purl.port === '29393')
+            return;
+        let anticaptchaClientKey = await getAnticaptchaClientKey();
+        if (!anticaptchaClientKey)
+            return;
+        const task = {
+            clientKey: anticaptchaClientKey,
+            task: {
+                type: 'NoCaptchaTask',
+                websiteURL,
+                websiteKey,
+                proxyType: purl.protocol.replace(':', ''),
+                proxyAddress: purl.hostname,
+                proxyPort: purl.port,
+                proxyLogin: username,
+                proxyPassword: password,
+                userAgent: navigator.userAgent,
+            },
+            softId: 0,
+            languagePool: 'en'
+        };
+        const createTask = 'http://api.anti-captcha.com/createTask';
+        const getTaskResult = 'https://api.anti-captcha.com/getTaskResult';
+        const result = (await SendMessage_1.default({ command: 'post', url: createTask, data: task }));
+        if (result.errorId) {
+            console.log(`createTask retyurn error: ${JSON.stringify(result)}`);
+            return;
+        }
+        console.log(`wait 10 sec for resolution check TaskID:${result.taskId}`);
+        await common_1.wait(10000);
+        let resolved = false;
+        while (!resolved) {
+            const result2 = await SendMessage_1.default({
+                command: 'post', url: getTaskResult, data: {
+                    clientKey: anticaptchaClientKey,
+                    taskId: result.taskId
                 }
-                await common_1.wait(5000);
+            });
+            console.log(result2);
+            while (result2.status == 'ready' && result2.solution && result2.solution.gRecaptchaResponse) {
+                const gRecaptchaResponse = document.getElementById("g-recaptcha-response");
+                if (gRecaptchaResponse) {
+                    $(gRecaptchaResponse).show();
+                    gRecaptchaResponse.innerHTML = result2.solution.gRecaptchaResponse;
+                }
+                await common_1.wait(6000);
             }
+            await common_1.wait(5000);
         }
     }
 })();
