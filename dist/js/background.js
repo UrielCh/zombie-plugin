@@ -664,10 +664,6 @@ class Tasker {
                     count = '1';
                 sendResponse(count);
             },
-            get: async (request, sender, sendResponse) => {
-                const r = await zFunction.httpGetPromise(request.url);
-                sendResponse(r.data);
-            },
             flushCache: async (request, sender, sendResponse) => {
                 await zFunction.flush();
                 sendResponse('ok');
@@ -675,6 +671,14 @@ class Tasker {
             post: async (request, sender, sendResponse) => {
                 const response = await zFunction.postJSON(request.url, request.data);
                 sendResponse(response);
+            },
+            delete: async (request, sender, sendResponse) => {
+                const r = await zFunction.deleteHttp(request.url);
+                sendResponse(r);
+            },
+            get: async (request, sender, sendResponse) => {
+                const r = await zFunction.getHttp(request.url);
+                sendResponse(r);
             },
             storageGet: async (request, sender, sendResponse) => {
                 const result = await chromep.storage.local.get(request.key);
@@ -876,6 +880,9 @@ class ZFunction {
     }
     async getHttp(url) {
         return this.httpQuery(url, 'GET');
+    }
+    async deleteHttp(url) {
+        return this.httpQuery(url, 'DELETE');
     }
     async postJSON(url, data) {
         return this.httpQuery(url, 'POST', data).then((response) => {

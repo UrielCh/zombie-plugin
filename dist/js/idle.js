@@ -79,13 +79,19 @@ const getAnticaptchaClientKey = async () => {
     return anticaptchaClientKey;
 };
 (async function () {
-    if (document.URL && document.URL.startsWith('https://www.google.com/recaptcha/api2/anchor')) {
-        const url = new URL(document.URL);
+    const captchaBoxs = $('iframe[src^="https://www.google.com/recaptcha/api2/anchor"]');
+    if (captchaBoxs.length === 1) {
+        const url = new URL(captchaBoxs.attr('src'));
         const websiteKey = url.searchParams.get('k');
         console.log('siteKey:', websiteKey);
-        const element = document.getElementById('recaptcha-token');
-        if (element) {
-            const chalange = element.getAttribute('value');
+        const ctxt = captchaBoxs.contents();
+        const element = this.jQuery('#recaptcha-token', ctxt);
+        let disable = 1;
+        debugger;
+        if (disable)
+            return;
+        if (element.length) {
+            const chalange = element[0].getAttribute('value');
             console.log('chalange:', chalange);
             const proxyData = await SendMessage_1.default({
                 command: 'getProxy'
@@ -103,13 +109,10 @@ const getAnticaptchaClientKey = async () => {
                 return;
             }
             const purl = new URL(proxy);
-            const websiteURL = await SendMessage_1.default({
-                command: 'getParentUrl'
-            });
+            const websiteURL = document.URL;
             if (purl.port === '29393')
                 return;
             let anticaptchaClientKey = await getAnticaptchaClientKey();
-            debugger;
             if (!anticaptchaClientKey)
                 return;
             const task = {

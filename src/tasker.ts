@@ -623,13 +623,6 @@ export default class Tasker {
             sendResponse(count);
         },
         /**
-         * Internal
-         */
-        get: async (request, sender, sendResponse) => {
-            const r = await zFunction.httpGetPromise(request.url);
-            sendResponse(r.data);
-        },
-        /**
          * Remove all cached Script
          */
         flushCache: async (request, sender, sendResponse) => {
@@ -643,6 +636,23 @@ export default class Tasker {
             // todo improve error message
             const response = await zFunction.postJSON(request.url, request.data);
             sendResponse(response);
+        },
+
+        /**
+         * Internal http POST
+         */
+        delete: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
+            const r = await zFunction.deleteHttp(request.url);
+            sendResponse(r);
+        },
+
+        /**
+         * Internal
+         */
+        get: async (request, sender, sendResponse) => {
+            // const r = await zFunction.httpGetPromise(request.url); + ret r.data
+            const r = await zFunction.getHttp(request.url);
+            sendResponse(r);
         },
 
         /**

@@ -122,6 +122,10 @@ export default class ZFunction {
         return this.httpQuery(url, 'GET');
     }
 
+    public async deleteHttp(url: string) {
+        return this.httpQuery(url, 'DELETE');
+    }
+
     public async postJSON(url: string, data: any) {
         return this.httpQuery(url, 'POST', data).then((response) => {
             if (!response)
