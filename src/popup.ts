@@ -123,6 +123,7 @@ $(async () => {
         await sendMessage({
             command: 'flushCache',
         });
+        updateDisplay();
     };
 
     const flushProxy = async () => {
@@ -130,6 +131,7 @@ $(async () => {
         await sendMessage({
             command: 'setProxy',
         });
+        reloadConfig();
     };
 
     const readQrCode = async () => {
