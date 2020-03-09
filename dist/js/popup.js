@@ -180,11 +180,13 @@ $(async () => {
         await SendMessage_1.default({
             command: 'flushCache',
         });
+        updateDisplay();
     };
     const flushProxy = async () => {
         await SendMessage_1.default({
             command: 'setProxy',
         });
+        reloadConfig();
     };
     const readQrCode = async () => {
         const result = await SendMessage_1.default({
