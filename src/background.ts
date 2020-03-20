@@ -152,6 +152,7 @@ if (chrome.webRequest) {
             if (details.url.startsWith('chrome-extension://')) {
                 console.log(`Force close 404 extention page ${details.url}`, details.error);
                 ZUtils.closeTab(details.tabId);
+                return;
             }
             console.log('onErrorOccurred close 1 sec', details.error);
             tasker.mayCloseTabIn(details.tabId, 6003);
