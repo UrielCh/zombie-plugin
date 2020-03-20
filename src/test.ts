@@ -3,6 +3,7 @@ import bluebird from 'bluebird';
 import fse from 'fs-extra';
 import http from 'http';
 import path from 'path';
+// eslint-disable-next-line no-unused-vars
 import puppeteer, { Browser, Page, Target } from 'puppeteer';
 
 import { expect } from 'chai';
@@ -101,6 +102,7 @@ async function getMainPage(): Promise<Page> {
     return _mainPage;
 }
 
+// eslint-disable-next-line no-unused-vars
 async function enableDevMode(): Promise<void> {
     const page0 = await getMainPage();
     await page0.setViewport({ width: 1920, height: 1080 });
@@ -203,10 +205,12 @@ describe('Test Proxy Feature', () => {
 describe('Test QR code Readed', () => {
     it('Should Open QrCode page', async () => {
         const page0 = await getMainPage();
-        const testurl = `http://localhost:3000/`;
+        const testurl = 'http://localhost:3000/';
         try {
             await page0.goto(testurl, { timeout: 1000, waitUntil: 'networkidle0' });
-        } catch (e) { }
+        } catch (e) {
+            // kust ignore error
+        }
         expect(page0.url()).to.eq(testurl);
     }).timeout(10000);
 
@@ -228,7 +232,9 @@ describe('Test Cookies manipulation functions', () => {
         const testurl = 'https://www.google.com/';
         try {
             await page0.goto(testurl, { timeout: 10000, waitUntil: 'networkidle0' });
-        } catch (e) { }
+        } catch (e) {
+            // just ignore error
+        }
         expect(page0.url()).to.eq(testurl);
     }).timeout(12000);
 

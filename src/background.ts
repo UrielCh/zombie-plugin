@@ -148,6 +148,11 @@ if (chrome.webRequest) {
         if (details.type !== 'main_frame')
             return;
         if (details.error === 'net::ERR_FILE_NOT_FOUND' || details.error === 'net::ERR_NAME_NOT_RESOLVED') {
+
+            if (details.url.startsWith('chrome-extension://')) {
+                console.log(`Force close 404 extention page ${details.url}`, details.error);
+                ZUtils.closeTab(details.tabId);
+            }
             console.log('onErrorOccurred close 1 sec', details.error);
             tasker.mayCloseTabIn(details.tabId, 6003);
             return;

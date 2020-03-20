@@ -589,7 +589,6 @@ export default class Tasker {
          * External
          */
         clean: async (request, sender, sendResponse) => {
-
             const options: chrome.browsingData.RemovalOptions = {
                 since: 0
             };
@@ -717,23 +716,14 @@ export default class Tasker {
             await zFunction.injectCSS(tabId, tabInformation.depCss);
             const jsBootstrap = '"use strict";\n' + debugText + '\r\n' + (pluginStat.config.debuggerStatement ? 'debugger;' : '') + tabInformation.action;
             await zFunction.injectJS(tabId, javascriptIncludes, jsBootstrap, tabInformation.mergeInject);
-
-            //await zFunction.injectJavascript(tabId, jsBootstrap);
             sendResponse('code injected');
-            //} catch (e) {
-            //    try {
-            //        pError(sendResponse, 'injectCSS', e);
-            //    } catch (error) {
-            //        console.log(`code injected Failed, Should refresh/Kill tab:${tabId}`, error);
-            //        await wait(2500);
-            //        await ZUtils.refreshTab(tabId);
-            //    }
-            //}
         },
+
         setUserAgent: async (request, sender, sendResponse) => {
             pluginStat.userAgent = request.userAgent;
             sendResponse('ok');
         },
+        
         getConfigs: async (request, sender, sendResponse) => {
             sendResponse({
                 ...pluginStat.config,
