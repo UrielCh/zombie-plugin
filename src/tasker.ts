@@ -43,7 +43,7 @@ const zFunction = ZFunction.Instance;
 const chromep = new ChromePromise();
 const pluginStat: PluginStatValue = PluginStat();
 
-//  to promis Keeping this
+// to promis Keeping this
 function setPromiseFunction(fn: ((...args: any) => any), thisArg: any) {
     return (...arg: any[]) => {
         const args = Array.prototype.slice.call(arg);
@@ -156,7 +156,7 @@ export default class Tasker {
     /**
      * mapping tablename => chrome.tabs.Tab
      */
-    public namedTab: { [key: string]: chrome.tabs.Tab } = {};
+    public namedTab: { [key: string]: chrome.tabs.Tab[] } = {};
 
     private constructor() {
     }
@@ -307,12 +307,14 @@ export default class Tasker {
 
             let tab: chrome.tabs.Tab | null = null;
             if (task.target && Tasker.Instance.namedTab[task.target]) {
-                const tabOld = Tasker.Instance.namedTab[task.target];
-                if (tabOld && tabOld.id)
-                    tab = await chromep.tabs.update(tabOld.id, params);
+                let tabOlds = Tasker.Instance.namedTab[task.target].filter((tab: chrome.tabs.Tab) => tab.id);
+                if (tabOlds.length)
+                    tab = await chromep.tabs.update(tabOlds[0].id as number, params);
+                for (let i = 1; i < tabOlds.length; i++) {
+                    ZUtils.closeTab(tabOlds[i].id);
+                }
             }
-            // si pas d'ancien TASK create
-            // new TAB
+            // if no previous task's tab create a new tab
             if (!tab)
                 tab = await chromep.tabs.create(params);
 
@@ -321,7 +323,7 @@ export default class Tasker {
             Tasker.Instance.registedActionTab[tab.id] = task;
             pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
             if (task.target) {
-                Tasker.Instance.namedTab[task.target] = tab;
+                Tasker.Instance.namedTab[task.target] = [ tab ];
                 pluginStat.nbNamedTab = Object.keys(Tasker.Instance.namedTab).length;
                 Tasker.updateBadge();
             }
@@ -532,10 +534,8 @@ export default class Tasker {
                 name
             } = request;
             if (domain || name) {
-                //const count = await 
                 const count = await zFunction.deleteCookies({ domain, name });
                 sendResponse(count);
-                // sendResponse(toOk(count));
             } else
                 throw Error('Missing "domain" or "name" argument as regexp.');
         },
@@ -640,6 +640,15 @@ export default class Tasker {
         /**
          * Internal http POST
          */
+        put: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
+            // todo improve error message
+            const response = await zFunction.putJSON(request.url, request.data);
+            sendResponse(response);
+        },
+
+        /**
+         * Internal http POST
+         */
         delete: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             const r = await zFunction.deleteHttp(request.url);
             sendResponse(r);
@@ -687,8 +696,6 @@ export default class Tasker {
         },
         /**
          * Internal
-         * @param {chrome.runtime.MessageSender} sender
-         * @param {(response: any) => void} sendResponse
          */
         getTodo: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             if (!sender)

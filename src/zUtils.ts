@@ -1,4 +1,5 @@
 import ChromePromise from '../vendor/chrome-promise';
+import { wait } from './common';
 
 const chromep = new ChromePromise();
 
@@ -37,11 +38,19 @@ export default class ZUtils {
         }
     }
 
-    public static async closeTab(tabId: number) {
-        await ZUtils.preventPrompts(tabId);
-        await chromep.tabs.remove(tabId);
-        return setTimeout(() => chromep.tabs.remove(tabId)
-            .catch(() => { }), 1000);
+    public static async closeTab(tabId?: number) {
+        if (tabId) {
+            try {
+                await ZUtils.preventPrompts(tabId);
+                await chromep.tabs.remove(tabId);
+                await wait(1000);
+                await chromep.tabs.remove(tabId);
+            } catch (e) {
+                return 1;
+            }
+            return 1;
+        }
+        return 0;
     }
 
     public static async closeAllTabExept(ignoreId: number) {

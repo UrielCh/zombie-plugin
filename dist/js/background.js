@@ -54,37 +54,6 @@ if (chrome.cookies)
             }
         }
     });
-if (chrome.tabs)
-    chrome.tabs.onRemoved.addListener((tabId) => {
-        const oldTask = tasker.registedActionTab[tabId];
-        delete tasker.registedActionTab[tabId];
-        pluginStat.nbRegistedActionTab = Object.keys(tasker.registedActionTab).length;
-        if (oldTask && oldTask.target) {
-            delete tasker.namedTab[oldTask.target];
-            pluginStat.nbNamedTab = Object.keys(tasker.namedTab).length;
-            tasker_1.default.updateBadge();
-        }
-    });
-if (chrome.tabs)
-    chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
-        console.log({
-            replace: removedTabId,
-            by: addedTabId
-        });
-        tasker.registedActionTab[addedTabId] = tasker.registedActionTab[removedTabId];
-        delete tasker.registedActionTab[removedTabId];
-        try {
-            const addedTab = await chromep.tabs.get(addedTabId);
-            for (const key in tasker.namedTab) {
-                const tab = tasker.namedTab[key];
-                if (tab.id === removedTabId)
-                    tasker.namedTab[key] = addedTab;
-            }
-        }
-        catch (error) {
-            console.log(Error(error));
-        }
-    });
 const pluginListener = (source) => async (message, sender, sendResponse) => {
     if (!message.command) {
         sendResponse({ error: `Error all call must contains "command" name recieve: ${JSON.stringify(message)}` });
@@ -127,9 +96,11 @@ const pluginListenerCnx = (source) => async (message, port) => {
         }
         catch (e) {
             const msg = `${source}.${data.command}`;
-            console.log(msg, 'promise Failure', e);
             const error = e.message || e.statusText || e.toString();
-            port.postMessage({ requestId, error: `${msg} ${error}`, stack: e.stack || '' });
+            if (error !== 'Attempting to use a disconnected port object') {
+                console.log(msg, 'promise Failure', e);
+                port.postMessage({ requestId, error: `${msg} ${error}`, stack: e.stack || '' });
+            }
         }
     else
         port.postMessage({ requestId, error: `command ${data.command} not found` });
@@ -229,17 +200,53 @@ if (chrome.webRequest) {
         urls: ['<all_urls>']
     }, ['requestHeaders', 'blocking']);
 }
-if (chrome.tabs)
+if (chrome.tabs) {
+    chrome.tabs.onRemoved.addListener((tabId) => {
+        const oldTask = tasker.registedActionTab[tabId];
+        if (!oldTask)
+            return;
+        delete tasker.registedActionTab[tabId];
+        pluginStat.nbRegistedActionTab = Object.keys(tasker.registedActionTab).length;
+        if (oldTask.target) {
+            const tableSet = tasker.namedTab[oldTask.target].filter((tab) => tab.id !== tabId);
+            tasker.namedTab[oldTask.target] = tableSet;
+            if (!tableSet.length) {
+                delete tasker.namedTab[oldTask.target];
+                pluginStat.nbNamedTab = Object.keys(tasker.namedTab).length;
+                tasker_1.default.updateBadge();
+            }
+        }
+    });
+    chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
+        if (!tasker.registedActionTab[removedTabId])
+            return;
+        tasker.registedActionTab[addedTabId] = tasker.registedActionTab[removedTabId];
+        delete tasker.registedActionTab[removedTabId];
+        try {
+            const addedTab = await chromep.tabs.get(addedTabId);
+            for (const key in tasker.namedTab) {
+                const tabs = tasker.namedTab[key].map((tab) => {
+                    if (tab.id === removedTabId)
+                        return addedTab;
+                    return tab;
+                });
+                tasker.namedTab[key] = tabs;
+            }
+        }
+        catch (error) {
+            console.log(Error(error));
+        }
+    });
     chrome.tabs.onCreated.addListener(async (tab) => {
         if (!tab.id)
             return;
         const tabId = tab.id;
         await common_1.wait(500);
         try {
-            const tab2 = await chromep.tabs.get(tabId);
-            if (!tab2)
+            tab = await chromep.tabs.get(tabId);
+            if (!tab)
                 return;
-            let title = tab2.title || '';
+            let title = tab.title || '';
             title = title.toLowerCase();
             let sslError = false;
             if (title === 'erreur li\u00e9e \u00e0 la confidentialit\u00e9')
@@ -250,18 +257,19 @@ if (chrome.tabs)
                 console.log('closing tab due to ssl error [close DROPED]', title);
                 console.log('chrome.webRequest.onErrorOccurred close 20 sec [close DROPED]');
                 await common_1.wait(20000);
-                if (tab2 && tab2.id)
-                    tasker.mayCloseTabIn(tab2.id, 2006);
+                if (tab && tab.id)
+                    tasker.mayCloseTabIn(tab.id, 2006);
                 return;
             }
         }
         catch (error) {
             return {
-                message: 'done table ' + tab.id,
+                message: `done table ${tabId}`,
                 details: Error(error)
             };
         }
     });
+}
 setInterval(async () => {
     const tabs = await chromep.tabs.query({});
     tabs.forEach((tab) => {
@@ -421,9 +429,12 @@ class Tasker {
                     throw Error('action string is missing');
                 let tab = null;
                 if (task.target && Tasker.Instance.namedTab[task.target]) {
-                    const tabOld = Tasker.Instance.namedTab[task.target];
-                    if (tabOld && tabOld.id)
-                        tab = await chromep.tabs.update(tabOld.id, params);
+                    let tabOlds = Tasker.Instance.namedTab[task.target].filter((tab) => tab.id);
+                    if (tabOlds.length)
+                        tab = await chromep.tabs.update(tabOlds[0].id, params);
+                    for (let i = 1; i < tabOlds.length; i++) {
+                        zUtils_1.default.closeTab(tabOlds[i].id);
+                    }
                 }
                 if (!tab)
                     tab = await chromep.tabs.create(params);
@@ -432,7 +443,7 @@ class Tasker {
                 Tasker.Instance.registedActionTab[tab.id] = task;
                 pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
                 if (task.target) {
-                    Tasker.Instance.namedTab[task.target] = tab;
+                    Tasker.Instance.namedTab[task.target] = [tab];
                     pluginStat.nbNamedTab = Object.keys(Tasker.Instance.namedTab).length;
                     Tasker.updateBadge();
                 }
@@ -677,6 +688,10 @@ class Tasker {
                 const response = await zFunction.postJSON(request.url, request.data);
                 sendResponse(response);
             },
+            put: async (request, sender, sendResponse) => {
+                const response = await zFunction.putJSON(request.url, request.data);
+                sendResponse(response);
+            },
             delete: async (request, sender, sendResponse) => {
                 const r = await zFunction.deleteHttp(request.url);
                 sendResponse(r);
@@ -890,18 +905,30 @@ class ZFunction {
         return this.httpQuery(url, 'DELETE');
     }
     async postJSON(url, data) {
-        return this.httpQuery(url, 'POST', data).then((response) => {
-            if (!response)
-                return {};
-            if (typeof (response) === 'string')
-                try {
-                    return JSON.parse(response);
-                }
-                catch (ex) {
-                    return response;
-                }
-            return response;
-        });
+        const response = await this.httpQuery(url, 'POST', data);
+        if (!response)
+            return {};
+        if (typeof (response) === 'string')
+            try {
+                return JSON.parse(response);
+            }
+            catch (ex) {
+                return response;
+            }
+        return response;
+    }
+    async putJSON(url, data) {
+        const response = await this.httpQuery(url, 'PUT', data);
+        if (!response)
+            return {};
+        if (typeof (response) === 'string')
+            try {
+                return JSON.parse(response);
+            }
+            catch (ex) {
+                return response;
+            }
+        return response;
     }
     async injectJavascript(tabId, code) {
         const injection = await chromep.tabs.executeScript(tabId, {
@@ -1050,6 +1077,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const chrome_promise_1 = __importDefault(require("../vendor/chrome-promise"));
+const common_1 = require("./common");
 const chromep = new chrome_promise_1.default();
 class ZUtils {
     static async refreshTab(tabId) {
@@ -1083,10 +1111,19 @@ class ZUtils {
         }
     }
     static async closeTab(tabId) {
-        await ZUtils.preventPrompts(tabId);
-        await chromep.tabs.remove(tabId);
-        return setTimeout(() => chromep.tabs.remove(tabId)
-            .catch(() => { }), 1000);
+        if (tabId) {
+            try {
+                await ZUtils.preventPrompts(tabId);
+                await chromep.tabs.remove(tabId);
+                await common_1.wait(1000);
+                await chromep.tabs.remove(tabId);
+            }
+            catch (e) {
+                return 1;
+            }
+            return 1;
+        }
+        return 0;
     }
     static async closeAllTabExept(ignoreId) {
         const tabs = await chromep.tabs.query({});
@@ -1099,7 +1136,7 @@ class ZUtils {
 }
 exports.default = ZUtils;
 
-},{"../vendor/chrome-promise":7}],7:[function(require,module,exports){
+},{"../vendor/chrome-promise":7,"./common":3}],7:[function(require,module,exports){
 /*!
  * chrome-promise
  * https://github.com/tfoxy/chrome-promise

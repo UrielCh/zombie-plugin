@@ -127,17 +127,29 @@ export default class ZFunction {
     }
 
     public async postJSON(url: string, data: any) {
-        return this.httpQuery(url, 'POST', data).then((response) => {
-            if (!response)
-                return {};
-            if (typeof (response) === 'string')
-                try {
-                    return JSON.parse(response);
-                } catch (ex) {
-                    return response;
-                }
-            return response;
-        });
+        const response = await this.httpQuery(url, 'POST', data);
+        if (!response)
+            return {};
+        if (typeof (response) === 'string')
+            try {
+                return JSON.parse(response);
+            } catch (ex) {
+                return response;
+            }
+        return response;
+    }
+
+    public async putJSON(url: string, data: any) {
+        const response = await this.httpQuery(url, 'PUT', data);
+        if (!response)
+            return {};
+        if (typeof (response) === 'string')
+            try {
+                return JSON.parse(response);
+            } catch (ex) {
+                return response;
+            }
+        return response;
     }
 
     public async injectJavascript(tabId: number, code: string) {

@@ -29,39 +29,6 @@ if (chrome.cookies)
             }
         }
     });
-
-if (chrome.tabs)
-    chrome.tabs.onRemoved.addListener((tabId/*, removeInfo*/) => {
-        const oldTask = tasker.registedActionTab[tabId];
-        delete tasker.registedActionTab[tabId];
-        pluginStat.nbRegistedActionTab = Object.keys(tasker.registedActionTab).length;
-        if (oldTask && oldTask.target) {
-            delete tasker.namedTab[oldTask.target];
-            pluginStat.nbNamedTab = Object.keys(tasker.namedTab).length;
-            Tasker.updateBadge();
-        }
-    });
-
-if (chrome.tabs)
-    chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
-        console.log({
-            replace: removedTabId,
-            by: addedTabId
-        });
-        tasker.registedActionTab[addedTabId] = tasker.registedActionTab[removedTabId];
-        delete tasker.registedActionTab[removedTabId];
-        try {
-            const addedTab = await chromep.tabs.get(addedTabId);
-            for (const key in tasker.namedTab) {
-                const tab = tasker.namedTab[key];
-                if (tab.id === removedTabId)
-                    tasker.namedTab[key] = addedTab;
-            }
-        } catch (error) {
-            console.log(Error(error));
-        }
-    });
-
 /**
  * PLUGIN CONNECTOR
  */
@@ -86,7 +53,7 @@ const pluginListener = (source: string) => async (message: any, sender: chrome.r
             sendResponse({ error: `${msg} Failed ${error.message}` });
         }
     else
-        sendResponse({ error: `command ${message.command} not found`} );
+        sendResponse({ error: `command ${message.command} not found` });
     return true;
 };
 
@@ -112,9 +79,11 @@ const pluginListenerCnx = (source: string) => async (message: { requestId: numbe
             await mtd(data, port.sender, sendResponse);
         } catch (e) {
             const msg = `${source}.${data.command}`;
-            console.log(msg, 'promise Failure', e);
-            const error = e.message || e.statusText || e.toString() ;
-            port.postMessage({ requestId, error: `${msg} ${error}`, stack: e.stack || '' });
+            const error = e.message || e.statusText || e.toString();
+            if (error !== 'Attempting to use a disconnected port object') {
+                console.log(msg, 'promise Failure', e);
+                port.postMessage({ requestId, error: `${msg} ${error}`, stack: e.stack || '' });
+            }
         }
     else
         port.postMessage({ requestId, error: `command ${data.command} not found` });
@@ -233,21 +202,61 @@ if (chrome.webRequest) {
 }
 
 /**
- * @param {chrome.tabs.Tab} tab
+ * chrome tabs events
  */
-if (chrome.tabs)
-    chrome.tabs.onCreated.addListener(async (tab) => {
+if (chrome.tabs) {
+    // Fired when a tab is closed.
+    chrome.tabs.onRemoved.addListener((tabId: number/*, removeInfo*/) => {
+        const oldTask = tasker.registedActionTab[tabId];
+        if (!oldTask)
+            return;
+        delete tasker.registedActionTab[tabId];
+        pluginStat.nbRegistedActionTab = Object.keys(tasker.registedActionTab).length;
+        if (oldTask.target) {
+            const tableSet = tasker.namedTab[oldTask.target].filter((tab: chrome.tabs.Tab) => tab.id !== tabId);
+            tasker.namedTab[oldTask.target] = tableSet;
+            if (!tableSet.length) {
+                delete tasker.namedTab[oldTask.target];
+                pluginStat.nbNamedTab = Object.keys(tasker.namedTab).length;
+                Tasker.updateBadge();
+            }
+        }
+    });
+
+    // Fired when a tab is replaced with another tab due to prerendering or instant.
+    chrome.tabs.onReplaced.addListener(async (addedTabId: number, removedTabId: number) => {
+        if (!tasker.registedActionTab[removedTabId])
+            return;
+        tasker.registedActionTab[addedTabId] = tasker.registedActionTab[removedTabId];
+        delete tasker.registedActionTab[removedTabId];
+        try {
+            const addedTab = await chromep.tabs.get(addedTabId);
+            for (const key in tasker.namedTab) {
+                const tabs = tasker.namedTab[key].map((tab: chrome.tabs.Tab) => {
+                    if (tab.id === removedTabId)
+                        return addedTab;
+                    return tab;
+                });
+                tasker.namedTab[key] = tabs;
+            }
+        } catch (error) {
+            console.log(Error(error));
+        }
+    });
+
+    // Fired when a tab is created. Note that the tab's URL may not be set at the time this event is fired, but you can listen to onUpdated events so as to be notified when a URL is set.
+    chrome.tabs.onCreated.addListener(async (tab: chrome.tabs.Tab) => {
         if (!tab.id)
             return;
         const tabId = tab.id;
         // console.log('new tab created', tab.id, 'parent', tab.openerTabId);
         await wait(500);
         try {
-            const tab2 = await chromep.tabs.get(tabId);
-            if (!tab2)
+            tab = await chromep.tabs.get(tabId);
+            if (!tab)
                 return;
             // Tab is alive
-            let title = tab2.title || '';
+            let title = tab.title || '';
             title = title.toLowerCase();
             let sslError = false;
             if (title === 'erreur li\u00e9e \u00e0 la confidentialit\u00e9')
@@ -258,20 +267,21 @@ if (chrome.tabs)
                 console.log('closing tab due to ssl error [close DROPED]', title);
                 console.log('chrome.webRequest.onErrorOccurred close 20 sec [close DROPED]');
                 await wait(20000);
-                if (tab2 && tab2.id)
-                    tasker.mayCloseTabIn(tab2.id, 2006);
+                if (tab && tab.id)
+                    tasker.mayCloseTabIn(tab.id, 2006);
                 return;
             }
         } catch (error) {
             return {
-                message: 'done table ' + tab.id,
+                message: `done table ${tabId}`,
                 details: Error(error)
             };
         }
     });
+}
 
 /**
- * Main testing loop every 5 sec
+ * Main testing loop every 5 min
  * auto-close tab
  */
 setInterval(async () => {
