@@ -163,21 +163,17 @@ export default class ZFunction {
     public async httpGetAll(urls: string[]) {
         return Promise.all(urls.map(ZFunction._instance.httpGetCached));
     }
-    /**
-     * @param {string} url
-     */
+
     public async httpGetCached(url: string) {
         return ZFunction._instance.httpGetPromise(url, true);
     }
+
     public async flush() {
         this.memoryCache = {};
         pluginStat.memoryCacheSize = 0;
         return 'ok';
     }
-    /**
-     * @param {string} url
-     * @param {boolean} [usecache]
-     */
+
     public async httpGetPromise(url: string, usecache?: boolean): Promise<CacheHttpData> {
         const self: ZFunction = this;
         const key: string | null = this.getKeyFromUrl(url);
@@ -258,8 +254,7 @@ export default class ZFunction {
         }
         return coos;
     }
-    /**
-     */
+
     public async pushCookies(cookies: chrome.cookies.Cookie[]) {
         cookies = cookies || [];
         if (!cookies.length)
@@ -295,7 +290,6 @@ export default class ZFunction {
         return 'ok';
     }
 
-    // private
     private async deleteCookiesSelection(coos: chrome.cookies.Cookie[]) {
         let cnt = 0;
         for (const coo of coos) {

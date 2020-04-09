@@ -61,8 +61,4 @@ export default class ZUtils {
                 await ZUtils.closeTab(tabId);
         }
     }
-
-    //public static toErr(error: any) {
-    //    return { error };
-    //}
 }

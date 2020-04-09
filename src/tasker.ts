@@ -169,8 +169,8 @@ export default class Tasker {
     /**
      * close a tab if autoclose if enabled
      *
-     * @param {number} tabId - tabId to close
-     * @param {number} ms - milliSec to wait before close
+     * @param tabId - tabId to close
+     * @param ms - milliSec to wait before close
      */
     public async mayCloseTabIn(tabId: number, ms: number) {
         if (!tabId)
@@ -397,6 +397,7 @@ export default class Tasker {
             Tasker.Instance.blockedDomains = domains;
             return sendResponse('updated');
         },
+
         getParentUrl: async (request, sender, sendResponse) => {
             if (sender && sender.tab) {
                 const curentFrameId = sender.frameId as number;
@@ -417,6 +418,7 @@ export default class Tasker {
                 }
             }
         },
+
         getProxy: async (request, sender, sendResponse) => {
             const proxyAuth: string = pluginStat.config.proxyAuth;
             let proxy: string = '';
@@ -614,6 +616,7 @@ export default class Tasker {
             sendResponse(1);
 
         },
+        
         isOpen: async (request, sender, sendResponse) => {
             const target = request.target || request.tab || null;
             let count = '0';

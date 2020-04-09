@@ -52,30 +52,17 @@ const originalGeolocation = {
 
 /**
  * see lib.dom.d.ts
- * @param {Coordinates} coords
+ * @param coords
  */
 function installGeolocationCode(coords: Coordinates) {
-    /**
-     * @param successCallback {PositionCallback}
-     * @param error {PositionErrorCallback}
-     * @param options {PositionOptions}
-     */
     const myGetPos = (successCallback: PositionCallback/*, error: PositionErrorCallback, options: PositionOptions*/) => {
         if (!coords)
             return originalGeolocation.getCurrentPosition;
         successCallback({ coords, timestamp: new Date().getTime() });
     };
     navigator.geolocation.getCurrentPosition = myGetPos;
-    /**
-     * @type {number}
-     */
     let timerId = 0;
-    /**
-     * @param successCallback {PositionCallback}
-     * @param errorCallback {PositionErrorCallback}
-     * @param options {PositionOptions}
-     */
-    navigator.geolocation.watchPosition = (successCallback, errorCallback, options) => {
+    navigator.geolocation.watchPosition = (successCallback: PositionCallback, errorCallback: PositionErrorCallback, options: PositionOptions) => {
         window.clearInterval(timerId);
         return (timerId = window.setInterval(myGetPos, 5 * 1000, successCallback, errorCallback, options));
     };
@@ -93,7 +80,7 @@ if (document.documentElement.tagName.toLowerCase() === 'html')  // Skip non-html
 sendMessage({
     command: 'getTodo'
 }).then (async (message: any) => {
-    const data = /** @type {{task:any} | 'code injected' | null | undefined} */ (message);
+    const data = message as {task:any} | 'code injected' | null | undefined;
     if (!data) {
         if (isProtected(window.location.href))
             return false;
@@ -104,8 +91,8 @@ sendMessage({
         } catch (e) {}
         return true;
     }
-    if (data.error) {
-        console.error('Bootstraping Retunr Error:' + data.error);
+    if ((data as any).error) {
+        console.error('Bootstraping Retunr Error:' + (data as any).error);
         return true;
     }
     if (data === 'code injected' || !data.task)
