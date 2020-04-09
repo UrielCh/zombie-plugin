@@ -36,9 +36,13 @@ if (chrome.cookies)
 /**
  * onMessage function reciever
  */
-const pluginListener = (source: string) => async (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
+const pluginListener = (source: string) => async (
+    message: {command: string} & {[key: string]: any},
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response: any) => void
+) => {
     if (!message.command) {
-        sendResponse({ error: `Error all call must contains "command" name recieve: ${JSON.stringify(message)}` });
+        // sendResponse({ error: `Error all call must contains "command" name recieve: ${JSON.stringify(message)}` });
         return true;
     }
     const mtd = tasker.commands[message.command];
@@ -102,6 +106,19 @@ if (chrome.runtime) {
     chrome.runtime.onMessage.addListener(pluginListener('Internal'));
 }
 
+const replaceUserAgent = (userAgent: string, headers: chrome.webRequest.HttpHeader[]) => {
+    if (!userAgent)
+        return headers;
+    return headers.map(header => {
+        if (header.name !== 'User-Agent')
+            return header;
+        return {
+            name: 'User-Agent',
+            value: userAgent
+        };
+    });
+};
+
 let souldCloseTabId = 0;
 if (chrome.webRequest) {
     chrome.webRequest.onAuthRequired.addListener((details, callbackFn) => {
@@ -156,21 +173,7 @@ if (chrome.webRequest) {
     }, {
         urls: ['<all_urls>']
     });
-}
-const replaceUserAgent = (userAgent: string, headers: chrome.webRequest.HttpHeader[]) => {
-    if (!userAgent)
-        return headers;
-    return headers.map(header => {
-        if (header.name !== 'User-Agent')
-            return header;
-        return {
-            name: 'User-Agent',
-            value: userAgent
-        };
-    });
-};
 
-if (chrome.webRequest) {
     const getHostname = (url: string) => {
         const aElm = document.createElement('a');
         aElm.href = url;
@@ -227,20 +230,35 @@ if (chrome.tabs) {
     chrome.tabs.onReplaced.addListener(async (addedTabId: number, removedTabId: number) => {
         if (!tasker.registedActionTab[removedTabId])
             return;
-        tasker.registedActionTab[addedTabId] = tasker.registedActionTab[removedTabId];
-        delete tasker.registedActionTab[removedTabId];
-        try {
-            const addedTab = await chromep.tabs.get(addedTabId);
-            for (const key in tasker.namedTab) {
-                const tabs = tasker.namedTab[key].map((tab: chrome.tabs.Tab) => {
-                    if (tab.id === removedTabId)
-                        return addedTab;
-                    return tab;
-                });
-                tasker.namedTab[key] = tabs;
+        const zTask = tasker.registedActionTab[removedTabId];
+        tasker.registedActionTab[addedTabId] = zTask;
+        const DO_REPLACE = false;
+        if (DO_REPLACE) {
+            delete tasker.registedActionTab[removedTabId];
+            try {
+                const addedTab = await chromep.tabs.get(addedTabId);
+                // for (const key in tasker.namedTab) {
+                const key = zTask.target;
+                if (key)
+                    tasker.namedTab[key] = tasker.namedTab[key].map((tab: chrome.tabs.Tab) => {
+                        if (tab.id === removedTabId)
+                            return addedTab;
+                        return tab;
+                    });
+                // }
+            } catch (error) {
+                console.error(Error(error));
             }
-        } catch (error) {
-            console.log(Error(error));
+        } else {
+            // DO APPEND
+            try {
+                const addedTab = await chromep.tabs.get(addedTabId);
+                if (!tasker.namedTab[zTask.target])
+                    tasker.namedTab[zTask.target] = [];
+                tasker.namedTab[zTask.target].push(addedTab);
+            } catch (error) {
+                console.log(Error(error));
+            }
         }
     });
 
