@@ -37,7 +37,7 @@ if (chrome.cookies)
  * onMessage function reciever
  */
 const pluginListener = (source: string) => async (
-    message: {command: string} & {[key: string]: any},
+    message: { command: string } & { [key: string]: any },
     sender: chrome.runtime.MessageSender,
     sendResponse: (response: any) => void
 ) => {
@@ -221,9 +221,6 @@ if (chrome.tabs) {
             if (!tableSet.length) {
                 delete tasker.namedTab[oldTask.target];
             }
-            let cnt = 0;
-            Object.values(Tasker.Instance.namedTab).forEach(t => cnt += t.length);
-            pluginStat.nbNamedTab = cnt;
             Tasker.updateBadge();
         }
     });
@@ -258,6 +255,7 @@ if (chrome.tabs) {
                 if (!tasker.namedTab[zTask.target])
                     tasker.namedTab[zTask.target] = [];
                 tasker.namedTab[zTask.target].push(addedTab);
+                Tasker.updateBadge();
             } catch (error) {
                 console.log(Error(error));
             }

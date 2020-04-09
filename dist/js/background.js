@@ -210,9 +210,6 @@ if (chrome.tabs) {
             if (!tableSet.length) {
                 delete tasker.namedTab[oldTask.target];
             }
-            let cnt = 0;
-            Object.values(tasker_1.default.Instance.namedTab).forEach(t => cnt += t.length);
-            pluginStat.nbNamedTab = cnt;
             tasker_1.default.updateBadge();
         }
     });
@@ -244,6 +241,7 @@ if (chrome.tabs) {
                 if (!tasker.namedTab[zTask.target])
                     tasker.namedTab[zTask.target] = [];
                 tasker.namedTab[zTask.target].push(addedTab);
+                tasker_1.default.updateBadge();
             }
             catch (error) {
                 console.log(Error(error));
@@ -457,9 +455,6 @@ class Tasker {
                 pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
                 if (task.target) {
                     Tasker.Instance.namedTab[task.target] = [tab];
-                    let cnt = 0;
-                    Object.values(Tasker.Instance.namedTab).forEach(t => cnt += t.length);
-                    pluginStat.nbNamedTab = cnt;
                     Tasker.updateBadge();
                 }
                 sendResponse('done');
@@ -773,6 +768,9 @@ class Tasker {
         };
     }
     static updateBadge() {
+        let cnt = 0;
+        Object.values(Tasker.Instance.namedTab).forEach(t => cnt += t.length);
+        pluginStat.nbNamedTab = cnt;
         if (!chrome.browserAction)
             return;
         if (!pluginStat.config.injectProcess) {

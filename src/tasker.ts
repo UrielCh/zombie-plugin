@@ -121,6 +121,11 @@ const chrome_debugger_detach = (target: chrome.debugger.Debuggee) => new Promise
 
 export default class Tasker {
     public static updateBadge() {
+
+        let cnt = 0;
+        Object.values(Tasker.Instance.namedTab).forEach(t => cnt += t.length);
+        pluginStat.nbNamedTab = cnt;
+
         if (!chrome.browserAction)
             return;
         if (!pluginStat.config.injectProcess) {
@@ -324,9 +329,6 @@ export default class Tasker {
             pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
             if (task.target) {
                 Tasker.Instance.namedTab[task.target] = [ tab ];
-                let cnt = 0;
-                Object.values(Tasker.Instance.namedTab).forEach(t => cnt += t.length);
-                pluginStat.nbNamedTab = cnt;
                 Tasker.updateBadge();
             }
             sendResponse('done');
