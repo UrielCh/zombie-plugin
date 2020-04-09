@@ -56,7 +56,6 @@ if (chrome.cookies)
     });
 const pluginListener = (source) => async (message, sender, sendResponse) => {
     if (!message.command) {
-        sendResponse({ error: `Error all call must contains "command" name recieve: ${JSON.stringify(message)}` });
         return true;
     }
     const mtd = tasker.commands[message.command];
@@ -113,6 +112,18 @@ if (chrome.runtime) {
     chrome.runtime.onMessageExternal.addListener(pluginListener('External'));
     chrome.runtime.onMessage.addListener(pluginListener('Internal'));
 }
+const replaceUserAgent = (userAgent, headers) => {
+    if (!userAgent)
+        return headers;
+    return headers.map(header => {
+        if (header.name !== 'User-Agent')
+            return header;
+        return {
+            name: 'User-Agent',
+            value: userAgent
+        };
+    });
+};
 let souldCloseTabId = 0;
 if (chrome.webRequest) {
     chrome.webRequest.onAuthRequired.addListener((details, callbackFn) => {
@@ -159,20 +170,6 @@ if (chrome.webRequest) {
     }, {
         urls: ['<all_urls>']
     });
-}
-const replaceUserAgent = (userAgent, headers) => {
-    if (!userAgent)
-        return headers;
-    return headers.map(header => {
-        if (header.name !== 'User-Agent')
-            return header;
-        return {
-            name: 'User-Agent',
-            value: userAgent
-        };
-    });
-};
-if (chrome.webRequest) {
     const getHostname = (url) => {
         const aElm = document.createElement('a');
         aElm.href = url;
@@ -212,29 +209,45 @@ if (chrome.tabs) {
             tasker.namedTab[oldTask.target] = tableSet;
             if (!tableSet.length) {
                 delete tasker.namedTab[oldTask.target];
-                pluginStat.nbNamedTab = Object.keys(tasker.namedTab).length;
-                tasker_1.default.updateBadge();
             }
+            let cnt = 0;
+            Object.values(tasker_1.default.Instance.namedTab).forEach(t => cnt += t.length);
+            pluginStat.nbNamedTab = cnt;
+            tasker_1.default.updateBadge();
         }
     });
     chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
         if (!tasker.registedActionTab[removedTabId])
             return;
-        tasker.registedActionTab[addedTabId] = tasker.registedActionTab[removedTabId];
-        delete tasker.registedActionTab[removedTabId];
-        try {
-            const addedTab = await chromep.tabs.get(addedTabId);
-            for (const key in tasker.namedTab) {
-                const tabs = tasker.namedTab[key].map((tab) => {
-                    if (tab.id === removedTabId)
-                        return addedTab;
-                    return tab;
-                });
-                tasker.namedTab[key] = tabs;
+        const zTask = tasker.registedActionTab[removedTabId];
+        tasker.registedActionTab[addedTabId] = zTask;
+        const DO_REPLACE = false;
+        if (DO_REPLACE) {
+            delete tasker.registedActionTab[removedTabId];
+            try {
+                const addedTab = await chromep.tabs.get(addedTabId);
+                const key = zTask.target;
+                if (key)
+                    tasker.namedTab[key] = tasker.namedTab[key].map((tab) => {
+                        if (tab.id === removedTabId)
+                            return addedTab;
+                        return tab;
+                    });
+            }
+            catch (error) {
+                console.error(Error(error));
             }
         }
-        catch (error) {
-            console.log(Error(error));
+        else {
+            try {
+                const addedTab = await chromep.tabs.get(addedTabId);
+                if (!tasker.namedTab[zTask.target])
+                    tasker.namedTab[zTask.target] = [];
+                tasker.namedTab[zTask.target].push(addedTab);
+            }
+            catch (error) {
+                console.log(Error(error));
+            }
         }
     });
     chrome.tabs.onCreated.addListener(async (tab) => {
@@ -444,7 +457,9 @@ class Tasker {
                 pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
                 if (task.target) {
                     Tasker.Instance.namedTab[task.target] = [tab];
-                    pluginStat.nbNamedTab = Object.keys(Tasker.Instance.namedTab).length;
+                    let cnt = 0;
+                    Object.values(Tasker.Instance.namedTab).forEach(t => cnt += t.length);
+                    pluginStat.nbNamedTab = cnt;
                     Tasker.updateBadge();
                 }
                 sendResponse('done');

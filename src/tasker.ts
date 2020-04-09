@@ -324,7 +324,9 @@ export default class Tasker {
             pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
             if (task.target) {
                 Tasker.Instance.namedTab[task.target] = [ tab ];
-                pluginStat.nbNamedTab = Object.keys(Tasker.Instance.namedTab).length;
+                let cnt = 0;
+                Object.values(Tasker.Instance.namedTab).forEach(t => cnt += t.length);
+                pluginStat.nbNamedTab = cnt;
                 Tasker.updateBadge();
             }
             sendResponse('done');

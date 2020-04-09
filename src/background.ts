@@ -220,9 +220,11 @@ if (chrome.tabs) {
             tasker.namedTab[oldTask.target] = tableSet;
             if (!tableSet.length) {
                 delete tasker.namedTab[oldTask.target];
-                pluginStat.nbNamedTab = Object.keys(tasker.namedTab).length;
-                Tasker.updateBadge();
             }
+            let cnt = 0;
+            Object.values(Tasker.Instance.namedTab).forEach(t => cnt += t.length);
+            pluginStat.nbNamedTab = cnt;
+            Tasker.updateBadge();
         }
     });
 
