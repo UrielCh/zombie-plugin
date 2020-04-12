@@ -1,3 +1,4 @@
+/* eslint-disable indent */
 import ChromePromise from '../vendor/chrome-promise';
 import jsQR from '../vendor/jsqr';
 import PluginStat from './PluginStat';
@@ -207,10 +208,10 @@ export default class Tasker {
         let task = this.registedActionTab[tab.id];
         if (task)
             return task;
-        const parentTabId = tab.openerTabId;
-        if (!parentTabId)
+        const { openerTabId } = tab;
+        if (!openerTabId)
             return null;
-        task = this.registedActionTab[parentTabId];
+        task = this.registedActionTab[openerTabId];
         if (!task)
             return null;
         this.registedActionTab[tab.id] = task;
@@ -631,8 +632,9 @@ export default class Tasker {
         isOpen: async (request, sender, sendResponse) => {
             const target = request.target || request.tab || null;
             let count = '0';
-            if (target != null && this.namedTab[target])
-                count = '1';
+            if (target != null && this.namedTab[target]) {
+                count = `${this.namedTab[target].length}`;
+            }
             sendResponse(count);
         },
         /**

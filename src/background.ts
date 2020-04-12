@@ -1,3 +1,4 @@
+/* eslint-disable indent */
 import ChromePromise from '../vendor/chrome-promise';
 import PluginStat from './PluginStat';
 // eslint-disable-next-line no-unused-vars
