@@ -54,12 +54,12 @@ function setPromiseFunction(fn: ((...args: any) => any), thisArg: any) {
                     return reject(err);
                 const results = Array.prototype.slice.call(arg2);
                 switch (results.length) {
-                case 0:
-                    return resolve();
-                case 1:
-                    return resolve(results[0]);
-                default:
-                    return resolve(results);
+                    case 0:
+                        return resolve();
+                    case 1:
+                        return resolve(results[0]);
+                    default:
+                        return resolve(results);
                 }
             }
             args.push(callback);
@@ -203,20 +203,22 @@ export default class Tasker {
     public getTabInformation(this: Tasker, tab: chrome.tabs.Tab): ZTask | null {
         if (!tab || !tab.id)
             return null;
-        const parentTabId = tab.openerTabId;
         // Get tab info
         let task = this.registedActionTab[tab.id];
-        if ((parentTabId || parentTabId === 0) && !task) {
-            task = this.registedActionTab[parentTabId];
-            if (task) {
-                this.registedActionTab[tab.id] = task;
-                if (task.target) {
-                    this.namedTab[task.target].push(tab);
-                    this.updateBadge();
-                }
-            }
+        if (task)
+            return task;
+        const parentTabId = tab.openerTabId;
+        if (!parentTabId)
+            return null;
+        task = this.registedActionTab[parentTabId];
+        if (!task)
+            return null;
+        this.registedActionTab[tab.id] = task;
+        if (task.target) {
+            this.namedTab[task.target].push(tab);
+            this.updateBadge();
         }
-        return task || null;
+        return task;
     }
 
     // last setted user agent (original data is stored in chrome.storage)
@@ -333,7 +335,7 @@ export default class Tasker {
             this.registedActionTab[tab.id] = task;
             pluginStat.nbRegistedActionTab = Object.keys(this.registedActionTab).length;
             if (task.target) {
-                this.namedTab[task.target] = [ tab ];
+                this.namedTab[task.target] = [tab];
                 this.updateBadge();
             }
             sendResponse('done');
@@ -414,14 +416,14 @@ export default class Tasker {
                 // const frame = await chromep.webNavigation.getFrame({ frameId, tabId });
                 const allFrames = await chromep.webNavigation.getAllFrames({ tabId });
                 if (allFrames) {
-                    const [current] = allFrames.filter(({frameId})=> frameId === curentFrameId);
+                    const [current] = allFrames.filter(({ frameId }) => frameId === curentFrameId);
                     if (!current)
                         throw Error('can not find caller frame');
-                    const {parentFrameId} = current;
-                    if (!parentFrameId) 
+                    const { parentFrameId } = current;
+                    if (!parentFrameId)
                         return sendResponse(current.url);
-                    const [parent] = allFrames.filter(({frameId})=> frameId === parentFrameId);
-                    if (!parent) 
+                    const [parent] = allFrames.filter(({ frameId }) => frameId === parentFrameId);
+                    if (!parent)
                         throw Error('can not find caller parent frame');
                     return sendResponse(parent.url);
                 }
@@ -435,7 +437,7 @@ export default class Tasker {
             const { value } = proxySettings;
             // eslint-disable-next-line no-debugger
             if (value && value.rules && value.rules.singleProxy) {
-                const {host, port, scheme} = value.rules.singleProxy;
+                const { host, port, scheme } = value.rules.singleProxy;
                 proxy = `${scheme}://${host}:${port}`;
             } else if (value.mode) {
                 proxy = value.mode;
@@ -625,7 +627,7 @@ export default class Tasker {
             sendResponse(1);
 
         },
-        
+
         isOpen: async (request, sender, sendResponse) => {
             const target = request.target || request.tab || null;
             let count = '0';
@@ -742,7 +744,7 @@ export default class Tasker {
             pluginStat.userAgent = request.userAgent;
             sendResponse('ok');
         },
-        
+
         getConfigs: async (request, sender, sendResponse) => {
             sendResponse({
                 ...pluginStat.config,

@@ -815,19 +815,21 @@ class Tasker {
     getTabInformation(tab) {
         if (!tab || !tab.id)
             return null;
-        const parentTabId = tab.openerTabId;
         let task = this.registedActionTab[tab.id];
-        if ((parentTabId || parentTabId === 0) && !task) {
-            task = this.registedActionTab[parentTabId];
-            if (task) {
-                this.registedActionTab[tab.id] = task;
-                if (task.target) {
-                    this.namedTab[task.target].push(tab);
-                    this.updateBadge();
-                }
-            }
+        if (task)
+            return task;
+        const parentTabId = tab.openerTabId;
+        if (!parentTabId)
+            return null;
+        task = this.registedActionTab[parentTabId];
+        if (!task)
+            return null;
+        this.registedActionTab[tab.id] = task;
+        if (task.target) {
+            this.namedTab[task.target].push(tab);
+            this.updateBadge();
         }
-        return task || null;
+        return task;
     }
 }
 exports.default = Tasker;
