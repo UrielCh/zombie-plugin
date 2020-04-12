@@ -63,7 +63,7 @@ const pluginListener = (source) => async (message, sender, sendResponse) => {
         try {
             if (!sendResponse)
                 sendResponse = console.log;
-            await mtd(message, sender, sendResponse);
+            await mtd.call(tasker, message, sender, sendResponse);
         }
         catch (error) {
             const msg = `${source}.${message.command}`;
@@ -91,7 +91,7 @@ const pluginListenerCnx = (source) => async (message, port) => {
                     console.log(`RQ: ${requestId}, PostResponse Failed`, message, e);
                 }
             };
-            await mtd(data, port.sender, sendResponse);
+            await mtd.call(tasker, data, port.sender, sendResponse);
         }
         catch (e) {
             const msg = `${source}.${data.command}`;
@@ -205,12 +205,13 @@ if (chrome.tabs) {
         delete tasker.registedActionTab[tabId];
         pluginStat.nbRegistedActionTab = Object.keys(tasker.registedActionTab).length;
         if (oldTask.target) {
-            const tableSet = tasker.namedTab[oldTask.target].filter((tab) => tab.id !== tabId);
-            tasker.namedTab[oldTask.target] = tableSet;
+            const tableSet = tasker.namedTab[oldTask.target];
+            const tableSet2 = tableSet.filter((tab) => tab.id !== tabId);
+            tasker.namedTab[oldTask.target] = tableSet2;
             if (!tableSet.length) {
                 delete tasker.namedTab[oldTask.target];
             }
-            tasker_1.default.updateBadge();
+            tasker.updateBadge();
         }
     });
     chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
@@ -241,7 +242,7 @@ if (chrome.tabs) {
                 if (!tasker.namedTab[zTask.target])
                     tasker.namedTab[zTask.target] = [];
                 tasker.namedTab[zTask.target].push(addedTab);
-                tasker_1.default.updateBadge();
+                tasker.updateBadge();
             }
             catch (error) {
                 console.log(Error(error));
@@ -300,7 +301,7 @@ if (chrome.storage) {
         .then(async (items) => {
         pluginStat.config = items;
         lastValue = JSON.stringify(pluginStat.config);
-        tasker_1.default.updateBadge();
+        tasker.updateBadge();
         while (true) {
             await common_1.wait(3000);
             const newVal = JSON.stringify(pluginStat.config);
@@ -369,7 +370,7 @@ class Tasker {
         this.debuggerTabId = 0;
         this.commands = {
             updateBadge: (request, sender, sendResponse) => {
-                Tasker.updateBadge();
+                this.updateBadge();
                 return sendResponse('ok');
             },
             sendCommand: async (request, sender, sendResponse) => {
@@ -378,11 +379,11 @@ class Tasker {
                 if (!sender || !sender.tab || !sender.tab.id)
                     throw Error('sender.tab is missing');
                 const tabId = sender.tab.id;
-                if (sender.tab.id !== Tasker.Instance.debuggerTabId) {
-                    if (Tasker.Instance.debuggerTabId)
-                        await chrome_debugger_detach({ tabId: Tasker.Instance.debuggerTabId });
+                if (sender.tab.id !== this.debuggerTabId) {
+                    if (this.debuggerTabId)
+                        await chrome_debugger_detach({ tabId: this.debuggerTabId });
                     await chrome_debugger_attach({ tabId }, '1.3');
-                    Tasker.Instance.debuggerTabId = tabId;
+                    this.debuggerTabId = tabId;
                 }
                 console.log({ target: { tabId }, method, commandParams });
                 await chrome_debugger_sendCommand({ tabId }, method, commandParams);
@@ -439,8 +440,8 @@ class Tasker {
                 if (!task.action)
                     throw Error('action string is missing');
                 let tab = null;
-                if (task.target && Tasker.Instance.namedTab[task.target]) {
-                    let tabOlds = Tasker.Instance.namedTab[task.target].filter((tab) => tab.id);
+                if (task.target && this.namedTab[task.target]) {
+                    let tabOlds = this.namedTab[task.target].filter((tab) => tab.id);
                     if (tabOlds.length)
                         tab = await chromep.tabs.update(tabOlds[0].id, params);
                     for (let i = 1; i < tabOlds.length; i++) {
@@ -451,11 +452,11 @@ class Tasker {
                     tab = await chromep.tabs.create(params);
                 if (!tab || !tab.id)
                     return;
-                Tasker.Instance.registedActionTab[tab.id] = task;
-                pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
+                this.registedActionTab[tab.id] = task;
+                pluginStat.nbRegistedActionTab = Object.keys(this.registedActionTab).length;
                 if (task.target) {
-                    Tasker.Instance.namedTab[task.target] = [tab];
-                    Tasker.updateBadge();
+                    this.namedTab[task.target] = [tab];
+                    this.updateBadge();
                 }
                 sendResponse('done');
             },
@@ -510,7 +511,7 @@ class Tasker {
             },
             setBlockedDomains: async (request, sender, sendResponse) => {
                 const { domains } = request;
-                Tasker.Instance.blockedDomains = domains;
+                this.blockedDomains = domains;
                 return sendResponse('updated');
             },
             getParentUrl: async (request, sender, sendResponse) => {
@@ -620,7 +621,7 @@ class Tasker {
                     return sendResponse('ok');
                 if (typeof request.action === 'undefined')
                     throw Error('updateAction must contains action parameter');
-                const task = Tasker.Instance.registedActionTab[sender.tab.id];
+                const task = this.registedActionTab[sender.tab.id];
                 task.action = request.action;
                 return sendResponse('ok');
             },
@@ -653,12 +654,12 @@ class Tasker {
             },
             pushCookies: async (request, sender, sendResponse) => {
                 await zFunction.pushCookies(request.cookies);
-                Tasker.Instance.lastCookiesSave = Date.now();
+                this.lastCookiesSave = Date.now();
                 sendResponse('ok');
             },
             putCookies: async (request, sender, sendResponse) => {
                 await zFunction.pushCookies(request.cookies);
-                Tasker.Instance.lastCookiesSave = Date.now();
+                this.lastCookiesSave = Date.now();
                 sendResponse('ok');
             },
             clean: async (request, sender, sendResponse) => {
@@ -686,7 +687,7 @@ class Tasker {
             isOpen: async (request, sender, sendResponse) => {
                 const target = request.target || request.tab || null;
                 let count = '0';
-                if (target != null && Tasker.Instance.namedTab[target])
+                if (target != null && this.namedTab[target])
                     count = '1';
                 sendResponse(count);
             },
@@ -739,7 +740,7 @@ class Tasker {
                 if (!pluginStat.config.injectProcess)
                     return;
                 const tabId = tab.id;
-                const tabInformation = Tasker.Instance.getTabInformation(tab);
+                const tabInformation = this.getTabInformation(tab);
                 if (!tabInformation) {
                     if (zUtils_1.default.isProtected(tab.url))
                         return;
@@ -761,15 +762,15 @@ class Tasker {
             getConfigs: async (request, sender, sendResponse) => {
                 sendResponse({
                     ...pluginStat.config,
-                    lastCookiesSave: Tasker.Instance.lastCookiesSave,
-                    lastCookiesUpdate: Tasker.Instance.lastCookiesUpdate
+                    lastCookiesSave: this.lastCookiesSave,
+                    lastCookiesUpdate: this.lastCookiesUpdate
                 });
             }
         };
     }
-    static updateBadge() {
+    updateBadge() {
         let cnt = 0;
-        Object.values(Tasker.Instance.namedTab).forEach(t => cnt += t.length);
+        Object.values(this.namedTab).forEach(t => cnt += t.length);
         pluginStat.nbNamedTab = cnt;
         if (!chrome.browserAction)
             return;
@@ -783,7 +784,7 @@ class Tasker {
         }
         else {
             chrome.browserAction.setBadgeBackgroundColor({ color: '#468847' });
-            chrome.browserAction.setBadgeText({ text: String(Object.keys(Tasker.Instance.namedTab).length) });
+            chrome.browserAction.setBadgeText({ text: String(Object.keys(this.namedTab).length) });
         }
     }
     static get Instance() {
@@ -798,7 +799,7 @@ class Tasker {
             await common_1.wait(ms);
             const tab = await chromep.tabs.get(tabId);
             if (tab) {
-                const tabInformation = Tasker.Instance.getTabInformation(tab);
+                const tabInformation = this.getTabInformation(tab);
                 if (tabInformation) {
                     console.log(`Tab ${tabId} is now registred, abord close`);
                 }
@@ -813,13 +814,18 @@ class Tasker {
         if (!tab || !tab.id)
             return null;
         const parentTabId = tab.openerTabId;
-        let taskParameters = this.registedActionTab[tab.id] || null;
-        if ((parentTabId || parentTabId === 0) && !taskParameters) {
-            taskParameters = this.registedActionTab[parentTabId] || null;
-            if (taskParameters)
-                this.registedActionTab[tab.id] = taskParameters;
+        let task = this.registedActionTab[tab.id];
+        if ((parentTabId || parentTabId === 0) && !task) {
+            task = this.registedActionTab[parentTabId];
+            if (task) {
+                this.registedActionTab[tab.id] = task;
+                if (task.target) {
+                    this.namedTab[task.target].push(tab);
+                    this.updateBadge();
+                }
+            }
         }
-        return taskParameters;
+        return task || null;
     }
 }
 exports.default = Tasker;

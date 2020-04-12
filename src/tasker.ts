@@ -120,10 +120,10 @@ const chrome_debugger_detach = (target: chrome.debugger.Debuggee) => new Promise
 */
 
 export default class Tasker {
-    public static updateBadge() {
+    public updateBadge() {
 
         let cnt = 0;
-        Object.values(Tasker.Instance.namedTab).forEach(t => cnt += t.length);
+        Object.values(this.namedTab).forEach(t => cnt += t.length);
         pluginStat.nbNamedTab = cnt;
 
         if (!chrome.browserAction)
@@ -136,7 +136,7 @@ export default class Tasker {
             chrome.browserAction.setBadgeText({ text: 'II' });
         } else {
             chrome.browserAction.setBadgeBackgroundColor({ color: '#468847' });
-            chrome.browserAction.setBadgeText({ text: String(Object.keys(Tasker.Instance.namedTab).length) });
+            chrome.browserAction.setBadgeText({ text: String(Object.keys(this.namedTab).length) });
         }
     }
 
@@ -177,7 +177,7 @@ export default class Tasker {
      * @param tabId - tabId to close
      * @param ms - milliSec to wait before close
      */
-    public async mayCloseTabIn(tabId: number, ms: number) {
+    public async mayCloseTabIn(this: Tasker, tabId: number, ms: number) {
         if (!tabId)
             throw Error('missing tabId');
         ms = ms || 10000;
@@ -186,7 +186,7 @@ export default class Tasker {
             await wait(ms);
             const tab = await chromep.tabs.get(tabId);
             if (tab) {
-                const tabInformation = Tasker.Instance.getTabInformation(tab);
+                const tabInformation = this.getTabInformation(tab);
                 if (tabInformation) {
                     console.log(`Tab ${tabId} is now registred, abord close`);
                 } else {
@@ -200,27 +200,33 @@ export default class Tasker {
     /**
      * copy parent tab task to chidlren tab task
      */
-    public getTabInformation(tab: chrome.tabs.Tab): ZTask | null {
+    public getTabInformation(this: Tasker, tab: chrome.tabs.Tab): ZTask | null {
         if (!tab || !tab.id)
             return null;
         const parentTabId = tab.openerTabId;
         // Get tab info
-        let taskParameters = this.registedActionTab[tab.id] || null;
-        if ((parentTabId || parentTabId === 0) && !taskParameters) {
-            taskParameters = this.registedActionTab[parentTabId] || null;
-            if (taskParameters)
-                this.registedActionTab[tab.id] = taskParameters;
+        let task = this.registedActionTab[tab.id];
+        if ((parentTabId || parentTabId === 0) && !task) {
+            task = this.registedActionTab[parentTabId];
+            if (task) {
+                this.registedActionTab[tab.id] = task;
+                if (task.target) {
+                    this.namedTab[task.target].push(tab);
+                    this.updateBadge();
+                }
+            }
         }
-        return taskParameters;
+        return task || null;
     }
 
     // last setted user agent (original data is stored in chrome.storage)
     // events command map
     private debuggerTabId: number = 0;
 
-    public commands: { [key: string]: (message: any, sender: chrome.runtime.MessageSender | undefined, sendResponse: (response: any) => any) => Promise<any> } = {
+    public commands: { [key: string]: (this: Tasker, message: any, sender: chrome.runtime.MessageSender | undefined, sendResponse: (response: any) => any) => Promise<any> } = {
+
         updateBadge: (request, sender, sendResponse) => {
-            Tasker.updateBadge();
+            this.updateBadge();
             return sendResponse('ok');
         },
         /**
@@ -233,11 +239,11 @@ export default class Tasker {
                 throw Error('sender.tab is missing');
             const tabId = sender.tab.id;
 
-            if (sender.tab.id !== Tasker.Instance.debuggerTabId) {
-                if (Tasker.Instance.debuggerTabId)
-                    await chrome_debugger_detach({ tabId: Tasker.Instance.debuggerTabId });
+            if (sender.tab.id !== this.debuggerTabId) {
+                if (this.debuggerTabId)
+                    await chrome_debugger_detach({ tabId: this.debuggerTabId });
                 await chrome_debugger_attach({ tabId }, '1.3');
-                Tasker.Instance.debuggerTabId = tabId;
+                this.debuggerTabId = tabId;
             }
             console.log({ target: { tabId }, method, commandParams });
             await chrome_debugger_sendCommand({ tabId }, method, commandParams);
@@ -278,7 +284,6 @@ export default class Tasker {
             // drop Internal.closeMe promise Failure Error: Attempting to use a disconnected port object
         },
 
-
         /**
          */
         preventPrompts: async (request, sender, sendResponse) => {
@@ -311,8 +316,8 @@ export default class Tasker {
                 throw Error('action string is missing');
 
             let tab: chrome.tabs.Tab | null = null;
-            if (task.target && Tasker.Instance.namedTab[task.target]) {
-                let tabOlds = Tasker.Instance.namedTab[task.target].filter((tab: chrome.tabs.Tab) => tab.id);
+            if (task.target && this.namedTab[task.target]) {
+                let tabOlds = this.namedTab[task.target].filter((tab: chrome.tabs.Tab) => tab.id);
                 if (tabOlds.length)
                     tab = await chromep.tabs.update(tabOlds[0].id as number, params);
                 for (let i = 1; i < tabOlds.length; i++) {
@@ -325,11 +330,11 @@ export default class Tasker {
 
             if (!tab || !tab.id)
                 return;
-            Tasker.Instance.registedActionTab[tab.id] = task;
-            pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
+            this.registedActionTab[tab.id] = task;
+            pluginStat.nbRegistedActionTab = Object.keys(this.registedActionTab).length;
             if (task.target) {
-                Tasker.Instance.namedTab[task.target] = [ tab ];
-                Tasker.updateBadge();
+                this.namedTab[task.target] = [ tab ];
+                this.updateBadge();
             }
             sendResponse('done');
         },
@@ -398,7 +403,7 @@ export default class Tasker {
          */
         setBlockedDomains: async (request, sender, sendResponse) => {
             const { domains } = request;
-            Tasker.Instance.blockedDomains = domains;
+            this.blockedDomains = domains;
             return sendResponse('updated');
         },
 
@@ -527,7 +532,7 @@ export default class Tasker {
                 return sendResponse('ok');
             if (typeof request.action === 'undefined')
                 throw Error('updateAction must contains action parameter');
-            const task = Tasker.Instance.registedActionTab[sender.tab.id];
+            const task = this.registedActionTab[sender.tab.id];
             task.action = request.action;
             return sendResponse('ok');
         },
@@ -580,7 +585,7 @@ export default class Tasker {
          */
         pushCookies: async (request, sender, sendResponse) => {
             await zFunction.pushCookies(request.cookies);
-            Tasker.Instance.lastCookiesSave = Date.now();
+            this.lastCookiesSave = Date.now();
             sendResponse('ok');
         },
         /**
@@ -588,7 +593,7 @@ export default class Tasker {
          */
         putCookies: async (request, sender, sendResponse) => {
             await zFunction.pushCookies(request.cookies);
-            Tasker.Instance.lastCookiesSave = Date.now();
+            this.lastCookiesSave = Date.now();
             sendResponse('ok');
         },
         /**
@@ -624,7 +629,7 @@ export default class Tasker {
         isOpen: async (request, sender, sendResponse) => {
             const target = request.target || request.tab || null;
             let count = '0';
-            if (target != null && Tasker.Instance.namedTab[target])
+            if (target != null && this.namedTab[target])
                 count = '1';
             sendResponse(count);
         },
@@ -713,7 +718,7 @@ export default class Tasker {
             if (!pluginStat.config.injectProcess)
                 return;
             const tabId = tab.id;
-            const tabInformation = Tasker.Instance.getTabInformation(tab);
+            const tabInformation = this.getTabInformation(tab);
             //try {
             if (!tabInformation) {
                 // mo job for this tabs
@@ -741,8 +746,8 @@ export default class Tasker {
         getConfigs: async (request, sender, sendResponse) => {
             sendResponse({
                 ...pluginStat.config,
-                lastCookiesSave: Tasker.Instance.lastCookiesSave,
-                lastCookiesUpdate: Tasker.Instance.lastCookiesUpdate
+                lastCookiesSave: this.lastCookiesSave,
+                lastCookiesUpdate: this.lastCookiesUpdate
             });
         }
     };

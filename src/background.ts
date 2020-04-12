@@ -50,7 +50,7 @@ const pluginListener = (source: string) => async (
         try {
             if (!sendResponse)
                 sendResponse = console.log;
-            await mtd(message, sender, sendResponse);
+            await mtd.call(tasker, message, sender, sendResponse);
         } catch (error) {
             const msg = `${source}.${message.command}`;
             console.log(msg, 'promise Failure', error);
@@ -80,7 +80,7 @@ const pluginListenerCnx = (source: string) => async (message: { requestId: numbe
                     console.log(`RQ: ${requestId}, PostResponse Failed`, message, e);
                 }
             };
-            await mtd(data, port.sender, sendResponse);
+            await mtd.call(tasker, data, port.sender, sendResponse);
         } catch (e) {
             const msg = `${source}.${data.command}`;
             const error = e.message || e.statusText || e.toString();
@@ -216,12 +216,13 @@ if (chrome.tabs) {
         delete tasker.registedActionTab[tabId];
         pluginStat.nbRegistedActionTab = Object.keys(tasker.registedActionTab).length;
         if (oldTask.target) {
-            const tableSet = tasker.namedTab[oldTask.target].filter((tab: chrome.tabs.Tab) => tab.id !== tabId);
-            tasker.namedTab[oldTask.target] = tableSet;
+            const tableSet = tasker.namedTab[oldTask.target];
+            const tableSet2 = tableSet.filter((tab: chrome.tabs.Tab) => tab.id !== tabId);
+            tasker.namedTab[oldTask.target] = tableSet2;
             if (!tableSet.length) {
                 delete tasker.namedTab[oldTask.target];
             }
-            Tasker.updateBadge();
+            tasker.updateBadge();
         }
     });
 
@@ -255,14 +256,18 @@ if (chrome.tabs) {
                 if (!tasker.namedTab[zTask.target])
                     tasker.namedTab[zTask.target] = [];
                 tasker.namedTab[zTask.target].push(addedTab);
-                Tasker.updateBadge();
+                tasker.updateBadge();
             } catch (error) {
                 console.log(Error(error));
             }
         }
     });
 
-    // Fired when a tab is created. Note that the tab's URL may not be set at the time this event is fired, but you can listen to onUpdated events so as to be notified when a URL is set.
+    /**
+     * just close Some Error pages
+     * 
+     * Fired when a tab is created. Note that the tab's URL may not be set at the time this event is fired, but you can listen to onUpdated events so as to be notified when a URL is set.
+     */
     chrome.tabs.onCreated.addListener(async (tab: chrome.tabs.Tab) => {
         if (!tab.id)
             return;
@@ -327,7 +332,7 @@ if (chrome.storage) {
         .then(async (items) => {
             pluginStat.config = items as PluginSavedState;
             lastValue = JSON.stringify(pluginStat.config);
-            Tasker.updateBadge();
+            tasker.updateBadge();
             // eslint-disable-next-line no-constant-condition
             while (true) {
                 await wait(3000);
@@ -335,7 +340,7 @@ if (chrome.storage) {
                 // console.log('Sync Config', newVal);
                 if (newVal === lastValue)
                     continue;
-                // Tasker.updateBadge();
+                // tasker.updateBadge();
                 // console.log('Sync tasker.config value');
                 // console.log('calling await chromep.storage.local.set');
                 await chromep.storage.local.set(pluginStat.config);
