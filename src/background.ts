@@ -127,8 +127,8 @@ if (chrome.webRequest) {
                 authCredentials: JSON.parse(pluginStat.config.proxyAuth)
             });
     },
-    { urls: ['<all_urls>'] },
-    ['asyncBlocking']);
+        { urls: ['<all_urls>'] },
+        ['asyncBlocking']);
 
     chrome.webRequest.onErrorOccurred.addListener(async (details) => {
         if (details.type !== 'main_frame')
@@ -217,12 +217,14 @@ if (chrome.tabs) {
         pluginStat.nbRegistedActionTab = Object.keys(tasker.registedActionTab).length;
         if (oldTask.target) {
             const tableSet = tasker.namedTab[oldTask.target];
-            const tableSet2 = tableSet.filter((tab: chrome.tabs.Tab) => tab.id !== tabId);
-            tasker.namedTab[oldTask.target] = tableSet2;
-            if (!tableSet.length) {
-                delete tasker.namedTab[oldTask.target];
+            if (tableSet) {
+                const tableSet2 = tableSet.filter((tab: chrome.tabs.Tab) => tab.id !== tabId);
+                tasker.namedTab[oldTask.target] = tableSet2;
+                if (!tableSet.length) {
+                    delete tasker.namedTab[oldTask.target];
+                }
+                tasker.updateBadge();
             }
-            tasker.updateBadge();
         }
     });
 

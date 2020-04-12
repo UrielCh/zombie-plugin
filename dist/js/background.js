@@ -206,12 +206,14 @@ if (chrome.tabs) {
         pluginStat.nbRegistedActionTab = Object.keys(tasker.registedActionTab).length;
         if (oldTask.target) {
             const tableSet = tasker.namedTab[oldTask.target];
-            const tableSet2 = tableSet.filter((tab) => tab.id !== tabId);
-            tasker.namedTab[oldTask.target] = tableSet2;
-            if (!tableSet.length) {
-                delete tasker.namedTab[oldTask.target];
+            if (tableSet) {
+                const tableSet2 = tableSet.filter((tab) => tab.id !== tabId);
+                tasker.namedTab[oldTask.target] = tableSet2;
+                if (!tableSet.length) {
+                    delete tasker.namedTab[oldTask.target];
+                }
+                tasker.updateBadge();
             }
-            tasker.updateBadge();
         }
     });
     chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
