@@ -1,6 +1,10 @@
-/** Inject and execute a single async function or promise in a tab, resolving with the result.
+/**
+ * https://github.com/KeithHenry/chromeExtensionAsync
+ * 
+ * Inject and execute a single async function or promise in a tab, resolving with the result.
  * @author Keith Henry <keith.henry@evolutionjobs.co.uk>
- * @license MIT */
+ * @license MIT
+ **/
 
 import ChromePromise from "../vendor/chrome-promise/chrome-promise";
 const chromep = new ChromePromise();
