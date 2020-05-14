@@ -1,7 +1,6 @@
-import ChromePromise from '../vendor/chrome-promise';
+import ChromePromise from '../vendor/chrome-promise/chrome-promise';
 import PluginStat from './PluginStat';
 import { wait } from './common';
-// eslint-disable-next-line no-unused-vars
 import { PluginStatValue } from './interfaces';
 
 const pluginStat: PluginStatValue = PluginStat();

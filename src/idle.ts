@@ -1,14 +1,8 @@
-/* eslint-disable quotes */
-// eslint-disable-next-line no-unused-vars
 // import PluginStat from './PluginStat';
-// eslint-disable-next-line no-unused-vars
 // import { BackGroundPage, PluginStatValue } from './interfaces';
-import ChromePromise from '../vendor/chrome-promise';
-// eslint-disable-next-line no-unused-vars
+import ChromePromise from '../vendor/chrome-promise/chrome-promise';
 import sendMessage, { IPluginMessage } from './SendMessage';
 import { wait } from './common';
-
-/* eslint-disable no-debugger */
 
 interface RecaptchaTaskResponseProcessing {
     errorId: number,

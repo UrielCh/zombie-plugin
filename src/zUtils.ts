@@ -1,5 +1,4 @@
-import ChromePromise from '../vendor/chrome-promise';
-
+import ChromePromise from '../vendor/chrome-promise/chrome-promise';
 const chromep = new ChromePromise();
 
 export default class ZUtils {

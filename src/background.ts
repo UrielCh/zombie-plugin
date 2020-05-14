@@ -1,4 +1,5 @@
-import ChromePromise from '../vendor/chrome-promise';
+// import chromep from '../vendor/chromeExtensionAsync/chrome-extension-async';
+import ChromePromise from '../vendor/chrome-promise/chrome-promise';
 import PluginStat from './PluginStat';
 // eslint-disable-next-line no-unused-vars
 import { PluginStatValue, PluginSavedState } from './interfaces';

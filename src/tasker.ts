@@ -1,4 +1,4 @@
-import ChromePromise from '../vendor/chrome-promise';
+import ChromePromise from '../vendor/chrome-promise/chrome-promise';
 import jsQR from '../vendor/jsqr';
 import PluginStat from './PluginStat';
 import ZFunction from './zFunction';
