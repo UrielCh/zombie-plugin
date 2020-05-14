@@ -57,9 +57,13 @@ export default class ZFunction {
     private constructor() {
     }
 
-    public async injectJS(tabId: number, urls: Array<string | string[]>, jsBootstrap: string, mergeInject?: boolean) {
+    public async injectJS(tabId: number, urls: Array<string | string[]>, jsBootstrap: string, options: {
+        allFrames: boolean,
+        mergeInject?: boolean
+    }): Promise<void> {
+        const {allFrames = false, mergeInject= false} = options;
         if (urls.length === 0)
-            return 'no more javascript to inject';
+            return;
         const urlsFlat: string[] = ZFunction.flat(urls);
         let lastJs = '';
         try {
@@ -79,7 +83,7 @@ export default class ZFunction {
                 if (mergeInject !== false) {
                     lastJs += responses;
                 } else {
-                    await ZFunction._instance.injectJavascript(tabId, responses);
+                    await ZFunction._instance.injectJavascript(tabId, responses, allFrames);
                 }
             }
         } catch (error) {
@@ -88,18 +92,19 @@ export default class ZFunction {
         if (jsBootstrap) {
             lastJs += jsBootstrap;
         }
-        await ZFunction._instance.injectJavascript(tabId, lastJs);
+        await ZFunction._instance.injectJavascript(tabId, lastJs, allFrames);
     }
 
     /**
      * https://developer.chrome.com/extensions/tabs#method-insertCSS
      */
-    public async injectCSS(tabId: number, depCss: string[]): Promise<any> {
+    public async injectCSS(tabId: number, depCss: string[], option: { allFrames?: boolean }): Promise<any> {
+        const { allFrames = false } = option;
         for (const dep of depCss) {
             const code = await ZFunction._instance.httpGetCached(dep);
             const opt = {
-                allFrames: false,
-                code: code.data
+                allFrames,
+                code: code.data,
             };
             await chromep.tabs.insertCSS(tabId, opt);
         }
@@ -140,9 +145,9 @@ export default class ZFunction {
         });
     }
 
-    public async injectJavascript(tabId: number, code: string) {
+    public async injectJavascript(tabId: number, code: string, allFrames: boolean) {
         const injection = await chromep.tabs.executeScript(tabId, {
-            allFrames: false,
+            allFrames,
             code
         });
         return injection;
