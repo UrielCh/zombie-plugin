@@ -766,7 +766,7 @@ class Tasker {
         }
         else {
             chrome.browserAction.setBadgeBackgroundColor({ color: '#468847' });
-            chrome.browserAction.setBadgeText({ text: String(Object.keys(Tasker.Instance.namedTab).length) });
+            chrome.browserAction.setBadgeText({ text: pluginStat.nbNamedTab });
         }
     }
     static get Instance() {
