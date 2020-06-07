@@ -799,8 +799,13 @@ class Tasker {
         let taskParameters = this.registedActionTab[tab.id] || null;
         if ((parentTabId || parentTabId === 0) && !taskParameters) {
             taskParameters = this.registedActionTab[parentTabId] || null;
-            if (taskParameters)
+            if (taskParameters) {
                 this.registedActionTab[tab.id] = taskParameters;
+                if (taskParameters.target) {
+                    this.namedTab[taskParameters.target].push(tab);
+                    Tasker.updateBadge();
+                }
+            }
         }
         return taskParameters;
     }

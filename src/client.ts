@@ -93,7 +93,8 @@ if (document.documentElement.tagName.toLowerCase() === 'html')  // Skip non-html
 sendMessage({
     command: 'getTodo'
 }).then (async (message: any) => {
-    const data = /** @type {{task:any} | 'code injected' | null | undefined} */ (message);
+    // /** @type {{task:any} | 'code injected' | null | undefined} */ 
+    const data = message as any; // {task: any} | {error: string} | 'code injected' | null | undefined;
     if (!data) {
         if (isProtected(window.location.href))
             return false;

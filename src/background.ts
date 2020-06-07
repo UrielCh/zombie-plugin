@@ -1,7 +1,7 @@
 import ChromePromise from '../vendor/chrome-promise';
 import PluginStat from './PluginStat';
 // eslint-disable-next-line no-unused-vars
-import { PluginStatValue, PluginSavedState } from './interfaces';
+import { PluginStatValue, PluginSavedState, ZTask } from './interfaces';
 import Tasker from './tasker';
 import ZUtils from './zUtils';
 import { wait } from './common';
@@ -239,9 +239,6 @@ if (chrome.webRequest) {
     }, ['requestHeaders', 'blocking']);
 }
 
-/**
- * @param {chrome.tabs.Tab} tab
- */
 if (chrome.tabs)
     chrome.tabs.onCreated.addListener(async (tab) => {
         if (!tab.id)
@@ -284,10 +281,7 @@ if (chrome.tabs)
 setInterval(async () => {
     const tabs = await chromep.tabs.query({});
     tabs.forEach((tab: chrome.tabs.Tab) => {
-        /**
-         * @var {ZTask}
-         */
-        const tabInformation = tasker.getTabInformation(tab);
+        const tabInformation: ZTask | null = tasker.getTabInformation(tab);
         if (tabInformation)
             return;
         if (!tab || !tab.url || !tab.id)

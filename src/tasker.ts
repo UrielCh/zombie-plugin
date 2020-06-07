@@ -5,38 +5,8 @@ import ZFunction from './zFunction';
 import ZUtils from './zUtils';
 import { wait } from './common';
 // eslint-disable-next-line no-unused-vars
-import { PluginStatValue } from './interfaces';
+import { PluginStatValue, ZTask, RegisterCommandMessage } from './interfaces';
 // import { all } from 'bluebird';
-
-interface RegisterCommandMessage {
-    command: string;
-    url: string;
-    name?: string;
-    active?: boolean;
-    pinned?: boolean;
-    target: string;
-    deps: Array<string | string[]>;
-    depCss?: string[];
-    action: string;
-    closeIrrelevantTabs?: boolean;
-}
-
-interface ZTask {
-    /**
-     * action to execute
-     */
-    action: string;
-    /**
-     * javascript url to inject
-     */
-    deps: Array<string | string[]>;
-    /**
-     * css url to inject
-     */
-    depCss: string[];
-    mergeInject?: boolean;
-    target: string;
-}
 
 const zFunction = ZFunction.Instance;
 
@@ -174,8 +144,8 @@ export default class Tasker {
     /**
      * close a tab if autoclose if enabled
      *
-     * @param {number} tabId - tabId to close
-     * @param {number} ms - milliSec to wait before close
+     * @param tabId - tabId to close
+     * @param ms - milliSec to wait before close
      */
     public async mayCloseTabIn(tabId: number, ms: number) {
         if (!tabId)
@@ -208,8 +178,13 @@ export default class Tasker {
         let taskParameters = this.registedActionTab[tab.id] || null;
         if ((parentTabId || parentTabId === 0) && !taskParameters) {
             taskParameters = this.registedActionTab[parentTabId] || null;
-            if (taskParameters)
+            if (taskParameters) {
                 this.registedActionTab[tab.id] = taskParameters;
+                if (taskParameters.target) {
+                    this.namedTab[taskParameters.target].push(tab);
+                    Tasker.updateBadge();
+                }
+            }
         }
         return taskParameters;
     }
@@ -691,8 +666,8 @@ export default class Tasker {
         },
         /**
          * Internal
-         * @param {chrome.runtime.MessageSender} sender
-         * @param {(response: any) => void} sendResponse
+         * @param sender
+         * @param sendResponse
          */
         getTodo: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             if (!sender)

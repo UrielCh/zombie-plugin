@@ -124,7 +124,7 @@ if (document.documentElement.tagName.toLowerCase() === 'html')
 SendMessage_1.default({
     command: 'getTodo'
 }).then(async (message) => {
-    const data = (message);
+    const data = message;
     if (!data) {
         if (isProtected(window.location.href))
             return false;

@@ -31,3 +31,33 @@ export interface PluginStatValue {
 export interface BackGroundPage extends Window {
     pluginStat: PluginStatValue;
 }
+
+export interface RegisterCommandMessage {
+    command: string;
+    url: string;
+    name?: string;
+    active?: boolean;
+    pinned?: boolean;
+    target: string;
+    deps: Array<string | string[]>;
+    depCss?: string[];
+    action: string;
+    closeIrrelevantTabs?: boolean;
+}
+
+export interface ZTask {
+    /**
+     * action to execute
+     */
+    action: string;
+    /**
+     * javascript url to inject
+     */
+    deps: Array<string | string[]>;
+    /**
+     * css url to inject
+     */
+    depCss: string[];
+    mergeInject?: boolean;
+    target: string;
+}
