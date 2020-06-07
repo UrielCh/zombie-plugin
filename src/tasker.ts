@@ -131,7 +131,7 @@ export default class Tasker {
     /**
      * mapping tablename => chrome.tabs.Tab
      */
-    public namedTab: { [key: string]: chrome.tabs.Tab[] } = {};
+    public namedTab: { [target: string]: chrome.tabs.Tab[] } = {};
 
     private constructor() {
     }

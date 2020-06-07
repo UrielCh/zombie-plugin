@@ -39,7 +39,7 @@ if (chrome.tabs)
             const tabs = tasker.namedTab[oldTask.target];
             for (let i = tabs.length-1; i>=0; i--) {
                 if (tabs[i].id === tabId)
-                    delete tabs[i];
+                    tabs.splice(i,1)
             }
             if (!tabs.length) {
                 delete tasker.namedTab[oldTask.target];
@@ -61,8 +61,10 @@ if (chrome.tabs)
             for (const key in tasker.namedTab) {
                 const tabs = tasker.namedTab[key];
                 for (let i=0; i< tabs.length; i++)
-                    if (tabs[i].id === removedTabId)
+                    if (tabs[i].id === removedTabId) {
                         tabs[i] = addedTab;
+                        break;
+                    }
             }
         } catch (error) {
             console.log(Error(error));
