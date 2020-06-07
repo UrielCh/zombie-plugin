@@ -121,6 +121,11 @@ const chrome_debugger_detach = (target: chrome.debugger.Debuggee) => new Promise
 
 export default class Tasker {
     public static updateBadge() {
+        const tabss = Object.values(Tasker.Instance.namedTab);
+        let total = 0;
+        tabss.forEach(tabs => total+= tabs.length);        
+        pluginStat.nbNamedTab = `${tabss.length}/${total}`;
+
         if (!chrome.browserAction)
             return;
         if (!pluginStat.config.injectProcess) {
@@ -156,7 +161,7 @@ export default class Tasker {
     /**
      * mapping tablename => chrome.tabs.Tab
      */
-    public namedTab: { [key: string]: chrome.tabs.Tab } = {};
+    public namedTab: { [key: string]: chrome.tabs.Tab[] } = {};
 
     private constructor() {
     }
@@ -308,8 +313,8 @@ export default class Tasker {
             let tab: chrome.tabs.Tab | null = null;
             if (task.target && Tasker.Instance.namedTab[task.target]) {
                 const tabOld = Tasker.Instance.namedTab[task.target];
-                if (tabOld && tabOld.id)
-                    tab = await chromep.tabs.update(tabOld.id, params);
+                if (tabOld && tabOld.length && tabOld[0].id)
+                    tab = await chromep.tabs.update(tabOld[0].id, params);
             }
             // si pas d'ancien TASK create
             // new TAB
@@ -321,8 +326,7 @@ export default class Tasker {
             Tasker.Instance.registedActionTab[tab.id] = task;
             pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
             if (task.target) {
-                Tasker.Instance.namedTab[task.target] = tab;
-                pluginStat.nbNamedTab = Object.keys(Tasker.Instance.namedTab).length;
+                Tasker.Instance.namedTab[task.target] = [ tab ];
                 Tasker.updateBadge();
             }
             sendResponse('done');

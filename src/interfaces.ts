@@ -21,7 +21,7 @@ export interface PluginStatValue {
      */
     config: PluginSavedState;
     nbRegistedActionTab: number;
-    nbNamedTab: number;
+    nbNamedTab: string;
     memoryCacheSize: number;
     // proxy: string;
     userAgent: string;

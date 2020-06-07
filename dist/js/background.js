@@ -14,7 +14,7 @@ function value() {
                 proxyAuth: ''
             },
             nbRegistedActionTab: 0,
-            nbNamedTab: 0,
+            nbNamedTab: '0/0',
             memoryCacheSize: 0,
             proxy: '',
             userAgent: '',
@@ -60,8 +60,14 @@ if (chrome.tabs)
         delete tasker.registedActionTab[tabId];
         pluginStat.nbRegistedActionTab = Object.keys(tasker.registedActionTab).length;
         if (oldTask && oldTask.target) {
-            delete tasker.namedTab[oldTask.target];
-            pluginStat.nbNamedTab = Object.keys(tasker.namedTab).length;
+            const tabs = tasker.namedTab[oldTask.target];
+            for (let i = tabs.length - 1; i >= 0; i--) {
+                if (tabs[i].id === tabId)
+                    delete tabs[i];
+            }
+            if (!tabs.length) {
+                delete tasker.namedTab[oldTask.target];
+            }
             tasker_1.default.updateBadge();
         }
     });
@@ -76,9 +82,10 @@ if (chrome.tabs)
         try {
             const addedTab = await chromep.tabs.get(addedTabId);
             for (const key in tasker.namedTab) {
-                const tab = tasker.namedTab[key];
-                if (tab.id === removedTabId)
-                    tasker.namedTab[key] = addedTab;
+                const tabs = tasker.namedTab[key];
+                for (let i = 0; i < tabs.length; i++)
+                    if (tabs[i].id === removedTabId)
+                        tabs[i] = addedTab;
             }
         }
         catch (error) {
@@ -296,6 +303,7 @@ if (chrome.storage) {
 },{"../vendor/chrome-promise":7,"./PluginStat":1,"./common":3,"./tasker":4,"./zUtils":6}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.wait = void 0;
 exports.wait = (duration) => new Promise(resolve => setTimeout(() => (resolve()), duration));
 
 },{}],4:[function(require,module,exports){
@@ -422,8 +430,8 @@ class Tasker {
                 let tab = null;
                 if (task.target && Tasker.Instance.namedTab[task.target]) {
                     const tabOld = Tasker.Instance.namedTab[task.target];
-                    if (tabOld && tabOld.id)
-                        tab = await chromep.tabs.update(tabOld.id, params);
+                    if (tabOld && tabOld.length && tabOld[0].id)
+                        tab = await chromep.tabs.update(tabOld[0].id, params);
                 }
                 if (!tab)
                     tab = await chromep.tabs.create(params);
@@ -432,8 +440,7 @@ class Tasker {
                 Tasker.Instance.registedActionTab[tab.id] = task;
                 pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
                 if (task.target) {
-                    Tasker.Instance.namedTab[task.target] = tab;
-                    pluginStat.nbNamedTab = Object.keys(Tasker.Instance.namedTab).length;
+                    Tasker.Instance.namedTab[task.target] = [tab];
                     Tasker.updateBadge();
                 }
                 sendResponse('done');
@@ -743,6 +750,10 @@ class Tasker {
         };
     }
     static updateBadge() {
+        const tabss = Object.values(Tasker.Instance.namedTab);
+        let total = 0;
+        tabss.forEach(tabs => total += tabs.length);
+        pluginStat.nbNamedTab = `${tabss.length}/${total}`;
         if (!chrome.browserAction)
             return;
         if (!pluginStat.config.injectProcess) {

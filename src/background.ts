@@ -36,8 +36,14 @@ if (chrome.tabs)
         delete tasker.registedActionTab[tabId];
         pluginStat.nbRegistedActionTab = Object.keys(tasker.registedActionTab).length;
         if (oldTask && oldTask.target) {
-            delete tasker.namedTab[oldTask.target];
-            pluginStat.nbNamedTab = Object.keys(tasker.namedTab).length;
+            const tabs = tasker.namedTab[oldTask.target];
+            for (let i = tabs.length-1; i>=0; i--) {
+                if (tabs[i].id === tabId)
+                    delete tabs[i];
+            }
+            if (!tabs.length) {
+                delete tasker.namedTab[oldTask.target];
+            }
             Tasker.updateBadge();
         }
     });
@@ -53,9 +59,10 @@ if (chrome.tabs)
         try {
             const addedTab = await chromep.tabs.get(addedTabId);
             for (const key in tasker.namedTab) {
-                const tab = tasker.namedTab[key];
-                if (tab.id === removedTabId)
-                    tasker.namedTab[key] = addedTab;
+                const tabs = tasker.namedTab[key];
+                for (let i=0; i< tabs.length; i++)
+                    if (tabs[i].id === removedTabId)
+                        tabs[i] = addedTab;
             }
         } catch (error) {
             console.log(Error(error));

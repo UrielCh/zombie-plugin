@@ -40,6 +40,9 @@ echo zombie-v${version}.tar.gz generated
 
 ### changelog:
 
+* V 4.1.6
+    - fix multi tab per task
+
 * V 4.1.3
     - add mergeInject in ZTask
 
