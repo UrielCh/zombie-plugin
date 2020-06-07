@@ -673,7 +673,7 @@ class Tasker {
                 const target = request.target || request.tab || null;
                 let count = '0';
                 if (target != null && Tasker.Instance.namedTab[target])
-                    count = '1';
+                    count = `${Tasker.Instance.namedTab[target].length}`;
                 sendResponse(count);
             },
             flushCache: async (request, sender, sendResponse) => {
