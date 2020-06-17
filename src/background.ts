@@ -185,9 +185,9 @@ if (chrome.webRequest) {
                 return;
             }
             souldCloseTabId = details.tabId;
-            console.log(`${details.error} ${details.error} ${details.url} Refresh in 5 sec`, details);
-            await wait(5000);
-            ZUtils.refreshTab(details.tabId);
+            console.log(`${details.error} ${details.error} ${details.url} Refresh in 5 sec canceled`, details);
+            //await wait(5000);
+            //ZUtils.refreshTab(details.tabId);
             return;
         }
         console.log('chrome.webRequest.onErrorOccurred close 5 sec [close Forced]', details);
