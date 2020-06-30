@@ -612,7 +612,7 @@ export default class Tasker {
          */
         post: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             // todo improve error message
-            const response = await zFunction.postJSON(request.url, request.data);
+            const response = await zFunction.postJSON(request.url, request.data, {contentType: request.contentType});
             sendResponse(response);
         },
 
@@ -620,7 +620,7 @@ export default class Tasker {
          * Internal http POST
          */
         delete: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
-            const r = await zFunction.deleteHttp(request.url);
+            const r = await zFunction.deleteHttp(request.url, {contentType: request.contentType});
             sendResponse(r);
         },
 
@@ -629,7 +629,7 @@ export default class Tasker {
          */
         get: async (request, sender, sendResponse) => {
             // const r = await zFunction.httpGetPromise(request.url); + ret r.data
-            const r = await zFunction.getHttp(request.url);
+            const r = await zFunction.getHttp(request.url, {contentType: request.contentType});
             sendResponse(r);
         },
 

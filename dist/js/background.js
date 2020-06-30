@@ -681,15 +681,15 @@ class Tasker {
                 sendResponse('ok');
             },
             post: async (request, sender, sendResponse) => {
-                const response = await zFunction.postJSON(request.url, request.data);
+                const response = await zFunction.postJSON(request.url, request.data, { contentType: request.contentType });
                 sendResponse(response);
             },
             delete: async (request, sender, sendResponse) => {
-                const r = await zFunction.deleteHttp(request.url);
+                const r = await zFunction.deleteHttp(request.url, { contentType: request.contentType });
                 sendResponse(r);
             },
             get: async (request, sender, sendResponse) => {
-                const r = await zFunction.getHttp(request.url);
+                const r = await zFunction.getHttp(request.url, { contentType: request.contentType });
                 sendResponse(r);
             },
             storageGet: async (request, sender, sendResponse) => {
@@ -889,35 +889,35 @@ class ZFunction {
             await chromep.tabs.insertCSS(tabId, opt);
         }
     }
-    async httpQuery(url, method, postData) {
+    async httpQuery(param) {
+        let { contentType = 'application/json', url, method = 'GET', postData = null } = param;
         const data = postData ? JSON.stringify(postData) : '';
         const response = await jQuery.ajax({
-            contentType: 'application/json',
+            contentType,
             data,
             type: method,
             url
         });
         return response;
     }
-    async getHttp(url) {
-        return this.httpQuery(url, 'GET');
+    async getHttp(url, options) {
+        return this.httpQuery({ url, method: 'GET', ...options });
     }
-    async deleteHttp(url) {
-        return this.httpQuery(url, 'DELETE');
+    async deleteHttp(url, options) {
+        return this.httpQuery({ url, method: 'DELETE', ...options });
     }
-    async postJSON(url, data) {
-        return this.httpQuery(url, 'POST', data).then((response) => {
-            if (!response)
-                return {};
-            if (typeof (response) === 'string')
-                try {
-                    return JSON.parse(response);
-                }
-                catch (ex) {
-                    return response;
-                }
-            return response;
-        });
+    async postJSON(url, data, options) {
+        const response = await this.httpQuery({ url, method: 'POST', postData: data, ...options });
+        if (!response)
+            return {};
+        if (typeof (response) === 'string')
+            try {
+                return JSON.parse(response);
+            }
+            catch (ex) {
+                return response;
+            }
+        return response;
     }
     async injectJavascript(tabId, code) {
         const injection = await chromep.tabs.executeScript(tabId, {
@@ -959,7 +959,7 @@ class ZFunction {
         while (true) {
             counter++;
             try {
-                const data = await self.getHttp(url);
+                const data = await self.getHttp(url, { contentType: 'text/plain' });
                 const value = {
                     data,
                     lastUpdated: Date.now(),
