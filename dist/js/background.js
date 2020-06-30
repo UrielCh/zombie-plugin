@@ -681,15 +681,19 @@ class Tasker {
                 sendResponse('ok');
             },
             post: async (request, sender, sendResponse) => {
-                const response = await zFunction.postJSON(request.url, request.data, { contentType: request.contentType });
+                const response = await zFunction.postJSON(request.url, request.data, { contentType: request.contentType, dataType: request.dataType });
+                sendResponse(response);
+            },
+            put: async (request, sender, sendResponse) => {
+                const response = await zFunction.httpQuery({ url: request.url, method: 'PUT', postData: request.data, contentType: request.contentType, dataType: request.dataType });
                 sendResponse(response);
             },
             delete: async (request, sender, sendResponse) => {
-                const r = await zFunction.deleteHttp(request.url, { contentType: request.contentType });
+                const r = await zFunction.deleteHttp(request.url, { contentType: request.contentType, dataType: request.dataType });
                 sendResponse(r);
             },
             get: async (request, sender, sendResponse) => {
-                const r = await zFunction.getHttp(request.url, { contentType: request.contentType });
+                const r = await zFunction.getHttp(request.url, { contentType: request.contentType, dataType: request.dataType });
                 sendResponse(r);
             },
             storageGet: async (request, sender, sendResponse) => {
@@ -890,12 +894,13 @@ class ZFunction {
         }
     }
     async httpQuery(param) {
-        let { contentType = 'application/json', url, method = 'GET', postData = null } = param;
+        let { contentType = 'application/json', url, method = 'GET', postData = undefined, dataType = undefined } = param;
         const data = postData ? JSON.stringify(postData) : '';
         const response = await jQuery.ajax({
             contentType,
             data,
             type: method,
+            dataType,
             url
         });
         return response;

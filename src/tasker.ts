@@ -612,7 +612,15 @@ export default class Tasker {
          */
         post: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             // todo improve error message
-            const response = await zFunction.postJSON(request.url, request.data, {contentType: request.contentType});
+            const response = await zFunction.postJSON(request.url, request.data, {contentType: request.contentType, dataType: request.dataType});
+            sendResponse(response);
+        },
+
+        /**
+         * Internal http POST
+         */
+        put: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
+            const response = await zFunction.httpQuery({url: request.url, method: 'PUT', postData:  request.data, contentType: request.contentType, dataType: request.dataType});
             sendResponse(response);
         },
 
@@ -620,7 +628,7 @@ export default class Tasker {
          * Internal http POST
          */
         delete: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
-            const r = await zFunction.deleteHttp(request.url, {contentType: request.contentType});
+            const r = await zFunction.deleteHttp(request.url, {contentType: request.contentType, dataType: request.dataType});
             sendResponse(r);
         },
 
@@ -629,7 +637,7 @@ export default class Tasker {
          */
         get: async (request, sender, sendResponse) => {
             // const r = await zFunction.httpGetPromise(request.url); + ret r.data
-            const r = await zFunction.getHttp(request.url, {contentType: request.contentType});
+            const r = await zFunction.getHttp(request.url, {contentType: request.contentType, dataType: request.dataType});
             sendResponse(r);
         },
 

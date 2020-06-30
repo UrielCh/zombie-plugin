@@ -105,31 +105,39 @@ export default class ZFunction {
         }
     }
 
-    public async httpQuery(param: {contentType?: string, url: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE', postData?: any}) {
+    public async httpQuery(param: {
+        contentType?: string,
+        url: string,
+        method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+        dataType?: string,//  'xml' | 'html' | 'script' | 'json' | 'jsonp' | 'text'
+        postData?: any
+    }) {
         // jQuery 3+
         // dataType: 'json',
-        let {contentType = 'application/json', url, method = 'GET', postData = null} = param;
+        let {contentType = 'application/json', url, method = 'GET', postData = undefined, dataType = undefined} = param;
 
         const data: string = postData ? JSON.stringify(postData) : '';
+
         const response = await jQuery.ajax({
             // contentType: 'application/json',
             contentType,// : 'text/plain',
             data,
             type: method,
+            dataType,
             url
         });
         return response;
     }
 
-    public async getHttp(url: string, options: {contentType?: string}) {
+    public async getHttp(url: string, options: {contentType?: string, dataType?: string}) {
         return this.httpQuery({url, method: 'GET', ...options});
     }
 
-    public async deleteHttp(url: string, options: {contentType?: string}) {
+    public async deleteHttp(url: string, options: {contentType?: string, dataType?: string}) {
         return this.httpQuery({url, method: 'DELETE', ...options});
     }
 
-    public async postJSON(url: string, data: any, options: {contentType?: string}) {
+    public async postJSON(url: string, data: any, options: {contentType?: string, dataType?: string}) {
         const response = await this.httpQuery({url, method: 'POST', postData: data, ...options});
         if (!response)
             return {};
