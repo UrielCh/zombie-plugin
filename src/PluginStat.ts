@@ -15,7 +15,7 @@ export default function value() {
                 proxyAuth: '' // {username: '', password: '' },
             },
             nbRegistedActionTab: 0,
-            nbNamedTab: 0,
+            nbNamedTab: '0/0',
             memoryCacheSize: 0,
             proxy: '',
             userAgent: '',

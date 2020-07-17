@@ -2,7 +2,7 @@
 import ChromePromise from '../vendor/chrome-promise/chrome-promise';
 import PluginStat from './PluginStat';
 // eslint-disable-next-line no-unused-vars
-import { PluginStatValue, PluginSavedState } from './interfaces';
+import { PluginStatValue, PluginSavedState, ZTask } from './interfaces';
 import Tasker from './tasker';
 import ZUtils from './zUtils';
 import { wait } from './common';
@@ -37,8 +37,14 @@ if (chrome.tabs)
         delete tasker.registedActionTab[tabId];
         pluginStat.nbRegistedActionTab = Object.keys(tasker.registedActionTab).length;
         if (oldTask && oldTask.target) {
-            delete tasker.namedTab[oldTask.target];
-            pluginStat.nbNamedTab = Object.keys(tasker.namedTab).length;
+            const tabs = tasker.namedTab[oldTask.target];
+            for (let i = tabs.length-1; i>=0; i--) {
+                if (tabs[i].id === tabId)
+                    tabs.splice(i,1)
+            }
+            if (!tabs.length) {
+                delete tasker.namedTab[oldTask.target];
+            }
             Tasker.updateBadge();
         }
     });
@@ -54,9 +60,12 @@ if (chrome.tabs)
         try {
             const addedTab = await chromep.tabs.get(addedTabId);
             for (const key in tasker.namedTab) {
-                const tab = tasker.namedTab[key];
-                if (tab.id === removedTabId)
-                    tasker.namedTab[key] = addedTab;
+                const tabs = tasker.namedTab[key];
+                for (let i=0; i< tabs.length; i++)
+                    if (tabs[i].id === removedTabId) {
+                        tabs[i] = addedTab;
+                        break;
+                    }
             }
         } catch (error) {
             console.log(Error(error));
@@ -177,9 +186,9 @@ if (chrome.webRequest) {
                 return;
             }
             souldCloseTabId = details.tabId;
-            console.log(`${details.error} ${details.error} ${details.url} Refresh in 5 sec`, details);
-            await wait(5000);
-            ZUtils.refreshTab(details.tabId);
+            console.log(`${details.error} ${details.error} ${details.url} Refresh in 5 sec canceled`, details);
+            //await wait(5000);
+            //ZUtils.refreshTab(details.tabId);
             return;
         }
         console.log('chrome.webRequest.onErrorOccurred close 5 sec [close Forced]', details);
@@ -233,9 +242,6 @@ if (chrome.webRequest) {
     }, ['requestHeaders', 'blocking']);
 }
 
-/**
- * @param {chrome.tabs.Tab} tab
- */
 if (chrome.tabs)
     chrome.tabs.onCreated.addListener(async (tab) => {
         if (!tab.id)
@@ -278,10 +284,7 @@ if (chrome.tabs)
 setInterval(async () => {
     const tabs = await chromep.tabs.query({});
     tabs.forEach((tab: chrome.tabs.Tab) => {
-        /**
-         * @var {ZTask}
-         */
-        const tabInformation = tasker.getTabInformation(tab);
+        const tabInformation: ZTask | null = tasker.getTabInformation(tab);
         if (tabInformation)
             return;
         if (!tab || !tab.url || !tab.id)

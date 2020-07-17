@@ -14,7 +14,7 @@ function value() {
                 proxyAuth: ''
             },
             nbRegistedActionTab: 0,
-            nbNamedTab: 0,
+            nbNamedTab: '0/0',
             memoryCacheSize: 0,
             proxy: '',
             userAgent: '',
@@ -30,6 +30,7 @@ exports.default = value;
 },{}],2:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.sendMessage = void 0;
 const common_1 = require("./common");
 const extensionId = chrome.runtime.id;
 let port = null;
@@ -88,6 +89,7 @@ exports.default = exports.sendMessage;
 },{"./common":3}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.wait = void 0;
 exports.wait = (duration) => new Promise(resolve => setTimeout(() => (resolve()), duration));
 
 },{}],4:[function(require,module,exports){

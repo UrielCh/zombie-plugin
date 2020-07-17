@@ -5,7 +5,7 @@ import ZFunction from './zFunction';
 import ZUtils from './zUtils';
 import { wait } from './common';
 // eslint-disable-next-line no-unused-vars
-import { PluginStatValue } from './interfaces';
+import { PluginStatValue, ZTask, RegisterCommandMessage } from './interfaces';
 // import { all } from 'bluebird';
 
 interface RegisterCommandMessage {
@@ -141,6 +141,11 @@ const chrome_debugger_detach = (target: chrome.debugger.Debuggee) => new Promise
 
 export default class Tasker {
     public static updateBadge() {
+        const tabss = Object.values(Tasker.Instance.namedTab);
+        let total = 0;
+        tabss.forEach(tabs => total+= tabs.length);        
+        pluginStat.nbNamedTab = `${tabss.length}/${total}`;
+
         if (!chrome.browserAction)
             return;
         if (!pluginStat.config.injectProcess) {
@@ -151,7 +156,7 @@ export default class Tasker {
             chrome.browserAction.setBadgeText({ text: 'II' });
         } else {
             chrome.browserAction.setBadgeBackgroundColor({ color: '#468847' });
-            chrome.browserAction.setBadgeText({ text: String(Object.keys(Tasker.Instance.namedTab).length) });
+            chrome.browserAction.setBadgeText({ text: pluginStat.nbNamedTab });
         }
     }
 
@@ -176,7 +181,7 @@ export default class Tasker {
     /**
      * mapping tablename => chrome.tabs.Tab
      */
-    public namedTab: { [key: string]: chrome.tabs.Tab } = {};
+    public namedTab: { [target: string]: chrome.tabs.Tab[] } = {};
 
     private constructor() {
     }
@@ -189,8 +194,8 @@ export default class Tasker {
     /**
      * close a tab if autoclose if enabled
      *
-     * @param {number} tabId - tabId to close
-     * @param {number} ms - milliSec to wait before close
+     * @param tabId - tabId to close
+     * @param ms - milliSec to wait before close
      */
     public async mayCloseTabIn(tabId: number, ms: number) {
         if (!tabId)
@@ -223,8 +228,13 @@ export default class Tasker {
         let taskParameters = this.registedActionTab[tab.id] || null;
         if ((parentTabId || parentTabId === 0) && !taskParameters) {
             taskParameters = this.registedActionTab[parentTabId] || null;
-            if (taskParameters)
+            if (taskParameters) {
                 this.registedActionTab[tab.id] = taskParameters;
+                if (taskParameters.target) {
+                    this.namedTab[taskParameters.target].push(tab);
+                    Tasker.updateBadge();
+                }
+            }
         }
         return taskParameters;
     }
@@ -345,8 +355,8 @@ export default class Tasker {
             let tab: chrome.tabs.Tab | null = null;
             if (task.target && Tasker.Instance.namedTab[task.target]) {
                 const tabOld = Tasker.Instance.namedTab[task.target];
-                if (tabOld && tabOld.id)
-                    tab = await chromep.tabs.update(tabOld.id, params);
+                if (tabOld && tabOld.length && tabOld[0].id)
+                    tab = await chromep.tabs.update(tabOld[0].id, params);
             }
             // si pas d'ancien TASK create
             // new TAB
@@ -358,8 +368,7 @@ export default class Tasker {
             Tasker.Instance.registedActionTab[tab.id] = task;
             pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
             if (task.target) {
-                Tasker.Instance.namedTab[task.target] = tab;
-                pluginStat.nbNamedTab = Object.keys(Tasker.Instance.namedTab).length;
+                Tasker.Instance.namedTab[task.target] = [ tab ];
                 Tasker.updateBadge();
             }
             sendResponse('done');
@@ -655,7 +664,7 @@ export default class Tasker {
             const target = request.target || request.tab || null;
             let count = '0';
             if (target != null && Tasker.Instance.namedTab[target])
-                count = '1';
+                count = `${Tasker.Instance.namedTab[target].length}`;
             sendResponse(count);
         },
         /**
@@ -670,7 +679,15 @@ export default class Tasker {
          */
         post: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             // todo improve error message
-            const response = await zFunction.postJSON(request.url, request.data);
+            const response = await zFunction.postJSON(request.url, request.data, {contentType: request.contentType, dataType: request.dataType});
+            sendResponse(response);
+        },
+
+        /**
+         * Internal http POST
+         */
+        put: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
+            const response = await zFunction.httpQuery({url: request.url, method: 'PUT', postData:  request.data, contentType: request.contentType, dataType: request.dataType});
             sendResponse(response);
         },
 
@@ -678,7 +695,7 @@ export default class Tasker {
          * Internal http POST
          */
         delete: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
-            const r = await zFunction.deleteHttp(request.url);
+            const r = await zFunction.deleteHttp(request.url, {contentType: request.contentType, dataType: request.dataType});
             sendResponse(r);
         },
 
@@ -687,7 +704,7 @@ export default class Tasker {
          */
         get: async (request, sender, sendResponse) => {
             // const r = await zFunction.httpGetPromise(request.url); + ret r.data
-            const r = await zFunction.getHttp(request.url);
+            const r = await zFunction.getHttp(request.url, {contentType: request.contentType, dataType: request.dataType});
             sendResponse(r);
         },
 
@@ -724,6 +741,8 @@ export default class Tasker {
         },
         /**
          * Internal
+         * @param sender
+         * @param sendResponse
          */
         getTodo: async (request, sender, sendResponse) => {
             if (!sender)
