@@ -56,9 +56,6 @@ const originalGeolocation = {
  */
 function installGeolocationCode(coords: Coordinates) {
     /**
-     * @param successCallback {PositionCallback}
-     * @param error {PositionErrorCallback}
-     * @param options {PositionOptions}
      */
     const myGetPos = (successCallback: PositionCallback/*, error: PositionErrorCallback, options: PositionOptions*/) => {
         if (!coords)
@@ -66,16 +63,10 @@ function installGeolocationCode(coords: Coordinates) {
         successCallback({ coords, timestamp: new Date().getTime() });
     };
     navigator.geolocation.getCurrentPosition = myGetPos;
-    /**
-     * @type {number}
-     */
-    let timerId = 0;
-    /**
-     * @param successCallback {PositionCallback}
-     * @param errorCallback {PositionErrorCallback}
-     * @param options {PositionOptions}
-     */
-    navigator.geolocation.watchPosition = (successCallback, errorCallback, options) => {
+
+    let timerId: number = 0;
+
+    navigator.geolocation.watchPosition = (successCallback: PositionCallback, errorCallback: PositionErrorCallback, options: PositionOptions) => {
         window.clearInterval(timerId);
         return (timerId = window.setInterval(myGetPos, 5 * 1000, successCallback, errorCallback, options));
     };
@@ -84,21 +75,20 @@ function installGeolocationCode(coords: Coordinates) {
 
 if (document.documentElement.tagName.toLowerCase() === 'html')  // Skip non-html pages.
     chrome.storage.local.get({ coords: null }, (data) => {
-        // /** @type {Position} */
-        if (data.coords)
-            injectScript(installGeolocationCode, [data.coords]);
+        const { coords } = (data as Position);
+        if (coords)
+            injectScript(installGeolocationCode, [coords]);
         // else console.log('NOGEOLOC data');
     });
 
 sendMessage({
     command: 'getTodo'
 }).then (async (message: any) => {
-    // /** @type {{task:any} | 'code injected' | null | undefined} */ 
-    const data = message as any; // {task: any} | {error: string} | 'code injected' | null | undefined;
+    const data = message; // {task: any} | {error: string} | 'code injected' | null | undefined;
     if (!data) {
         if (isProtected(window.location.href))
             return false;
-        console.log(`data is missing from getTodo ${window.location.href} I may close this tab`);
+        console.log(`Data is missing from getTodo ${window.location.href} I may close this tab`);
         try {
             await sendMessage({ command: 'closeMe', lazy: true, reason: 'data is missing from getTodo'});
         // eslint-disable-next-line no-empty
@@ -106,7 +96,7 @@ sendMessage({
         return true;
     }
     if (data.error) {
-        console.error('Bootstraping Retunr Error:' + data.error);
+        console.error(`Bootstraping Retunr Error: ${data.error}`);
         return true;
     }
     if (data === 'code injected' || !data.task)

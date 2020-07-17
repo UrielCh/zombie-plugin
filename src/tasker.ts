@@ -162,7 +162,9 @@ export default class Tasker {
     // last setted user agent (original data is stored in chrome.storage)
     // events command map
     private debuggerTabId: number = 0;
-
+    /**
+     * All command are called from pluginListener and pluginListenerCnx
+     */
     public commands: { [key: string]: (message: any, sender: chrome.runtime.MessageSender | undefined, sendResponse: (response: any) => any) => Promise<any> } = {
         updateBadge: (request, sender, sendResponse) => {
             Tasker.updateBadge();
@@ -250,6 +252,8 @@ export default class Tasker {
         },
 
         /**
+         * Main fonction, used to register a function
+         * 
          * External
          */
         registerCommand: async (request: RegisterCommandMessage, sender, sendResponse) => {
@@ -273,18 +277,29 @@ export default class Tasker {
                 throw Error('action string is missing');
 
             let tab: chrome.tabs.Tab | null = null;
-            if (task.target && Tasker.Instance.namedTab[task.target]) {
+            /**
+             * if target is live, overwrite the first tab
+             */
+            if (task.target) {
                 const tabOld = Tasker.Instance.namedTab[task.target];
                 if (tabOld && tabOld.length && tabOld[0].id)
                     tab = await chromep.tabs.update(tabOld[0].id, params);
             }
-            // si pas d'ancien TASK create
-            // new TAB
+            /**
+             * create a new tab
+             */
             if (!tab)
                 tab = await chromep.tabs.create(params);
-
-            if (!tab || !tab.id)
+            /**
+             * failute
+             */
+            if (!tab || !tab.id) {
+                sendResponse('Fail');
                 return;
+            }
+            /**
+             * register the new Tab
+             */
             Tasker.Instance.registedActionTab[tab.id] = task;
             pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
             if (task.target) {
@@ -580,6 +595,10 @@ export default class Tasker {
             sendResponse(1);
 
         },
+
+        /**
+         * return the nouber of opened tab related to a target
+         */
         isOpen: async (request, sender, sendResponse) => {
             const target = request.target || request.tab || null;
             let count = '0';
@@ -587,6 +606,7 @@ export default class Tasker {
                 count = `${Tasker.Instance.namedTab[target].length}`;
             sendResponse(count);
         },
+
         /**
          * Remove all cached Script
          */
@@ -594,6 +614,7 @@ export default class Tasker {
             await zFunction.flush();
             sendResponse('ok');
         },
+
         /**
          * Internal http POST
          */
@@ -638,6 +659,7 @@ export default class Tasker {
         },
 
         /**
+         * store value in storage.local
          */
         storageSet: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             await chromep.storage.local.set({
@@ -645,13 +667,17 @@ export default class Tasker {
             });
             sendResponse('ok');
         },
+
         /**
+         * remove value from storage.local
          */
         storageRemove: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             await chromep.storage.local.remove(request.key);
             sendResponse('ok');
         },
+
         /**
+         * open extensions tab
          */
         openExtensionManager: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             await chromep.tabs.create({
@@ -660,7 +686,8 @@ export default class Tasker {
             sendResponse('ok');
         },
         /**
-         * Internal
+         * pop scripts to inject
+         * 
          * @param sender
          * @param sendResponse
          */
@@ -685,15 +712,15 @@ export default class Tasker {
             }
 
             const {deps = [], allDeps = [], depCss = [], allDepCss = [], action = '', allAction = ''} = tabInformation;
-
+            const addDebug = pluginStat.config.debuggerStatement ? 'debugger;' : '';
             // if this tab has parent that we known of table of parent
             {
-                const allDebugText = '// sources:\r\n// ' + ZFunction.flat(allDeps).join('\r\n// ');
+                const code = `// sources:\r\n// ${ZFunction.flat(allDeps).join('\r\n// ')}`;
                 if (allDepCss.length)
                     await zFunction.injectCSS(tabId, allDepCss, { allFrames: true });
                 let allJsBootstrap = '';
-                if (allAction)
-                    allJsBootstrap = '"use strict";\n' + allDebugText + '\r\n' + (pluginStat.config.debuggerStatement ? 'debugger;' : '') + allAction;
+                if (allDeps.length || allAction)
+                    allJsBootstrap = `"use strict";\n${code}\r\n${addDebug}${allAction}`;
                 const { mergeInject = false } = tabInformation;
                 if (allDeps.length || allAction)
                     await zFunction.injectJS(tabId, deps, allJsBootstrap, { mergeInject, allFrames: true });
@@ -701,17 +728,16 @@ export default class Tasker {
 
             // if this tab has parent that we known of table of parent
             {
-                const debugText = '// sources:\r\n// ' + ZFunction.flat(deps).join('\r\n// ');
+                const code = `// sources:\r\n// ${ZFunction.flat(deps).join('\r\n// ')}`;
                 if (depCss)
                     await zFunction.injectCSS(tabId, depCss, { allFrames: false });
                 let jsBootstrap = '';
-                if (action)
-                    jsBootstrap = '"use strict";\n' + debugText + '\r\n' + (pluginStat.config.debuggerStatement ? 'debugger;' : '') + action;
+                if (deps.length || action)
+                    jsBootstrap = `"use strict";\n${code}\r\n${addDebug}${action}`;
                 const { mergeInject = false } = tabInformation;
                 if (deps.length || action)
                     await zFunction.injectJS(tabId, deps, jsBootstrap, { mergeInject, allFrames: false });
             }
-
             sendResponse('code injected');
         },
 

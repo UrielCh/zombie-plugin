@@ -1,7 +1,5 @@
-// import chromep from '../vendor/chromeExtensionAsync/chrome-extension-async';
 import ChromePromise from '../vendor/chrome-promise/chrome-promise';
 import PluginStat from './PluginStat';
-// eslint-disable-next-line no-unused-vars
 import { PluginStatValue, PluginSavedState, ZTask } from './interfaces';
 import Tasker from './tasker';
 import ZUtils from './zUtils';
@@ -51,10 +49,10 @@ if (chrome.tabs)
 
 if (chrome.tabs)
     chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
-        console.log({
-            replace: removedTabId,
-            by: addedTabId
-        });
+        //console.log({
+        //    replace: removedTabId,
+        //    by: addedTabId
+        //});
         tasker.registedActionTab[addedTabId] = tasker.registedActionTab[removedTabId];
         delete tasker.registedActionTab[removedTabId];
         try {
@@ -80,6 +78,9 @@ if (chrome.tabs)
  * onMessage function reciever
  */
 const pluginListener = (source: string) => async (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
+    // dummy sendResponse for some test case
+    if (!sendResponse)
+        sendResponse = console.log;
     if (!message.command) {
         sendResponse({ error: `Error all call must contains "command" name recieve: ${JSON.stringify(message)}` });
         return true;
@@ -87,8 +88,6 @@ const pluginListener = (source: string) => async (message: any, sender: chrome.r
     const mtd = tasker.commands[message.command];
     if (mtd)
         try {
-            if (!sendResponse)
-                sendResponse = console.log;
             await mtd(message, sender, sendResponse);
         } catch (error) {
             const msg = `${source}.${message.command}`;
@@ -198,6 +197,7 @@ if (chrome.webRequest) {
         urls: ['<all_urls>']
     });
 }
+
 const replaceUserAgent = (userAgent: string, headers: chrome.webRequest.HttpHeader[]) => {
     if (!userAgent)
         return headers;
@@ -218,6 +218,10 @@ if (chrome.webRequest) {
         return aElm.hostname;
     };
 
+    /**
+     * change user agent and block request if doamin match tasker.blockedDomains
+     * @param data 
+     */
     const setUserAgentHook = (data: chrome.webRequest.WebRequestHeadersDetails) => {
         let requestHeaders = data.requestHeaders;
         if (!data || !data.url)
