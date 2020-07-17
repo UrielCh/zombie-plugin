@@ -4,59 +4,7 @@ import PluginStat from './PluginStat';
 import ZFunction from './zFunction';
 import ZUtils from './zUtils';
 import { wait } from './common';
-// eslint-disable-next-line no-unused-vars
 import { PluginStatValue, ZTask, RegisterCommandMessage } from './interfaces';
-// import { all } from 'bluebird';
-
-interface RegisterCommandMessage {
-    command: string;
-    url: string;
-    name?: string;
-    active?: boolean;
-    pinned?: boolean;
-    target: string;
-    deps: Array<string | string[]>;
-    depCss?: string[];
-    // to be inject in all frames
-    allDeps?: Array<string | string[]>;
-    allDepCss?: string[];
-
-    allAction: string;
-    action: string;
-
-    closeIrrelevantTabs?: boolean;
-}
-
-interface ZTask {
-    /**
-     * action to execute
-     */
-    action: string;
-    /**
-     * action to execute in all iframces
-     */
-    allAction: string;
-    /**
-     * javascript url to inject
-     */
-    deps: Array<string | string[]>;
-    /**
-     * css url to inject
-     */
-    depCss: string[];
-
-    /**
-     * javascript url to inject in all frames
-     */
-    allDeps: Array<string | string[]>;
-    /**
-     * css url to inject in all frames
-     */
-    allDepCss: string[];
-
-    mergeInject?: boolean;
-    target: string;
-}
 
 const zFunction = ZFunction.Instance;
 
@@ -87,36 +35,8 @@ function setPromiseFunction(fn: ((...args: any) => any), thisArg: any) {
         });
     };
 }
-/*
-function setPromiseFunctionLT(fn: Function) {
-    return function(...args: any[]) {
-        return new Promise((resolve, reject) => {
-            function callback(resp: any) {
-                const err = chrome.runtime.lastError;
-                if (err)
-                    return reject(err);
-                resolve(resp);
-            }
-            fn.apply(null, [...args, callback]);
-        });
-    };
-}
 
-function toPromise(fn: Function) {
-    return function(...args: any[]) {
-        return new Promise((resolve, reject) => {
-            function callback(resp: any) {
-                const err = chrome.runtime.lastError;
-                if (err)
-                    return reject(err);
-                resolve(resp);
-            }
-            fn.apply(null, [...args, callback]);
-        });
-    };
-}
-*/
-// : (target: chrome.debugger.Debuggee) => Promise<void>
+
 const chrome_debugger_attach = setPromiseFunction(chrome.debugger.attach, chrome.debugger);
 const chrome_debugger_detach = setPromiseFunction(chrome.debugger.detach, chrome.debugger);
 // const chrome_debugger_sendCommand = setPromiseFunction(chrome.debugger.sendCommand, chrome.debugger);
