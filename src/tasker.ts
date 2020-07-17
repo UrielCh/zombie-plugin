@@ -1,4 +1,4 @@
-import ChromePromise from '../vendor/chrome-promise';
+import ChromePromise from '../vendor/chrome-promise/chrome-promise';
 import jsQR from '../vendor/jsqr';
 import PluginStat from './PluginStat';
 import ZFunction from './zFunction';
@@ -7,6 +7,56 @@ import { wait } from './common';
 // eslint-disable-next-line no-unused-vars
 import { PluginStatValue, ZTask, RegisterCommandMessage } from './interfaces';
 // import { all } from 'bluebird';
+
+interface RegisterCommandMessage {
+    command: string;
+    url: string;
+    name?: string;
+    active?: boolean;
+    pinned?: boolean;
+    target: string;
+    deps: Array<string | string[]>;
+    depCss?: string[];
+    // to be inject in all frames
+    allDeps?: Array<string | string[]>;
+    allDepCss?: string[];
+
+    allAction: string;
+    action: string;
+
+    closeIrrelevantTabs?: boolean;
+}
+
+interface ZTask {
+    /**
+     * action to execute
+     */
+    action: string;
+    /**
+     * action to execute in all iframces
+     */
+    allAction: string;
+    /**
+     * javascript url to inject
+     */
+    deps: Array<string | string[]>;
+    /**
+     * css url to inject
+     */
+    depCss: string[];
+
+    /**
+     * javascript url to inject in all frames
+     */
+    allDeps: Array<string | string[]>;
+    /**
+     * css url to inject in all frames
+     */
+    allDepCss: string[];
+
+    mergeInject?: boolean;
+    target: string;
+}
 
 const zFunction = ZFunction.Instance;
 
@@ -253,6 +303,20 @@ export default class Tasker {
             // drop Internal.closeMe promise Failure Error: Attempting to use a disconnected port object
         },
 
+        // execInAllFrames: async(request, sender, sendResponse) {
+        //     if (!sender || !sender.tab || !sender.tab.id) {
+        //         sendResponse('err');
+        //         return;
+        //     }
+        //     const frames = await chromep.webNavigation.getAllFrames({tabId: sender.tab.id});
+        //     //const injection = await chromep.tabs.executeScript(tabId, {
+        //     //    allFrames,
+        //     //    code
+        //     //});
+        //     //return injection;
+        //     chromep.tabs.executeScript(integer tabId, object details, function callback)
+        //     // sender.tab.id;
+        // }
 
         /**
          */
@@ -277,9 +341,12 @@ export default class Tasker {
             if (request.closeIrrelevantTabs === true || request.closeIrrelevantTabs === false)
                 pluginStat.config.closeIrrelevantTabs = request.closeIrrelevantTabs;
             const task: ZTask = {
-                action: request.action,
+                action: request.action || '',
+                allAction: request.allAction || '',
                 depCss: request.depCss || [],
                 deps: request.deps || [],
+                allDepCss: request.depCss || [],
+                allDeps: request.deps || [],
                 target: request.target || ''
             };
             if (!task.action)
@@ -677,17 +744,17 @@ export default class Tasker {
          * @param sender
          * @param sendResponse
          */
-        getTodo: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
+        getTodo: async (request, sender, sendResponse) => {
             if (!sender)
                 return;
-            const tab = sender.tab;
+            const { tab } = sender;
             if (!tab || !tab.id)
                 return;
             if (!pluginStat.config.injectProcess)
                 return;
             const tabId = tab.id;
             const tabInformation = Tasker.Instance.getTabInformation(tab);
-            //try {
+
             if (!tabInformation) {
                 // mo job for this tabs
                 if (ZUtils.isProtected(tab.url))
@@ -696,13 +763,35 @@ export default class Tasker {
                 sendResponse('NOOP');
                 return;
             }
-            const javascriptIncludes = tabInformation.deps || [];
-            const debugText = '// sources:\r\n// ' + ZFunction.flat(javascriptIncludes).join('\r\n// ');
-            // if this tab has parent that we known of
-            // table of parent
-            await zFunction.injectCSS(tabId, tabInformation.depCss);
-            const jsBootstrap = '"use strict";\n' + debugText + '\r\n' + (pluginStat.config.debuggerStatement ? 'debugger;' : '') + tabInformation.action;
-            await zFunction.injectJS(tabId, javascriptIncludes, jsBootstrap, tabInformation.mergeInject);
+
+            const {deps = [], allDeps = [], depCss = [], allDepCss = [], action = '', allAction = ''} = tabInformation;
+
+            // if this tab has parent that we known of table of parent
+            {
+                const allDebugText = '// sources:\r\n// ' + ZFunction.flat(allDeps).join('\r\n// ');
+                if (allDepCss.length)
+                    await zFunction.injectCSS(tabId, allDepCss, { allFrames: true });
+                let allJsBootstrap = '';
+                if (allAction)
+                    allJsBootstrap = '"use strict";\n' + allDebugText + '\r\n' + (pluginStat.config.debuggerStatement ? 'debugger;' : '') + allAction;
+                const { mergeInject = false } = tabInformation;
+                if (allDeps.length || allAction)
+                    await zFunction.injectJS(tabId, deps, allJsBootstrap, { mergeInject, allFrames: true });
+            }
+
+            // if this tab has parent that we known of table of parent
+            {
+                const debugText = '// sources:\r\n// ' + ZFunction.flat(deps).join('\r\n// ');
+                if (depCss)
+                    await zFunction.injectCSS(tabId, depCss, { allFrames: false });
+                let jsBootstrap = '';
+                if (action)
+                    jsBootstrap = '"use strict";\n' + debugText + '\r\n' + (pluginStat.config.debuggerStatement ? 'debugger;' : '') + action;
+                const { mergeInject = false } = tabInformation;
+                if (deps.length || action)
+                    await zFunction.injectJS(tabId, deps, jsBootstrap, { mergeInject, allFrames: false });
+            }
+
             sendResponse('code injected');
         },
 
