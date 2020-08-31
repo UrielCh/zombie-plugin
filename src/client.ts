@@ -82,9 +82,12 @@ if (document.documentElement.tagName.toLowerCase() === 'html')  // Skip non-html
 
 async function startPluginCode() {
     try {
-        await wait(500);
-        debugger;
-        const data: 'code injected' | any = await sendMessage({ command: 'getTodo' });
+        // await wait(500);
+        let reWait = 0;
+        // debugger;
+        if (reWait)
+            await wait(reWait);
+        const data: 'code injected' | 'NOOP' | any = await sendMessage({ command: 'getTodo' });
         // const data = message; // {task: any} | {error: string} | 'code injected' | null | undefined;
         if (!data) {
             if (isProtected(window.location.href))
@@ -100,7 +103,7 @@ async function startPluginCode() {
             console.error(`Bootstraping Retunr Error: ${data.error}`);
             return true;
         }
-        if (data === 'code injected' || !data.task)
+        if (data === 'code injected' ||  data === 'NOOP' || !data.task)
             return true;
         // OLD code to remove:
         const task = data.task;

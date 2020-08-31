@@ -700,7 +700,7 @@ export default class Tasker {
             if (!pluginStat.config.injectProcess)
                 return;
             // wait 1 extra sec bf inject
-            await wait(1000);
+            // await wait(1000);
 
             const tabId = tab.id;
             const tabInformation = Tasker.Instance.getTabInformation(tab);
@@ -710,8 +710,7 @@ export default class Tasker {
                 if (ZUtils.isProtected(tab.url))
                     return;
                 await this.mayCloseTabIn(tabId, 10002);
-                sendResponse('NOOP');
-                return;
+                return sendResponse('NOOP');
             }
 
             const {deps = [], allDeps = [], depCss = [], allDepCss = [], action = '', allAction = ''} = tabInformation;
@@ -742,7 +741,7 @@ export default class Tasker {
                 if (deps.length || action)
                     await zFunction.injectJS(tabId, deps, jsBootstrap, { mergeInject, allFrames: false });
             }
-            sendResponse('code injected');
+            return sendResponse('code injected');
         },
 
         setUserAgent: async (request, sender, sendResponse) => {

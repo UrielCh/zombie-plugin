@@ -124,7 +124,9 @@ if (document.documentElement.tagName.toLowerCase() === 'html')
     });
 async function startPluginCode() {
     try {
-        await common_1.wait(500);
+        let reWait = 0;
+        if (reWait)
+            await common_1.wait(reWait);
         const data = await SendMessage_1.default({ command: 'getTodo' });
         if (!data) {
             if (isProtected(window.location.href))
@@ -140,7 +142,7 @@ async function startPluginCode() {
             console.error(`Bootstraping Retunr Error: ${data.error}`);
             return true;
         }
-        if (data === 'code injected' || !data.task)
+        if (data === 'code injected' || data === 'NOOP' || !data.task)
             return true;
         const task = data.task;
         if (!task)

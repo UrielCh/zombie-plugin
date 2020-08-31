@@ -725,15 +725,13 @@ class Tasker {
                     return;
                 if (!pluginStat.config.injectProcess)
                     return;
-                await common_1.wait(1000);
                 const tabId = tab.id;
                 const tabInformation = Tasker.Instance.getTabInformation(tab);
                 if (!tabInformation) {
                     if (zUtils_1.default.isProtected(tab.url))
                         return;
                     await this.mayCloseTabIn(tabId, 10002);
-                    sendResponse('NOOP');
-                    return;
+                    return sendResponse('NOOP');
                 }
                 const { deps = [], allDeps = [], depCss = [], allDepCss = [], action = '', allAction = '' } = tabInformation;
                 const addDebug = pluginStat.config.debuggerStatement ? 'debugger;\r\n' : '';
@@ -759,7 +757,7 @@ class Tasker {
                     if (deps.length || action)
                         await zFunction.injectJS(tabId, deps, jsBootstrap, { mergeInject, allFrames: false });
                 }
-                sendResponse('code injected');
+                return sendResponse('code injected');
             },
             setUserAgent: async (request, sender, sendResponse) => {
                 pluginStat.userAgent = request.userAgent;
@@ -878,7 +876,7 @@ class ZFunction {
         if (urls.length === 0)
             return;
         const urlsFlat = ZFunction.flat(urls);
-        let lastJs = '';
+        let lastJs = [];
         try {
             const responsesMetadata = await this.httpGetAll(urlsFlat);
             const responsesMap = {};
@@ -890,7 +888,7 @@ class ZFunction {
                 else
                     responses = `// from: ${elm}\r\n${responsesMap[elm]}`;
                 if (mergeInject !== false) {
-                    lastJs += responses;
+                    lastJs.push(responses);
                 }
                 else {
                     await ZFunction._instance.injectJavascript(tabId, responses, allFrames);
@@ -901,9 +899,9 @@ class ZFunction {
             console.log('httpGetAll ', urls, 'fail error', error);
         }
         if (jsBootstrap) {
-            lastJs += jsBootstrap;
+            lastJs.push(jsBootstrap);
         }
-        await ZFunction._instance.injectJavascript(tabId, lastJs, allFrames);
+        await ZFunction._instance.injectJavascript(tabId, lastJs.join('\r\n'), allFrames);
     }
     async injectCSS(tabId, depCss, option) {
         const { allFrames = false } = option;

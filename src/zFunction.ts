@@ -64,7 +64,7 @@ export default class ZFunction {
         if (urls.length === 0)
             return;
         const urlsFlat: string[] = ZFunction.flat(urls);
-        let lastJs = '';
+        let lastJs: string[] = [];
         try {
             const responsesMetadata = await this.httpGetAll(urlsFlat);
             const responsesMap: {
@@ -80,7 +80,7 @@ export default class ZFunction {
                 else
                     responses = `// from: ${elm}\r\n${responsesMap[elm]}`;
                 if (mergeInject !== false) {
-                    lastJs += responses;
+                    lastJs.push(responses);
                 } else {
                     await ZFunction._instance.injectJavascript(tabId, responses, allFrames);
                 }
@@ -89,9 +89,9 @@ export default class ZFunction {
             console.log('httpGetAll ', urls, 'fail error', error);
         }
         if (jsBootstrap) {
-            lastJs += jsBootstrap;
+            lastJs.push(jsBootstrap);
         }
-        await ZFunction._instance.injectJavascript(tabId, lastJs, allFrames);
+        await ZFunction._instance.injectJavascript(tabId, lastJs.join('\r\n'), allFrames);
     }
 
     /**
