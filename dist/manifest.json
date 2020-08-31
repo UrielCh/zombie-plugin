@@ -1,6 +1,6 @@
 {
   "name": "Zombie",
-  "version": "4.1.9",
+  "version": "4.1.10",
   "description": "Dynamicaly improve Your chrome navigator",
   "background": {
     "page": "files/background.html",
@@ -22,7 +22,6 @@
     {
       "all_frames": false,
       "js": [
-        "/vendor/jquery.3.min.js",
         "/js/client.js"
       ],
       "matches": [
@@ -32,10 +31,7 @@
       "run_at": "document_start"
     }, {
         "all_frames": true,
-        "js": [
-          "/vendor/jquery.3.min.js",
-          "/js/idle.js"
-        ],
+        "js": [],
         "matches": [
           "http://*/*",
           "https://*/*"

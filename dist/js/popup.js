@@ -100,7 +100,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const PluginStat_1 = __importDefault(require("./PluginStat"));
 const SendMessage_1 = __importDefault(require("./SendMessage"));
-$(async () => {
+jQuery(async () => {
     let bg;
     if (chrome.extension)
         bg = (chrome.extension.getBackgroundPage());
@@ -122,8 +122,9 @@ $(async () => {
             code: lastCode,
             version: 'v' + chrome.runtime.getManifest().version,
         };
-        for (const key of Object.keys(data))
-            $(`#${key}`).text(data[key]);
+        for (const key of Object.keys(data)) {
+            jQuery(`#${key}`).text(data[key]);
+        }
     };
     async function reloadConfig() {
         proxyInfo = await SendMessage_1.default({
@@ -132,35 +133,35 @@ $(async () => {
         updateDisplay();
     }
     await reloadConfig();
-    $('#closeIrrelevantTabs').prop('checked', pluginStat.config.closeIrrelevantTabs).bootstrapToggle({
+    jQuery('#closeIrrelevantTabs').prop('checked', pluginStat.config.closeIrrelevantTabs).bootstrapToggle({
         on: '💣',
         off: 'off',
         onstyle: 'danger',
         offstyle: 'secondary',
         size: 'sm',
     });
-    $('#debuggerStatement').prop('checked', pluginStat.config.debuggerStatement).bootstrapToggle({
+    jQuery('#debuggerStatement').prop('checked', pluginStat.config.debuggerStatement).bootstrapToggle({
         on: '🐛',
         off: 'off',
         onstyle: 'danger',
         offstyle: 'secondary',
         size: 'sm',
     });
-    $('#pauseProcess').prop('checked', pluginStat.config.pauseProcess).bootstrapToggle({
+    jQuery('#pauseProcess').prop('checked', pluginStat.config.pauseProcess).bootstrapToggle({
         off: '<svg style="width:24px;height:24px" viewBox="0 0 24 24"><path fill="#FFF" d="M8,5.14V19.14L19,12.14L8,5.14Z"/></svg>',
         on: '💤',
         size: 'sm',
         onstyle: 'danger',
         offstyle: 'success',
     });
-    $('#injectProcess').prop('checked', pluginStat.config.injectProcess).bootstrapToggle({
+    jQuery('#injectProcess').prop('checked', pluginStat.config.injectProcess).bootstrapToggle({
         on: 'on',
         off: '🛑',
         onstyle: 'primary',
         offstyle: 'secondary',
         size: 'sm',
     });
-    $('#noClose').prop('checked', pluginStat.config.noClose).bootstrapToggle({
+    jQuery('#noClose').prop('checked', pluginStat.config.noClose).bootstrapToggle({
         on: '🛡️',
         off: 'off',
         onstyle: 'danger',
@@ -168,9 +169,9 @@ $(async () => {
         size: 'sm',
     });
     for (const elm of ['closeIrrelevantTabs', 'debuggerStatement', 'pauseProcess', 'injectProcess', 'noClose']) {
-        const jq = $(`#${elm}`);
+        const jq = jQuery(`#${elm}`);
         jq.on('change', function () {
-            const value = $(this).is(':checked');
+            const value = jQuery(this).is(':checked');
             pluginStat.config[elm] = value;
             SendMessage_1.default({
                 command: 'updateBadge',
@@ -201,10 +202,10 @@ $(async () => {
             lastCode = result[0].text;
         updateDisplay();
     };
-    $('button[action="flushCache"]').on('click', flushCache);
-    $('button[action="flushProxy"]').on('click', flushProxy);
-    $('button[action="readQrCode"]').on('click', readQrCode);
-    $('button[action="log"]').on('click', () => {
+    jQuery('button[action="flushCache"]').on('click', flushCache);
+    jQuery('button[action="flushProxy"]').on('click', flushProxy);
+    jQuery('button[action="readQrCode"]').on('click', readQrCode);
+    jQuery('button[action="log"]').on('click', () => {
         console.log(pluginStat);
     });
 });

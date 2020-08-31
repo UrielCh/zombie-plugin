@@ -33,7 +33,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const chrome_promise_1 = __importDefault(require("../vendor/chrome-promise"));
+const chrome_promise_1 = __importDefault(require("../vendor/chrome-promise/chrome-promise"));
 const PluginStat_1 = __importDefault(require("./PluginStat"));
 const tasker_1 = __importDefault(require("./tasker"));
 const zUtils_1 = __importDefault(require("./zUtils"));
@@ -73,10 +73,6 @@ if (chrome.tabs)
     });
 if (chrome.tabs)
     chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
-        console.log({
-            replace: removedTabId,
-            by: addedTabId
-        });
         tasker.registedActionTab[addedTabId] = tasker.registedActionTab[removedTabId];
         delete tasker.registedActionTab[removedTabId];
         try {
@@ -95,6 +91,8 @@ if (chrome.tabs)
         }
     });
 const pluginListener = (source) => async (message, sender, sendResponse) => {
+    if (!sendResponse)
+        sendResponse = console.log;
     if (!message.command) {
         sendResponse({ error: `Error all call must contains "command" name recieve: ${JSON.stringify(message)}` });
         return true;
@@ -102,8 +100,6 @@ const pluginListener = (source) => async (message, sender, sendResponse) => {
     const mtd = tasker.commands[message.command];
     if (mtd)
         try {
-            if (!sendResponse)
-                sendResponse = console.log;
             await mtd(message, sender, sendResponse);
         }
         catch (error) {
@@ -300,7 +296,7 @@ if (chrome.storage) {
     });
 }
 
-},{"../vendor/chrome-promise":7,"./PluginStat":1,"./common":3,"./tasker":4,"./zUtils":6}],3:[function(require,module,exports){
+},{"../vendor/chrome-promise/chrome-promise":7,"./PluginStat":1,"./common":3,"./tasker":4,"./zUtils":6}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.wait = void 0;
@@ -312,7 +308,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const chrome_promise_1 = __importDefault(require("../vendor/chrome-promise"));
+const chrome_promise_1 = __importDefault(require("../vendor/chrome-promise/chrome-promise"));
 const jsqr_1 = __importDefault(require("../vendor/jsqr"));
 const PluginStat_1 = __importDefault(require("./PluginStat"));
 const zFunction_1 = __importDefault(require("./zFunction"));
@@ -420,23 +416,28 @@ class Tasker {
                 if (request.closeIrrelevantTabs === true || request.closeIrrelevantTabs === false)
                     pluginStat.config.closeIrrelevantTabs = request.closeIrrelevantTabs;
                 const task = {
-                    action: request.action,
+                    action: request.action || '',
+                    allAction: request.allAction || '',
                     depCss: request.depCss || [],
                     deps: request.deps || [],
+                    allDepCss: request.depCss || [],
+                    allDeps: request.deps || [],
                     target: request.target || ''
                 };
                 if (!task.action)
                     throw Error('action string is missing');
                 let tab = null;
-                if (task.target && Tasker.Instance.namedTab[task.target]) {
+                if (task.target) {
                     const tabOld = Tasker.Instance.namedTab[task.target];
                     if (tabOld && tabOld.length && tabOld[0].id)
                         tab = await chromep.tabs.update(tabOld[0].id, params);
                 }
                 if (!tab)
                     tab = await chromep.tabs.create(params);
-                if (!tab || !tab.id)
+                if (!tab || !tab.id) {
+                    sendResponse('Fail');
                     return;
+                }
                 Tasker.Instance.registedActionTab[tab.id] = task;
                 pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
                 if (task.target) {
@@ -719,7 +720,7 @@ class Tasker {
             getTodo: async (request, sender, sendResponse) => {
                 if (!sender)
                     return;
-                const tab = sender.tab;
+                const { tab } = sender;
                 if (!tab || !tab.id)
                     return;
                 if (!pluginStat.config.injectProcess)
@@ -733,11 +734,30 @@ class Tasker {
                     sendResponse('NOOP');
                     return;
                 }
-                const javascriptIncludes = tabInformation.deps || [];
-                const debugText = '// sources:\r\n// ' + zFunction_1.default.flat(javascriptIncludes).join('\r\n// ');
-                await zFunction.injectCSS(tabId, tabInformation.depCss);
-                const jsBootstrap = '"use strict";\n' + debugText + '\r\n' + (pluginStat.config.debuggerStatement ? 'debugger;' : '') + tabInformation.action;
-                await zFunction.injectJS(tabId, javascriptIncludes, jsBootstrap, tabInformation.mergeInject);
+                const { deps = [], allDeps = [], depCss = [], allDepCss = [], action = '', allAction = '' } = tabInformation;
+                const addDebug = pluginStat.config.debuggerStatement ? 'debugger;' : '';
+                {
+                    const code = `// sources:\r\n// ${zFunction_1.default.flat(allDeps).join('\r\n// ')}`;
+                    if (allDepCss.length)
+                        await zFunction.injectCSS(tabId, allDepCss, { allFrames: true });
+                    let allJsBootstrap = '';
+                    if (allDeps.length || allAction)
+                        allJsBootstrap = `"use strict";\n${code}\r\n${addDebug}${allAction}`;
+                    const { mergeInject = false } = tabInformation;
+                    if (allDeps.length || allAction)
+                        await zFunction.injectJS(tabId, deps, allJsBootstrap, { mergeInject, allFrames: true });
+                }
+                {
+                    const code = `// sources:\r\n// ${zFunction_1.default.flat(deps).join('\r\n// ')}`;
+                    if (depCss)
+                        await zFunction.injectCSS(tabId, depCss, { allFrames: false });
+                    let jsBootstrap = '';
+                    if (deps.length || action)
+                        jsBootstrap = `"use strict";\n${code}\r\n${addDebug}${action}`;
+                    const { mergeInject = false } = tabInformation;
+                    if (deps.length || action)
+                        await zFunction.injectJS(tabId, deps, jsBootstrap, { mergeInject, allFrames: false });
+                }
                 sendResponse('code injected');
             },
             setUserAgent: async (request, sender, sendResponse) => {
@@ -816,13 +836,13 @@ class Tasker {
 }
 exports.default = Tasker;
 
-},{"../vendor/chrome-promise":7,"../vendor/jsqr":8,"./PluginStat":1,"./common":3,"./zFunction":5,"./zUtils":6}],5:[function(require,module,exports){
+},{"../vendor/chrome-promise/chrome-promise":7,"../vendor/jsqr":8,"./PluginStat":1,"./common":3,"./zFunction":5,"./zUtils":6}],5:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const chrome_promise_1 = __importDefault(require("../vendor/chrome-promise"));
+const chrome_promise_1 = __importDefault(require("../vendor/chrome-promise/chrome-promise"));
 const PluginStat_1 = __importDefault(require("./PluginStat"));
 const common_1 = require("./common");
 const pluginStat = PluginStat_1.default();
@@ -852,9 +872,10 @@ class ZFunction {
     static get Instance() {
         return this._instance || (this._instance = new this());
     }
-    async injectJS(tabId, urls, jsBootstrap, mergeInject) {
+    async injectJS(tabId, urls, jsBootstrap, options) {
+        const { allFrames = false, mergeInject = false } = options;
         if (urls.length === 0)
-            return 'no more javascript to inject';
+            return;
         const urlsFlat = ZFunction.flat(urls);
         let lastJs = '';
         try {
@@ -871,7 +892,7 @@ class ZFunction {
                     lastJs += responses;
                 }
                 else {
-                    await ZFunction._instance.injectJavascript(tabId, responses);
+                    await ZFunction._instance.injectJavascript(tabId, responses, allFrames);
                 }
             }
         }
@@ -881,14 +902,15 @@ class ZFunction {
         if (jsBootstrap) {
             lastJs += jsBootstrap;
         }
-        await ZFunction._instance.injectJavascript(tabId, lastJs);
+        await ZFunction._instance.injectJavascript(tabId, lastJs, allFrames);
     }
-    async injectCSS(tabId, depCss) {
+    async injectCSS(tabId, depCss, option) {
+        const { allFrames = false } = option;
         for (const dep of depCss) {
             const code = await ZFunction._instance.httpGetCached(dep);
             const opt = {
-                allFrames: false,
-                code: code.data
+                allFrames,
+                code: code.data,
             };
             await chromep.tabs.insertCSS(tabId, opt);
         }
@@ -924,9 +946,9 @@ class ZFunction {
             }
         return response;
     }
-    async injectJavascript(tabId, code) {
+    async injectJavascript(tabId, code, allFrames) {
         const injection = await chromep.tabs.executeScript(tabId, {
-            allFrames: false,
+            allFrames,
             code
         });
         return injection;
@@ -1064,13 +1086,13 @@ class ZFunction {
 }
 exports.default = ZFunction;
 
-},{"../vendor/chrome-promise":7,"./PluginStat":1,"./common":3}],6:[function(require,module,exports){
+},{"../vendor/chrome-promise/chrome-promise":7,"./PluginStat":1,"./common":3}],6:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const chrome_promise_1 = __importDefault(require("../vendor/chrome-promise"));
+const chrome_promise_1 = __importDefault(require("../vendor/chrome-promise/chrome-promise"));
 const chromep = new chrome_promise_1.default();
 class ZUtils {
     static async refreshTab(tabId) {
@@ -1120,7 +1142,7 @@ class ZUtils {
 }
 exports.default = ZUtils;
 
-},{"../vendor/chrome-promise":7}],7:[function(require,module,exports){
+},{"../vendor/chrome-promise/chrome-promise":7}],7:[function(require,module,exports){
 /*!
  * chrome-promise
  * https://github.com/tfoxy/chrome-promise
@@ -1176,8 +1198,13 @@ exports.default = ZUtils;
       }
   
       ////////////////
-  
-      function setPromiseFunction(fn, thisArg) {
+      /**
+       * 
+       * @param {function} fn 
+       * @param {any} thisArg 
+       * @param {string} command called chrome commande for verbose error report
+       */
+      function setPromiseFunction(fn, thisArg, command) {
   
         return function() {
           var args = slice.call(arguments);
@@ -1209,7 +1236,7 @@ exports.default = ZUtils;
                   setTimeout(() => {fn.apply(thisArg, args);}, 60000);
                   return;
                 }
-                reject(Error(errorTxt));
+                reject(Error('call to ' + command + ' failed:'+ errorTxt));
               } else {
                   switch (results.length) {
                   case 0:
@@ -1228,8 +1255,14 @@ exports.default = ZUtils;
         };
   
       }
-  
-      function fillProperties(source, target) {
+      /**
+       * 
+       * @param {any} source original chome
+       * @param {any} target promise verision
+       * @param {string} prefix command name
+       */
+      function fillProperties(source, target, prefix) {
+        prefix = prefix || '';
         for (const key in source) {
           if (hasOwnProperty.call(source, key)) {
             let val;
@@ -1247,9 +1280,11 @@ exports.default = ZUtils;
   
             if (type === 'object' && !(val instanceof ChromePromise)) {
               target[key] = {};
-              fillProperties(val, target[key]);
+              var prefix2 = prefix ? prefix + '.' + key : key;
+              fillProperties(val, target[key], prefix2);
             } else if (type === 'function') {
-              target[key] = setPromiseFunction(val, source);
+              var prefix2 = prefix ? prefix + '.' + key : key;
+              target[key] = setPromiseFunction(val, source, prefix2);
             } else {
               target[key] = val;
             }
@@ -1266,7 +1301,8 @@ exports.default = ZUtils;
               approvedPerms[api] = chrome[api];
             }
           });
-          fillProperties(approvedPerms, self);
+          var prefix2 = prefix ? prefix + '.' + key : key;
+          fillProperties(approvedPerms, self, prefix2);
         }
       }
     }

@@ -14,7 +14,7 @@ interface MyJQ extends JQuery<HTMLElement> {
     bootstrapToggle(opt: bootstrapToggleConfig): JQuery<HTMLElement>;
 }
 
-$(async () => {
+jQuery(async () => {
     let bg: BackGroundPage | undefined;
     if (chrome.extension)
         bg = (chrome.extension.getBackgroundPage()) as BackGroundPage;
@@ -40,8 +40,9 @@ $(async () => {
             code: lastCode,
             version: 'v' + chrome.runtime.getManifest().version,
         };
-        for (const key of Object.keys(data))
-            $(`#${key}`).text(data[key]);
+        for (const key of Object.keys(data)) {
+            jQuery(`#${key}`).text(data[key]);
+        }
     };
 
     /**
@@ -57,7 +58,7 @@ $(async () => {
     /**
      * config buttons styles
      */
-    ($('#closeIrrelevantTabs') as MyJQ).prop('checked', pluginStat.config.closeIrrelevantTabs).bootstrapToggle({
+    (jQuery('#closeIrrelevantTabs') as MyJQ).prop('checked', pluginStat.config.closeIrrelevantTabs).bootstrapToggle({
         on: '💣',
         off: 'off',
         onstyle: 'danger',
@@ -65,7 +66,7 @@ $(async () => {
         size: 'sm',
     });
 
-    ($('#debuggerStatement') as MyJQ).prop('checked', pluginStat.config.debuggerStatement).bootstrapToggle({
+    (jQuery('#debuggerStatement') as MyJQ).prop('checked', pluginStat.config.debuggerStatement).bootstrapToggle({
         on: '🐛',
         off: 'off',
         onstyle: 'danger',
@@ -73,7 +74,7 @@ $(async () => {
         size: 'sm',
     });
 
-    ($('#pauseProcess') as MyJQ).prop('checked', pluginStat.config.pauseProcess).bootstrapToggle({
+    (jQuery('#pauseProcess') as MyJQ).prop('checked', pluginStat.config.pauseProcess).bootstrapToggle({
         off: '<svg style="width:24px;height:24px" viewBox="0 0 24 24"><path fill="#FFF" d="M8,5.14V19.14L19,12.14L8,5.14Z"/></svg>',
         on: '💤', // <svg style="width:24px;height:24px" viewBox="0 0 24 24"><path fill="#FFF" d="M18,18H6V6H18V18Z"/></svg>',
         size: 'sm',
@@ -81,7 +82,7 @@ $(async () => {
         offstyle: 'success',
     });
 
-    ($('#injectProcess') as MyJQ).prop('checked', pluginStat.config.injectProcess).bootstrapToggle({
+    (jQuery('#injectProcess') as MyJQ).prop('checked', pluginStat.config.injectProcess).bootstrapToggle({
         on: 'on',
         off: '🛑',
         onstyle: 'primary',
@@ -89,7 +90,7 @@ $(async () => {
         size: 'sm',
     });
 
-    ($('#noClose') as MyJQ).prop('checked', pluginStat.config.noClose).bootstrapToggle({
+    (jQuery('#noClose') as MyJQ).prop('checked', pluginStat.config.noClose).bootstrapToggle({
         on: '🛡️',
         off: 'off',
         onstyle: 'danger',
@@ -105,9 +106,9 @@ $(async () => {
      * config buttons actions
      */
     for (const elm of ['closeIrrelevantTabs', 'debuggerStatement', 'pauseProcess', 'injectProcess', 'noClose'] as ConfigKey[]) {
-        const jq = $(`#${elm}`);
+        const jq = jQuery(`#${elm}`);
         jq.on('change', function () {
-            const value = $(this).is(':checked');
+            const value = jQuery(this).is(':checked');
             // Can be fix with moderne TS
             // tasker.config[elm] = value;
             (pluginStat.config as any)[elm] = value;
@@ -147,10 +148,10 @@ $(async () => {
         updateDisplay();
     };
 
-    $('button[action="flushCache"]').on('click', flushCache);
-    $('button[action="flushProxy"]').on('click', flushProxy);
-    $('button[action="readQrCode"]').on('click', readQrCode);
-    $('button[action="log"]').on('click', () => {
+    jQuery('button[action="flushCache"]').on('click', flushCache);
+    jQuery('button[action="flushProxy"]').on('click', flushProxy);
+    jQuery('button[action="readQrCode"]').on('click', readQrCode);
+    jQuery('button[action="log"]').on('click', () => {
         console.log(pluginStat);
     });
 });

@@ -53,8 +53,13 @@
       }
   
       ////////////////
-  
-      function setPromiseFunction(fn, thisArg) {
+      /**
+       * 
+       * @param {function} fn 
+       * @param {any} thisArg 
+       * @param {string} command called chrome commande for verbose error report
+       */
+      function setPromiseFunction(fn, thisArg, command) {
   
         return function() {
           var args = slice.call(arguments);
@@ -86,7 +91,7 @@
                   setTimeout(() => {fn.apply(thisArg, args);}, 60000);
                   return;
                 }
-                reject(Error(errorTxt));
+                reject(Error('call to ' + command + ' failed:'+ errorTxt));
               } else {
                   switch (results.length) {
                   case 0:
@@ -105,8 +110,14 @@
         };
   
       }
-  
-      function fillProperties(source, target) {
+      /**
+       * 
+       * @param {any} source original chome
+       * @param {any} target promise verision
+       * @param {string} prefix command name
+       */
+      function fillProperties(source, target, prefix) {
+        prefix = prefix || '';
         for (const key in source) {
           if (hasOwnProperty.call(source, key)) {
             let val;
@@ -124,9 +135,11 @@
   
             if (type === 'object' && !(val instanceof ChromePromise)) {
               target[key] = {};
-              fillProperties(val, target[key]);
+              var prefix2 = prefix ? prefix + '.' + key : key;
+              fillProperties(val, target[key], prefix2);
             } else if (type === 'function') {
-              target[key] = setPromiseFunction(val, source);
+              var prefix2 = prefix ? prefix + '.' + key : key;
+              target[key] = setPromiseFunction(val, source, prefix2);
             } else {
               target[key] = val;
             }
@@ -143,7 +156,8 @@
               approvedPerms[api] = chrome[api];
             }
           });
-          fillProperties(approvedPerms, self);
+          var prefix2 = prefix ? prefix + '.' + key : key;
+          fillProperties(approvedPerms, self, prefix2);
         }
       }
     }

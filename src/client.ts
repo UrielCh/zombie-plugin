@@ -6,7 +6,8 @@ let zone = document.getElementById('tasker_id_loader');
 if (zone)
     zone.innerHTML = chrome.runtime.id;
 
-const get = (url: string) => jQuery.get(url).then((data/*, textStatus, jqXHR*/) => Promise.resolve(data), (jqXHR, textStatus/*, errorThrown*/) => Promise.reject(textStatus));
+// const get = (url: string) => jQuery.get(url).then((data/*, textStatus, jqXHR*/) => Promise.resolve(data), (jqXHR, textStatus/*, errorThrown*/) => Promise.reject(textStatus));
+const httpGet = (url: string) => fetch(url, { method: 'GET' }).then((response) => response.text());
 
 const isProtected = (url?: string) => {
     if (!url)
@@ -106,10 +107,10 @@ sendMessage({
         return false;
     if (!task.deps)
         task.deps = [];
-    let virtualScript = '';
+    let virtualScript = [];
     for (const dep of task.deps) {
-        const data2 = await get(dep);
-        virtualScript += '\r\n' + data2;
+        const data2 = await httpGet(dep);
+        virtualScript.push(data2);;
     }
-    return execute(virtualScript);
+    return execute(virtualScript.join('\r\n'));
 }, (error) => console.error(error));

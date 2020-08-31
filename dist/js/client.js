@@ -67,7 +67,7 @@ const SendMessage_1 = __importDefault(require("./SendMessage"));
 let zone = document.getElementById('tasker_id_loader');
 if (zone)
     zone.innerHTML = chrome.runtime.id;
-const get = (url) => jQuery.get(url).then((data) => Promise.resolve(data), (jqXHR, textStatus) => Promise.reject(textStatus));
+const httpGet = (url) => fetch(url, { method: 'GET' }).then((response) => response.text());
 const isProtected = (url) => {
     if (!url)
         return false;
@@ -118,8 +118,9 @@ function installGeolocationCode(coords) {
 }
 if (document.documentElement.tagName.toLowerCase() === 'html')
     chrome.storage.local.get({ coords: null }, (data) => {
-        if (data.coords)
-            injectScript(installGeolocationCode, [data.coords]);
+        const { coords } = data;
+        if (coords)
+            injectScript(installGeolocationCode, [coords]);
     });
 SendMessage_1.default({
     command: 'getTodo'
@@ -128,7 +129,7 @@ SendMessage_1.default({
     if (!data) {
         if (isProtected(window.location.href))
             return false;
-        console.log(`data is missing from getTodo ${window.location.href} I may close this tab`);
+        console.log(`Data is missing from getTodo ${window.location.href} I may close this tab`);
         try {
             await SendMessage_1.default({ command: 'closeMe', lazy: true, reason: 'data is missing from getTodo' });
         }
@@ -136,7 +137,7 @@ SendMessage_1.default({
         return true;
     }
     if (data.error) {
-        console.error('Bootstraping Retunr Error:' + data.error);
+        console.error(`Bootstraping Retunr Error: ${data.error}`);
         return true;
     }
     if (data === 'code injected' || !data.task)
@@ -146,12 +147,13 @@ SendMessage_1.default({
         return false;
     if (!task.deps)
         task.deps = [];
-    let virtualScript = '';
+    let virtualScript = [];
     for (const dep of task.deps) {
-        const data2 = await get(dep);
-        virtualScript += '\r\n' + data2;
+        const data2 = await httpGet(dep);
+        virtualScript.push(data2);
+        ;
     }
-    return execute(virtualScript);
+    return execute(virtualScript.join('\r\n'));
 }, (error) => console.error(error));
 
 },{"./SendMessage":1}],3:[function(require,module,exports){
