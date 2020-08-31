@@ -1,13 +1,11 @@
 import sendMessage from './SendMessage';
+import { wait } from './common'
 /**
  * injected in all pages
  */
 let zone = document.getElementById('tasker_id_loader');
 if (zone)
     zone.innerHTML = chrome.runtime.id;
-
-// const get = (url: string) => jQuery.get(url).then((data/*, textStatus, jqXHR*/) => Promise.resolve(data), (jqXHR, textStatus/*, errorThrown*/) => Promise.reject(textStatus));
-const httpGet = (url: string) => fetch(url, { method: 'GET' }).then((response) => response.text());
 
 const isProtected = (url?: string) => {
     if (!url)
@@ -82,35 +80,44 @@ if (document.documentElement.tagName.toLowerCase() === 'html')  // Skip non-html
         // else console.log('NOGEOLOC data');
     });
 
-sendMessage({
-    command: 'getTodo'
-}).then (async (message: any) => {
-    const data = message; // {task: any} | {error: string} | 'code injected' | null | undefined;
-    if (!data) {
-        if (isProtected(window.location.href))
+async function startPluginCode() {
+    try {
+        await wait(500);
+        debugger;
+        const data: 'code injected' | any = await sendMessage({ command: 'getTodo' });
+        // const data = message; // {task: any} | {error: string} | 'code injected' | null | undefined;
+        if (!data) {
+            if (isProtected(window.location.href))
+                return false;
+            console.log(`Data is missing from getTodo ${window.location.href} I may close this tab`);
+            try {
+                await sendMessage({ command: 'closeMe', lazy: true, reason: 'data is missing from getTodo' });
+                // eslint-disable-next-line no-empty
+            } catch (e) { }
+            return true;
+        }
+        if (data.error) {
+            console.error(`Bootstraping Retunr Error: ${data.error}`);
+            return true;
+        }
+        if (data === 'code injected' || !data.task)
+            return true;
+        // OLD code to remove:
+        const task = data.task;
+        if (!task)
             return false;
-        console.log(`Data is missing from getTodo ${window.location.href} I may close this tab`);
-        try {
-            await sendMessage({ command: 'closeMe', lazy: true, reason: 'data is missing from getTodo'});
-        // eslint-disable-next-line no-empty
-        } catch (e) {}
-        return true;
+        if (!task.deps)
+            task.deps = [];
+        let virtualScript = [];
+        for (const dep of task.deps) {
+            console.log('inject ', dep);
+            const data2 = await fetch(dep, { method: 'GET' }).then((response) => response.text());
+            virtualScript.push(data2);
+        }
+        return execute(virtualScript.join('\r\n'));
+    } catch (error) {
+        console.error(error);
     }
-    if (data.error) {
-        console.error(`Bootstraping Retunr Error: ${data.error}`);
-        return true;
-    }
-    if (data === 'code injected' || !data.task)
-        return true;
-    const task = data.task;
-    if (!task)
-        return false;
-    if (!task.deps)
-        task.deps = [];
-    let virtualScript = [];
-    for (const dep of task.deps) {
-        const data2 = await httpGet(dep);
-        virtualScript.push(data2);;
-    }
-    return execute(virtualScript.join('\r\n'));
-}, (error) => console.error(error));
+}
+
+startPluginCode();

@@ -420,8 +420,8 @@ class Tasker {
                     allAction: request.allAction || '',
                     depCss: request.depCss || [],
                     deps: request.deps || [],
-                    allDepCss: request.depCss || [],
-                    allDeps: request.deps || [],
+                    allDepCss: request.allDepCss || [],
+                    allDeps: request.allDeps || [],
                     target: request.target || ''
                 };
                 if (!task.action)
@@ -725,6 +725,7 @@ class Tasker {
                     return;
                 if (!pluginStat.config.injectProcess)
                     return;
+                await common_1.wait(1000);
                 const tabId = tab.id;
                 const tabInformation = Tasker.Instance.getTabInformation(tab);
                 if (!tabInformation) {
@@ -735,8 +736,8 @@ class Tasker {
                     return;
                 }
                 const { deps = [], allDeps = [], depCss = [], allDepCss = [], action = '', allAction = '' } = tabInformation;
-                const addDebug = pluginStat.config.debuggerStatement ? 'debugger;' : '';
-                {
+                const addDebug = pluginStat.config.debuggerStatement ? 'debugger;\r\n' : '';
+                if (allDeps.length) {
                     const code = `// sources:\r\n// ${zFunction_1.default.flat(allDeps).join('\r\n// ')}`;
                     if (allDepCss.length)
                         await zFunction.injectCSS(tabId, allDepCss, { allFrames: true });
@@ -747,7 +748,7 @@ class Tasker {
                     if (allDeps.length || allAction)
                         await zFunction.injectJS(tabId, deps, allJsBootstrap, { mergeInject, allFrames: true });
                 }
-                {
+                if (deps.length) {
                     const code = `// sources:\r\n// ${zFunction_1.default.flat(deps).join('\r\n// ')}`;
                     if (depCss)
                         await zFunction.injectCSS(tabId, depCss, { allFrames: false });

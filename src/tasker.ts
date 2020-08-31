@@ -269,8 +269,8 @@ export default class Tasker {
                 allAction: request.allAction || '',
                 depCss: request.depCss || [],
                 deps: request.deps || [],
-                allDepCss: request.depCss || [],
-                allDeps: request.deps || [],
+                allDepCss: request.allDepCss || [],
+                allDeps: request.allDeps || [],
                 target: request.target || ''
             };
             if (!task.action)
@@ -699,6 +699,9 @@ export default class Tasker {
                 return;
             if (!pluginStat.config.injectProcess)
                 return;
+            // wait 1 extra sec bf inject
+            await wait(1000);
+
             const tabId = tab.id;
             const tabInformation = Tasker.Instance.getTabInformation(tab);
 
@@ -712,8 +715,9 @@ export default class Tasker {
             }
 
             const {deps = [], allDeps = [], depCss = [], allDepCss = [], action = '', allAction = ''} = tabInformation;
-            const addDebug = pluginStat.config.debuggerStatement ? 'debugger;' : '';
+            const addDebug = pluginStat.config.debuggerStatement ? 'debugger;\r\n' : '';
             // if this tab has parent that we known of table of parent
+            if (allDeps.length)
             {
                 const code = `// sources:\r\n// ${ZFunction.flat(allDeps).join('\r\n// ')}`;
                 if (allDepCss.length)
@@ -727,7 +731,7 @@ export default class Tasker {
             }
 
             // if this tab has parent that we known of table of parent
-            {
+            if (deps.length) {
                 const code = `// sources:\r\n// ${ZFunction.flat(deps).join('\r\n// ')}`;
                 if (depCss)
                     await zFunction.injectCSS(tabId, depCss, { allFrames: false });

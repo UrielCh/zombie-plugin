@@ -11,13 +11,11 @@
     "browserifyBG:watch": "watchify  ./built/background.js -o ./dist/js/background.js",
     "browserifyPOP:watch": "watchify ./built/popup.js     -o ./dist/js/popup.js",
     "browserifyCLI:watch": "watchify ./built/client.js    -o ./dist/js/client.js",
-    "browserifyIDLE:watch": "watchify ./built/idle.js     -o ./dist/js/idle.js",
     "watch": "concurrently npm:*:watch",
     "lint": "tslint -p .",
     "browserify-BG": "browserify  ./built/background.js -o ./dist/js/background.js",
     "browserify-POP": "browserify ./built/popup.js      -o ./dist/js/popup.js",
     "browserify-CLI": "browserify ./built/client.js     -o ./dist/js/client.js",
-    "browserify-IDLE": "browserify ./built/idle.js      -o ./dist/js/idle.js",
     "browserify": "concurrently npm:browserify-*",
     "build": "npm run tsc && npm run browserify",
     "install": "npm run build"

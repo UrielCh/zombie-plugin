@@ -64,10 +64,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const SendMessage_1 = __importDefault(require("./SendMessage"));
+const common_1 = require("./common");
 let zone = document.getElementById('tasker_id_loader');
 if (zone)
     zone.innerHTML = chrome.runtime.id;
-const httpGet = (url) => fetch(url, { method: 'GET' }).then((response) => response.text());
 const isProtected = (url) => {
     if (!url)
         return false;
@@ -122,41 +122,46 @@ if (document.documentElement.tagName.toLowerCase() === 'html')
         if (coords)
             injectScript(installGeolocationCode, [coords]);
     });
-SendMessage_1.default({
-    command: 'getTodo'
-}).then(async (message) => {
-    const data = message;
-    if (!data) {
-        if (isProtected(window.location.href))
-            return false;
-        console.log(`Data is missing from getTodo ${window.location.href} I may close this tab`);
-        try {
-            await SendMessage_1.default({ command: 'closeMe', lazy: true, reason: 'data is missing from getTodo' });
+async function startPluginCode() {
+    try {
+        await common_1.wait(500);
+        const data = await SendMessage_1.default({ command: 'getTodo' });
+        if (!data) {
+            if (isProtected(window.location.href))
+                return false;
+            console.log(`Data is missing from getTodo ${window.location.href} I may close this tab`);
+            try {
+                await SendMessage_1.default({ command: 'closeMe', lazy: true, reason: 'data is missing from getTodo' });
+            }
+            catch (e) { }
+            return true;
         }
-        catch (e) { }
-        return true;
+        if (data.error) {
+            console.error(`Bootstraping Retunr Error: ${data.error}`);
+            return true;
+        }
+        if (data === 'code injected' || !data.task)
+            return true;
+        const task = data.task;
+        if (!task)
+            return false;
+        if (!task.deps)
+            task.deps = [];
+        let virtualScript = [];
+        for (const dep of task.deps) {
+            console.log('inject ', dep);
+            const data2 = await fetch(dep, { method: 'GET' }).then((response) => response.text());
+            virtualScript.push(data2);
+        }
+        return execute(virtualScript.join('\r\n'));
     }
-    if (data.error) {
-        console.error(`Bootstraping Retunr Error: ${data.error}`);
-        return true;
+    catch (error) {
+        console.error(error);
     }
-    if (data === 'code injected' || !data.task)
-        return true;
-    const task = data.task;
-    if (!task)
-        return false;
-    if (!task.deps)
-        task.deps = [];
-    let virtualScript = [];
-    for (const dep of task.deps) {
-        const data2 = await httpGet(dep);
-        virtualScript.push(data2);
-        ;
-    }
-    return execute(virtualScript.join('\r\n'));
-}, (error) => console.error(error));
+}
+startPluginCode();
 
-},{"./SendMessage":1}],3:[function(require,module,exports){
+},{"./SendMessage":1,"./common":3}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.wait = void 0;
