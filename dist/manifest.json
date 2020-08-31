@@ -29,15 +29,7 @@
         "https://*/*"
       ],
       "run_at": "document_start"
-    }, {
-        "all_frames": true,
-        "js": [],
-        "matches": [
-          "http://*/*",
-          "https://*/*"
-        ],
-        "run_at": "document_idle"
-      }  
+    }
   ],
   "devtools_page": "devtools.html",
   "externally_connectable": {
