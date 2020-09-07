@@ -22,12 +22,12 @@ function setPromiseFunction(fn: ((...args: any) => any), thisArg: any) {
                     return reject(err);
                 const results = Array.prototype.slice.call(arg2);
                 switch (results.length) {
-                case 0:
-                    return resolve();
-                case 1:
-                    return resolve(results[0]);
-                default:
-                    return resolve(results);
+                    case 0:
+                        return resolve();
+                    case 1:
+                        return resolve(results[0]);
+                    default:
+                        return resolve(results);
                 }
             }
             args.push(callback);
@@ -63,7 +63,7 @@ export default class Tasker {
     public static updateBadge() {
         const tabss = Object.values(Tasker.Instance.namedTab);
         let total = 0;
-        tabss.forEach(tabs => total+= tabs.length);        
+        tabss.forEach(tabs => total += tabs.length);
         pluginStat.nbNamedTab = `${tabss.length}/${total}`;
 
         if (!chrome.browserAction)
@@ -82,11 +82,22 @@ export default class Tasker {
 
     private static _instance: Tasker;
 
-    public blockedDomains: string[] = [];
+    private blockedDomains: string[] = [];
 
-    public lastCookiesUpdate: number = 0;
+    public isBlockerDomain(domain: string) {
+        if (!domain)
+            return false;
+        if (!this.blockedDomains || !this.blockedDomains.length)
+            return false;
+        for (const dom of this.blockedDomains)
+            if (~domain.indexOf(dom))
+                return true;
+    }
 
-    public lastCookiesSave: number = 0;
+
+    // public lastCookiesUpdate: number = 0;
+
+    // public lastCookiesSave: number = 0;
 
     /**
      * mapping tabId => ZTask
@@ -303,7 +314,7 @@ export default class Tasker {
             Tasker.Instance.registedActionTab[tab.id] = task;
             pluginStat.nbRegistedActionTab = Object.keys(Tasker.Instance.registedActionTab).length;
             if (task.target) {
-                Tasker.Instance.namedTab[task.target] = [ tab ];
+                Tasker.Instance.namedTab[task.target] = [tab];
                 Tasker.updateBadge();
             }
             sendResponse('done');
@@ -363,7 +374,7 @@ export default class Tasker {
         },
 
         saveCookies: async (request, sender, sendResponse) => {
-            this.lastCookiesSave = Date.now();
+            // this.lastCookiesSave = Date.now();
             // console.log(`lastCookiesSave updated`);
             sendResponse('ok');
         },
@@ -372,7 +383,7 @@ export default class Tasker {
          * setBlockedDomains {domains:[dom1, dom2 ...]}
          */
         setBlockedDomains: async (request, sender, sendResponse) => {
-            const { domains } = request;
+            const domains = request.domains;
             Tasker.Instance.blockedDomains = domains;
             return sendResponse('updated');
         },
@@ -383,14 +394,14 @@ export default class Tasker {
                 // const frame = await chromep.webNavigation.getFrame({ frameId, tabId });
                 const allFrames = await chromep.webNavigation.getAllFrames({ tabId });
                 if (allFrames) {
-                    const [current] = allFrames.filter(({frameId})=> frameId === curentFrameId);
+                    const [current] = allFrames.filter(({ frameId }) => frameId === curentFrameId);
                     if (!current)
                         throw Error('can not find caller frame');
-                    const {parentFrameId} = current;
-                    if (!parentFrameId) 
+                    const { parentFrameId } = current;
+                    if (!parentFrameId)
                         return sendResponse(current.url);
-                    const [parent] = allFrames.filter(({frameId})=> frameId === parentFrameId);
-                    if (!parent) 
+                    const [parent] = allFrames.filter(({ frameId }) => frameId === parentFrameId);
+                    if (!parent)
                         throw Error('can not find caller parent frame');
                     return sendResponse(parent.url);
                 }
@@ -403,7 +414,7 @@ export default class Tasker {
             const { value } = proxySettings;
             // eslint-disable-next-line no-debugger
             if (value && value.rules && value.rules.singleProxy) {
-                const {host, port, scheme} = value.rules.singleProxy;
+                const { host, port, scheme } = value.rules.singleProxy;
                 proxy = `${scheme}://${host}:${port}`;
             } else if (value.mode) {
                 proxy = value.mode;
@@ -555,7 +566,7 @@ export default class Tasker {
          */
         pushCookies: async (request, sender, sendResponse) => {
             await zFunction.pushCookies(request.cookies);
-            Tasker.Instance.lastCookiesSave = Date.now();
+            // Tasker.Instance.lastCookiesSave = Date.now();
             sendResponse('ok');
         },
         /**
@@ -563,7 +574,7 @@ export default class Tasker {
          */
         putCookies: async (request, sender, sendResponse) => {
             await zFunction.pushCookies(request.cookies);
-            Tasker.Instance.lastCookiesSave = Date.now();
+            // Tasker.Instance.lastCookiesSave = Date.now();
             sendResponse('ok');
         },
         /**
@@ -620,7 +631,7 @@ export default class Tasker {
          */
         post: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
             // todo improve error message
-            const response = await zFunction.postJSON(request.url, request.data, {contentType: request.contentType, dataType: request.dataType});
+            const response = await zFunction.postJSON(request.url, request.data, { contentType: request.contentType, dataType: request.dataType });
             sendResponse(response);
         },
 
@@ -628,7 +639,7 @@ export default class Tasker {
          * Internal http POST
          */
         put: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
-            const response = await zFunction.httpQuery({url: request.url, method: 'PUT', postData:  request.data, contentType: request.contentType, dataType: request.dataType});
+            const response = await zFunction.httpQuery({ url: request.url, method: 'PUT', postData: request.data, contentType: request.contentType, dataType: request.dataType });
             sendResponse(response);
         },
 
@@ -636,7 +647,7 @@ export default class Tasker {
          * Internal http POST
          */
         delete: async (request, sender: chrome.runtime.MessageSender | undefined, sendResponse) => {
-            const r = await zFunction.deleteHttp(request.url, {contentType: request.contentType, dataType: request.dataType});
+            const r = await zFunction.deleteHttp(request.url, { contentType: request.contentType, dataType: request.dataType });
             sendResponse(r);
         },
 
@@ -645,7 +656,7 @@ export default class Tasker {
          */
         get: async (request, sender, sendResponse) => {
             // const r = await zFunction.httpGetPromise(request.url); + ret r.data
-            const r = await zFunction.getHttp(request.url, {contentType: request.contentType, dataType: request.dataType});
+            const r = await zFunction.getHttp(request.url, { contentType: request.contentType, dataType: request.dataType });
             sendResponse(r);
         },
 
@@ -713,11 +724,10 @@ export default class Tasker {
                 return sendResponse('NOOP');
             }
 
-            const {deps = [], allDeps = [], depCss = [], allDepCss = [], action = '', allAction = ''} = tabInformation;
+            const { deps = [], allDeps = [], depCss = [], allDepCss = [], action = '', allAction = '' } = tabInformation;
             const addDebug = pluginStat.config.debuggerStatement ? 'debugger;\r\n' : '';
             // if this tab has parent that we known of table of parent
-            if (allDeps.length)
-            {
+            if (allDeps.length) {
                 const code = `// sources:\r\n// ${ZFunction.flat(allDeps).join('\r\n// ')}`;
                 if (allDepCss.length)
                     await zFunction.injectCSS(tabId, allDepCss, { allFrames: true });
@@ -748,12 +758,12 @@ export default class Tasker {
             pluginStat.userAgent = request.userAgent;
             sendResponse('ok');
         },
-        
+
         getConfigs: async (request, sender, sendResponse) => {
             sendResponse({
                 ...pluginStat.config,
-                lastCookiesSave: Tasker.Instance.lastCookiesSave,
-                lastCookiesUpdate: Tasker.Instance.lastCookiesUpdate
+                // lastCookiesSave: Tasker.Instance.lastCookiesSave,
+                // lastCookiesUpdate: Tasker.Instance.lastCookiesUpdate
             });
         }
     };

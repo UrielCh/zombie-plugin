@@ -41,19 +41,6 @@ const common_1 = require("./common");
 const tasker = tasker_1.default.Instance;
 const chromep = new chrome_promise_1.default();
 const pluginStat = PluginStat_1.default();
-if (chrome.cookies)
-    chrome.cookies.onChanged.addListener((changeInfo) => {
-        const { cookie, cause } = changeInfo;
-        if (cause === 'overwrite' || cause === 'expired_overwrite') {
-            const { domain, name } = cookie;
-            if (domain.indexOf('google.') >= 0 || domain.indexOf('youtube.') >= 0) {
-                let now = Date.now();
-                if (name === 'SIDCC')
-                    now -= 10000;
-                tasker.lastCookiesUpdate = Math.max(tasker.lastCookiesUpdate, now);
-            }
-        }
-    });
 if (chrome.tabs)
     chrome.tabs.onRemoved.addListener((tabId) => {
         const oldTask = tasker.registedActionTab[tabId];
@@ -156,6 +143,20 @@ if (chrome.webRequest) {
             });
     }, { urls: ['<all_urls>'] }, ['asyncBlocking']);
     chrome.webRequest.onErrorOccurred.addListener(async (details) => {
+        if (details.type === 'xmlhttprequest') {
+            if (details.initiator) {
+                const url = new URL(details.initiator);
+                if (tasker.isBlockerDomain(url.hostname)) {
+                    const tabs = await chromep.tabs.query({ url: url.hostname });
+                    if (tabs.length) {
+                        for (const tab of tabs)
+                            if (tab.id)
+                                zUtils_1.default.closeTab(tab.id);
+                    }
+                }
+                return;
+            }
+        }
         if (details.type !== 'main_frame')
             return;
         if (details.error === 'net::ERR_FILE_NOT_FOUND' || details.error === 'net::ERR_NAME_NOT_RESOLVED') {
@@ -216,11 +217,9 @@ if (chrome.webRequest) {
             return {
                 requestHeaders
             };
-        if (tasker.blockedDomains && tasker.blockedDomains.length) {
-            const hostname = getHostname(data.url);
-            for (const dom of tasker.blockedDomains)
-                if (~hostname.indexOf(dom))
-                    return { cancel: true };
+        const hostname = getHostname(data.url);
+        if (tasker.isBlockerDomain(hostname)) {
+            return { cancel: true };
         }
         if (data.requestHeaders && data.requestHeaders.length > 0 && pluginStat.userAgent)
             requestHeaders = replaceUserAgent(pluginStat.userAgent, data.requestHeaders);
@@ -346,8 +345,6 @@ const chrome_debugger_sendCommand = setPromiseFunction(chrome.debugger.sendComma
 class Tasker {
     constructor() {
         this.blockedDomains = [];
-        this.lastCookiesUpdate = 0;
-        this.lastCookiesSave = 0;
         this.registedActionTab = {};
         this.nbRegistedActionTab = 0;
         this.namedTab = {};
@@ -492,11 +489,10 @@ class Tasker {
                 });
             },
             saveCookies: async (request, sender, sendResponse) => {
-                this.lastCookiesSave = Date.now();
                 sendResponse('ok');
             },
             setBlockedDomains: async (request, sender, sendResponse) => {
-                const { domains } = request;
+                const domains = request.domains;
                 Tasker.Instance.blockedDomains = domains;
                 return sendResponse('updated');
             },
@@ -640,12 +636,10 @@ class Tasker {
             },
             pushCookies: async (request, sender, sendResponse) => {
                 await zFunction.pushCookies(request.cookies);
-                Tasker.Instance.lastCookiesSave = Date.now();
                 sendResponse('ok');
             },
             putCookies: async (request, sender, sendResponse) => {
                 await zFunction.pushCookies(request.cookies);
-                Tasker.Instance.lastCookiesSave = Date.now();
                 sendResponse('ok');
             },
             clean: async (request, sender, sendResponse) => {
@@ -766,8 +760,6 @@ class Tasker {
             getConfigs: async (request, sender, sendResponse) => {
                 sendResponse({
                     ...pluginStat.config,
-                    lastCookiesSave: Tasker.Instance.lastCookiesSave,
-                    lastCookiesUpdate: Tasker.Instance.lastCookiesUpdate
                 });
             }
         };
@@ -791,6 +783,15 @@ class Tasker {
             chrome.browserAction.setBadgeBackgroundColor({ color: '#468847' });
             chrome.browserAction.setBadgeText({ text: pluginStat.nbNamedTab });
         }
+    }
+    isBlockerDomain(domain) {
+        if (!domain)
+            return false;
+        if (!this.blockedDomains || !this.blockedDomains.length)
+            return false;
+        for (const dom of this.blockedDomains)
+            if (~domain.indexOf(dom))
+                return true;
     }
     static get Instance() {
         return this._instance || (this._instance = new this());

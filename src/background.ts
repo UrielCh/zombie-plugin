@@ -9,25 +9,25 @@ const tasker = Tasker.Instance;
 const chromep = new ChromePromise();
 const pluginStat: PluginStatValue = PluginStat();
 
-if (chrome.cookies)
-    chrome.cookies.onChanged.addListener((changeInfo) => {
-        const {
-            cookie,
-            cause
-        } = changeInfo;
-        if (cause === 'overwrite' || cause === 'expired_overwrite') {
-            const {
-                domain,
-                name
-            } = cookie;
-            if (domain.indexOf('google.') >= 0 || domain.indexOf('youtube.') >= 0) {
-                let now = Date.now();
-                if (name === 'SIDCC') // https://www.zaizi.com/cookie-policy  throttle  SIDCC update
-                    now -= 10000;
-                tasker.lastCookiesUpdate = Math.max(tasker.lastCookiesUpdate, now);
-            }
-        }
-    });
+// if (chrome.cookies)
+//     chrome.cookies.onChanged.addListener((changeInfo) => {
+//         const {
+//             cookie,
+//             cause
+//         } = changeInfo;
+//         if (cause === 'overwrite' || cause === 'expired_overwrite') {
+//             const {
+//                 domain,
+//                 name
+//             } = cookie;
+//             if (domain.indexOf('google.') >= 0 || domain.indexOf('youtube.') >= 0) {
+//                 let now = Date.now();
+//                 if (name === 'SIDCC') // https://www.zaizi.com/cookie-policy  throttle  SIDCC update
+//                     now -= 10000;
+//                 tasker.lastCookiesUpdate = Math.max(tasker.lastCookiesUpdate, now);
+//             }
+//         }
+//     });
 
 if (chrome.tabs)
     chrome.tabs.onRemoved.addListener((tabId/*, removeInfo*/) => {
@@ -36,9 +36,9 @@ if (chrome.tabs)
         pluginStat.nbRegistedActionTab = Object.keys(tasker.registedActionTab).length;
         if (oldTask && oldTask.target) {
             const tabs = tasker.namedTab[oldTask.target];
-            for (let i = tabs.length-1; i>=0; i--) {
+            for (let i = tabs.length - 1; i >= 0; i--) {
                 if (tabs[i].id === tabId)
-                    tabs.splice(i,1)
+                    tabs.splice(i, 1)
             }
             if (!tabs.length) {
                 delete tasker.namedTab[oldTask.target];
@@ -59,7 +59,7 @@ if (chrome.tabs)
             const addedTab = await chromep.tabs.get(addedTabId);
             for (const key in tasker.namedTab) {
                 const tabs = tasker.namedTab[key];
-                for (let i=0; i< tabs.length; i++)
+                for (let i = 0; i < tabs.length; i++)
                     if (tabs[i].id === removedTabId) {
                         tabs[i] = addedTab;
                         break;
@@ -95,7 +95,7 @@ const pluginListener = (source: string) => async (message: any, sender: chrome.r
             sendResponse({ error: `${msg} Failed ${error.message}` });
         }
     else
-        sendResponse({ error: `command ${message.command} not found`} );
+        sendResponse({ error: `command ${message.command} not found` });
     return true;
 };
 
@@ -122,7 +122,7 @@ const pluginListenerCnx = (source: string) => async (message: { requestId: numbe
         } catch (e) {
             const msg = `${source}.${data.command}`;
             console.log(msg, 'promise Failure', e);
-            const error = e.message || e.statusText || e.toString() ;
+            const error = e.message || e.statusText || e.toString();
             port.postMessage({ requestId, error: `${msg} ${error}`, stack: e.stack || '' });
         }
     else
@@ -150,11 +150,29 @@ if (chrome.webRequest) {
                 authCredentials: JSON.parse(pluginStat.config.proxyAuth)
             });
     },
-    { urls: ['<all_urls>'] },
-    ['asyncBlocking']);
+        { urls: ['<all_urls>'] },
+        ['asyncBlocking']);
 
     chrome.webRequest.onErrorOccurred.addListener(async (details) => {
-        if (details.type !== 'main_frame')
+
+        // close tab keeped open by workers
+        if (details.type === 'xmlhttprequest') {
+            if (details.initiator) {
+                const url = new URL(details.initiator);
+                if (tasker.isBlockerDomain(url.hostname)) {
+                    const tabs = await chromep.tabs.query({ url: url.hostname });
+                    if (tabs.length) {
+                        for (const tab of tabs)
+                            if (tab.id)
+                                ZUtils.closeTab(tab.id);
+                    }
+                }
+                return;
+            }
+        }
+
+        //   | "script"
+        if (details.type !== 'main_frame') // "main_frame" | "sub_frame" | "stylesheet" | "script" | "image" | "font" | "object" | "xmlhttprequest" | "ping" | "csp_report" | "media" | "websocket" | "other"
             return;
         if (details.error === 'net::ERR_FILE_NOT_FOUND' || details.error === 'net::ERR_NAME_NOT_RESOLVED') {
 
@@ -228,11 +246,9 @@ if (chrome.webRequest) {
             return {
                 requestHeaders
             };
-        if (tasker.blockedDomains && tasker.blockedDomains.length) {
-            const hostname = getHostname(data.url);
-            for (const dom of tasker.blockedDomains)
-                if (~hostname.indexOf(dom))
-                    return { cancel: true };
+        const hostname = getHostname(data.url);
+        if (tasker.isBlockerDomain(hostname)) {
+            return { cancel: true };
         }
         if (data.requestHeaders && data.requestHeaders.length > 0 && pluginStat.userAgent)
             requestHeaders = replaceUserAgent(pluginStat.userAgent, data.requestHeaders);
