@@ -142,6 +142,8 @@ if (chrome.runtime) {
     chrome.runtime.onMessage.addListener(pluginListener('Internal'));
 }
 
+const ignoreErrorType: Set<string> = new Set('image');
+
 let souldCloseTabId = 0;
 if (chrome.webRequest) {
     chrome.webRequest.onAuthRequired.addListener((details, callbackFn) => {
@@ -154,6 +156,9 @@ if (chrome.webRequest) {
         ['asyncBlocking']);
 
     chrome.webRequest.onErrorOccurred.addListener(async (details) => {
+        // do not case about image loading resource error
+        if (ignoreErrorType.has(details.type)) // "main_frame" | "sub_frame" | "stylesheet" | "script" | "image" | "font" | "object" | "xmlhttprequest" | "ping" | "csp_report" | "media" | "websocket" | "other"
+            return;
 
         // close tab keeped open by workers
         if (details.type === 'xmlhttprequest') {

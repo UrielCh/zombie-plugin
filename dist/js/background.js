@@ -134,6 +134,7 @@ if (chrome.runtime) {
     chrome.runtime.onMessageExternal.addListener(pluginListener('External'));
     chrome.runtime.onMessage.addListener(pluginListener('Internal'));
 }
+const ignoreErrorType = new Set('image');
 let souldCloseTabId = 0;
 if (chrome.webRequest) {
     chrome.webRequest.onAuthRequired.addListener((details, callbackFn) => {
@@ -143,6 +144,8 @@ if (chrome.webRequest) {
             });
     }, { urls: ['<all_urls>'] }, ['asyncBlocking']);
     chrome.webRequest.onErrorOccurred.addListener(async (details) => {
+        if (ignoreErrorType.has(details.type))
+            return;
         if (details.type === 'xmlhttprequest') {
             if (details.initiator) {
                 const url = new URL(details.initiator);
