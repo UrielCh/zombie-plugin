@@ -134,7 +134,7 @@ if (chrome.runtime) {
     chrome.runtime.onMessageExternal.addListener(pluginListener('External'));
     chrome.runtime.onMessage.addListener(pluginListener('Internal'));
 }
-const ignoreErrorType = new Set('image');
+const ignoreErrorType = new Set(['image', 'font']);
 let souldCloseTabId = 0;
 if (chrome.webRequest) {
     chrome.webRequest.onAuthRequired.addListener((details, callbackFn) => {

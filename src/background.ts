@@ -142,7 +142,9 @@ if (chrome.runtime) {
     chrome.runtime.onMessage.addListener(pluginListener('Internal'));
 }
 
-const ignoreErrorType: Set<string> = new Set('image');
+const ignoreErrorType: Set<string> = new Set(['image', 'font']);
+
+ignoreErrorType.add('font');
 
 let souldCloseTabId = 0;
 if (chrome.webRequest) {
