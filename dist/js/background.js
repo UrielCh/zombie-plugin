@@ -134,7 +134,7 @@ if (chrome.runtime) {
     chrome.runtime.onMessageExternal.addListener(pluginListener('External'));
     chrome.runtime.onMessage.addListener(pluginListener('Internal'));
 }
-const ignoreErrorType = new Set(['image', 'font']);
+const ignoreErrorType = new Set(['image', 'font', 'sub_frame', 'other']);
 let souldCloseTabId = 0;
 if (chrome.webRequest) {
     chrome.webRequest.onAuthRequired.addListener((details, callbackFn) => {
@@ -270,6 +270,10 @@ if (chrome.tabs)
 setInterval(async () => {
     const tabs = await chromep.tabs.query({});
     tabs.forEach((tab) => {
+        if (tab.id && tab.active && tab.status === "unloaded") {
+            chromep.tabs.update(tab.id, { url: tab.url, highlighted: tab.highlighted });
+            return;
+        }
         const tabInformation = tasker.getTabInformation(tab);
         if (tabInformation)
             return;
@@ -279,7 +283,7 @@ setInterval(async () => {
             return;
         tasker.mayCloseTabIn(tab.id, 5007);
     });
-}, 5 * 60000);
+}, 60000);
 if (chrome.storage) {
     let lastValue = '';
     chromep.storage.local.get(pluginStat.config)

@@ -9,26 +9,6 @@ const tasker = Tasker.Instance;
 const chromep = new ChromePromise();
 const pluginStat: PluginStatValue = PluginStat();
 
-// if (chrome.cookies)
-//     chrome.cookies.onChanged.addListener((changeInfo) => {
-//         const {
-//             cookie,
-//             cause
-//         } = changeInfo;
-//         if (cause === 'overwrite' || cause === 'expired_overwrite') {
-//             const {
-//                 domain,
-//                 name
-//             } = cookie;
-//             if (domain.indexOf('google.') >= 0 || domain.indexOf('youtube.') >= 0) {
-//                 let now = Date.now();
-//                 if (name === 'SIDCC') // https://www.zaizi.com/cookie-policy  throttle  SIDCC update
-//                     now -= 10000;
-//                 tasker.lastCookiesUpdate = Math.max(tasker.lastCookiesUpdate, now);
-//             }
-//         }
-//     });
-
 if (chrome.tabs)
     chrome.tabs.onRemoved.addListener((tabId/*, removeInfo*/) => {
         const oldTask = tasker.registedActionTab[tabId];
@@ -142,9 +122,9 @@ if (chrome.runtime) {
     chrome.runtime.onMessage.addListener(pluginListener('Internal'));
 }
 
-const ignoreErrorType: Set<string> = new Set(['image', 'font']);
-
-ignoreErrorType.add('font');
+const ignoreErrorType: Set<string> = new Set(['image', 'font', 'sub_frame', 'other']);
+// {error: "net::ERR_FILE_NOT_FOUND", frameId: 111,  fromCache: false, method: "GET", parentFrameId: 0, requestId: "168864", tabId: 183, timeStamp: 1600653033675.123, type: "sub_frame", url: "chrome-extension://glahfcghcimoldaofgabgfefmiccmnen/devtools.html", 
+// {error: "net::ERR_CACHE_MISS",     frameId: 108,  fromCache: false, initiator: "https://ogs.google.com", method: "GET", parentFrameId: 0, requestId: "168861", tabId: 181, timeStamp: 1600653033679.347, type: "other", url: "https://ogs.google.com/widget/app/so?origin=https%3A%2F%2Fwww.google.com&cn=app&pid=1&spid=113&hl=fr"
 
 let souldCloseTabId = 0;
 if (chrome.webRequest) {
@@ -311,7 +291,13 @@ if (chrome.tabs)
 setInterval(async () => {
     const tabs = await chromep.tabs.query({});
     tabs.forEach((tab: chrome.tabs.Tab) => {
+        if (tab.id && tab.active && tab.status === "unloaded") {
+            // crached tab tab.highlighted 
+            chromep.tabs.update(tab.id, {url: tab.url, highlighted: tab.highlighted});
+            return;
+        }
         const tabInformation: ZTask | null = tasker.getTabInformation(tab);
+        // TODO add recover crachs
         if (tabInformation)
             return;
         if (!tab || !tab.url || !tab.id)
@@ -320,7 +306,7 @@ setInterval(async () => {
             return;
         tasker.mayCloseTabIn(tab.id, 5007);
     });
-}, 5 * 60000); // 5 min
+}, 60000); // 1 min
 
 // load config from previous state
 // save updated state every 3 sec
