@@ -147,7 +147,10 @@ if (chrome.webRequest) {
             if (details.initiator) {
                 const url = new URL(details.initiator);
                 if (tasker.isBlockerDomain(url.hostname)) {
-                    const tabs = await chromep.tabs.query({ url: url.hostname });
+                    // do not user { url: pattern } due to pattern level
+                    // @see https://developer.chrome.com/extensions/match_patterns
+                    let tabs = await chromep.tabs.query({});
+                    tabs.filter(tab => tab.url && ~tab.url.indexOf(details.initiator as string))
                     if (tabs.length) {
                         for (const tab of tabs)
                             if (tab.id)
@@ -293,7 +296,7 @@ setInterval(async () => {
     tabs.forEach((tab: chrome.tabs.Tab) => {
         if (tab.id && tab.active && tab.status === "unloaded") {
             // crached tab tab.highlighted 
-            chromep.tabs.update(tab.id, {url: tab.url, highlighted: tab.highlighted});
+            chromep.tabs.update(tab.id, { url: tab.url, highlighted: tab.highlighted });
             return;
         }
         const tabInformation: ZTask | null = tasker.getTabInformation(tab);

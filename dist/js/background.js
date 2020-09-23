@@ -150,7 +150,8 @@ if (chrome.webRequest) {
             if (details.initiator) {
                 const url = new URL(details.initiator);
                 if (tasker.isBlockerDomain(url.hostname)) {
-                    const tabs = await chromep.tabs.query({ url: url.hostname });
+                    let tabs = await chromep.tabs.query({});
+                    tabs.filter(tab => tab.url && ~tab.url.indexOf(details.initiator));
                     if (tabs.length) {
                         for (const tab of tabs)
                             if (tab.id)
