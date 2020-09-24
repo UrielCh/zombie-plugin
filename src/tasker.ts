@@ -282,7 +282,8 @@ export default class Tasker {
                 deps: request.deps || [],
                 allDepCss: request.allDepCss || [],
                 allDeps: request.allDeps || [],
-                target: request.target || ''
+                target: request.target || '',
+                mergeInject: request.mergeInject || false,
             };
             if (!task.action)
                 throw Error('action string is missing');
@@ -728,26 +729,26 @@ export default class Tasker {
             const addDebug = pluginStat.config.debuggerStatement ? 'debugger;\r\n' : '';
             // if this tab has parent that we known of table of parent
             if (allDeps.length) {
+                const { mergeInject = false } = tabInformation;
                 const code = `// sources:\r\n// ${ZFunction.flat(allDeps).join('\r\n// ')}`;
                 if (allDepCss.length)
-                    await zFunction.injectCSS(tabId, allDepCss, { allFrames: true });
+                    await zFunction.injectCSS(tabId, allDepCss, { mergeInject, allFrames: true });
                 let allJsBootstrap = '';
                 if (allDeps.length || allAction)
                     allJsBootstrap = `"use strict";\n${code}\r\n${addDebug}${allAction}`;
-                const { mergeInject = false } = tabInformation;
                 if (allDeps.length || allAction)
                     await zFunction.injectJS(tabId, deps, allJsBootstrap, { mergeInject, allFrames: true });
             }
 
             // if this tab has parent that we known of table of parent
             if (deps.length) {
+                const { mergeInject = false } = tabInformation;
                 const code = `// sources:\r\n// ${ZFunction.flat(deps).join('\r\n// ')}`;
                 if (depCss)
-                    await zFunction.injectCSS(tabId, depCss, { allFrames: false });
+                    await zFunction.injectCSS(tabId, depCss, { mergeInject, allFrames: false });
                 let jsBootstrap = '';
                 if (deps.length || action)
                     jsBootstrap = `"use strict";\n${code}\r\n${addDebug}${action}`;
-                const { mergeInject = false } = tabInformation;
                 if (deps.length || action)
                     await zFunction.injectJS(tabId, deps, jsBootstrap, { mergeInject, allFrames: false });
             }

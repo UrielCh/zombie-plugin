@@ -97,6 +97,10 @@ export interface RegisterCommandMessage {
      * Should close unknown tabs
      */
     closeIrrelevantTabs?: boolean;
+    /**
+     * should I merge injections
+     */
+    mergeInject?: boolean;
 }
 
 export interface ZTask {
@@ -127,7 +131,7 @@ export interface ZTask {
     /**
      * inject all JS as a single block
      */
-    mergeInject?: boolean;
+    mergeInject: boolean;
     /**
      * Target named used as task name
      */

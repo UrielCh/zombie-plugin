@@ -60,7 +60,7 @@ export default class ZFunction {
         allFrames: boolean,
         mergeInject?: boolean
     }): Promise<void> {
-        const {allFrames = false, mergeInject= false} = options;
+        const { allFrames = false, mergeInject = false } = options;
         if (urls.length === 0)
             return;
         const urlsFlat: string[] = ZFunction.flat(urls);
@@ -97,16 +97,24 @@ export default class ZFunction {
     /**
      * https://developer.chrome.com/extensions/tabs#method-insertCSS
      */
-    public async injectCSS(tabId: number, depCss: string[], option: { allFrames?: boolean }): Promise<any> {
-        const { allFrames = false } = option;
+    public async injectCSS(tabId: number, depCss: string[], option: { allFrames?: boolean, mergeInject?: boolean }): Promise<any> {
+        const { allFrames = false, mergeInject = false } = option;
+        let toInject = [];
         for (const dep of depCss) {
-            const code = await ZFunction._instance.httpGetCached(dep);
-            const opt = {
-                allFrames,
-                code: code.data,
-            };
-            await chromep.tabs.insertCSS(tabId, opt);
+            const { data } = await ZFunction._instance.httpGetCached(dep);
+            if (mergeInject)
+                toInject.push(data);
+            else
+                await chromep.tabs.insertCSS(tabId, {
+                    allFrames,
+                    code: data,
+                });
         }
+        if (toInject)
+            await chromep.tabs.insertCSS(tabId, {
+                allFrames,
+                code: toInject.join('\r\n'),
+            });
     }
 
     public async httpQuery(param: {
@@ -118,7 +126,7 @@ export default class ZFunction {
     }) {
         // jQuery 3+
         // dataType: 'json',
-        let {contentType = 'application/json', url, method = 'GET', postData = undefined, dataType = undefined} = param;
+        let { contentType = 'application/json', url, method = 'GET', postData = undefined, dataType = undefined } = param;
 
         const data: string = postData ? JSON.stringify(postData) : '';
 
@@ -133,16 +141,16 @@ export default class ZFunction {
         return response;
     }
 
-    public async getHttp(url: string, options: {contentType?: string, dataType?: string}) {
-        return this.httpQuery({url, method: 'GET', ...options});
+    public async getHttp(url: string, options: { contentType?: string, dataType?: string }) {
+        return this.httpQuery({ url, method: 'GET', ...options });
     }
 
-    public async deleteHttp(url: string, options: {contentType?: string, dataType?: string}) {
-        return this.httpQuery({url, method: 'DELETE', ...options});
+    public async deleteHttp(url: string, options: { contentType?: string, dataType?: string }) {
+        return this.httpQuery({ url, method: 'DELETE', ...options });
     }
 
-    public async postJSON(url: string, data: any, options: {contentType?: string, dataType?: string}) {
-        const response = await this.httpQuery({url, method: 'POST', postData: data, ...options});
+    public async postJSON(url: string, data: any, options: { contentType?: string, dataType?: string }) {
+        const response = await this.httpQuery({ url, method: 'POST', postData: data, ...options });
         if (!response)
             return {};
         if (typeof (response) === 'string')
@@ -204,7 +212,7 @@ export default class ZFunction {
         while (true) {
             counter++;
             try {
-                const data = await self.getHttp(url, {contentType: 'text/plain'} );
+                const data = await self.getHttp(url, { contentType: 'text/plain' });
                 const value = {
                     data,
                     lastUpdated: Date.now(),

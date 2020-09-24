@@ -95,7 +95,11 @@ const pluginListenerCnx = (source: string) => async (message: { requestId: numbe
                 try {
                     port.postMessage({ requestId, data: response });
                 } catch (e) {
-                    console.log(`RQ: ${requestId}, PostResponse Failed`, message, e);
+                    if (e.message === 'Attempting to use a disconnected port object') {
+                        // ignore this eror, the tab is closed now
+                    } else {
+                        console.log(`RQ: ${requestId}, PostResponse Failed`, message, e);
+                    }
                 }
             };
             await mtd(data, port.sender, sendResponse);
@@ -189,18 +193,18 @@ if (chrome.webRequest) {
         ) {
             if (souldCloseTabId === details.tabId) {
                 tasker.mayCloseTabIn(details.tabId, 6004);
-                console.log(`${details.error} 2 ${details.error} ${details.url} Close in 1 sec`, details);
+                console.log(`R2:${details.error} ${details.url} Close in 1 sec`, details);
                 return;
             }
             souldCloseTabId = details.tabId;
-            console.log(`${details.error} ${details.error} ${details.url} Refresh in 5 sec canceled`, details);
+            console.log(`R3:${details.error} ${details.url} Refresh in 5 sec canceled`, details);
             //await wait(5000);
             //ZUtils.refreshTab(details.tabId);
             return;
         }
         console.log('chrome.webRequest.onErrorOccurred close 5 sec [close Forced]', details);
         tasker.mayCloseTabIn(details.tabId, 5005);
-        console.log(`${details.error} X ${details.error} ${details.url} Close in 5 sec`, details);
+        console.log(`R4:${details.error} ${details.url} Close in 5 sec`, details);
     }, {
         urls: ['<all_urls>']
     });
