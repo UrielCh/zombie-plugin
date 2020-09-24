@@ -112,7 +112,11 @@ const pluginListenerCnx = (source) => async (message, port) => {
                     port.postMessage({ requestId, data: response });
                 }
                 catch (e) {
-                    console.log(`RQ: ${requestId}, PostResponse Failed`, message, e);
+                    if (e.message === 'Attempting to use a disconnected port object') {
+                    }
+                    else {
+                        console.log(`RQ: ${requestId}, PostResponse Failed`, message, e);
+                    }
                 }
             };
             await mtd(data, port.sender, sendResponse);
@@ -183,16 +187,16 @@ if (chrome.webRequest) {
             details.error === 'net::ERR_EMPTY_RESPONSE') {
             if (souldCloseTabId === details.tabId) {
                 tasker.mayCloseTabIn(details.tabId, 6004);
-                console.log(`${details.error} 2 ${details.error} ${details.url} Close in 1 sec`, details);
+                console.log(`R2:${details.error} ${details.url} Close in 1 sec`, details);
                 return;
             }
             souldCloseTabId = details.tabId;
-            console.log(`${details.error} ${details.error} ${details.url} Refresh in 5 sec canceled`, details);
+            console.log(`R3:${details.error} ${details.url} Refresh in 5 sec canceled`, details);
             return;
         }
         console.log('chrome.webRequest.onErrorOccurred close 5 sec [close Forced]', details);
         tasker.mayCloseTabIn(details.tabId, 5005);
-        console.log(`${details.error} X ${details.error} ${details.url} Close in 5 sec`, details);
+        console.log(`R4:${details.error} ${details.url} Close in 5 sec`, details);
     }, {
         urls: ['<all_urls>']
     });
@@ -427,7 +431,8 @@ class Tasker {
                     deps: request.deps || [],
                     allDepCss: request.allDepCss || [],
                     allDeps: request.allDeps || [],
-                    target: request.target || ''
+                    target: request.target || '',
+                    mergeInject: request.mergeInject || false,
                 };
                 if (!task.action)
                     throw Error('action string is missing');
@@ -738,24 +743,24 @@ class Tasker {
                 const { deps = [], allDeps = [], depCss = [], allDepCss = [], action = '', allAction = '' } = tabInformation;
                 const addDebug = pluginStat.config.debuggerStatement ? 'debugger;\r\n' : '';
                 if (allDeps.length) {
+                    const { mergeInject = false } = tabInformation;
                     const code = `// sources:\r\n// ${zFunction_1.default.flat(allDeps).join('\r\n// ')}`;
                     if (allDepCss.length)
-                        await zFunction.injectCSS(tabId, allDepCss, { allFrames: true });
+                        await zFunction.injectCSS(tabId, allDepCss, { mergeInject, allFrames: true });
                     let allJsBootstrap = '';
                     if (allDeps.length || allAction)
                         allJsBootstrap = `"use strict";\n${code}\r\n${addDebug}${allAction}`;
-                    const { mergeInject = false } = tabInformation;
                     if (allDeps.length || allAction)
                         await zFunction.injectJS(tabId, deps, allJsBootstrap, { mergeInject, allFrames: true });
                 }
                 if (deps.length) {
+                    const { mergeInject = false } = tabInformation;
                     const code = `// sources:\r\n// ${zFunction_1.default.flat(deps).join('\r\n// ')}`;
                     if (depCss)
-                        await zFunction.injectCSS(tabId, depCss, { allFrames: false });
+                        await zFunction.injectCSS(tabId, depCss, { mergeInject, allFrames: false });
                     let jsBootstrap = '';
                     if (deps.length || action)
                         jsBootstrap = `"use strict";\n${code}\r\n${addDebug}${action}`;
-                    const { mergeInject = false } = tabInformation;
                     if (deps.length || action)
                         await zFunction.injectJS(tabId, deps, jsBootstrap, { mergeInject, allFrames: false });
                 }
@@ -913,15 +918,23 @@ class ZFunction {
         await ZFunction._instance.injectJavascript(tabId, lastJs.join('\r\n'), allFrames);
     }
     async injectCSS(tabId, depCss, option) {
-        const { allFrames = false } = option;
+        const { allFrames = false, mergeInject = false } = option;
+        let toInject = [];
         for (const dep of depCss) {
-            const code = await ZFunction._instance.httpGetCached(dep);
-            const opt = {
-                allFrames,
-                code: code.data,
-            };
-            await chromep.tabs.insertCSS(tabId, opt);
+            const { data } = await ZFunction._instance.httpGetCached(dep);
+            if (mergeInject)
+                toInject.push(data);
+            else
+                await chromep.tabs.insertCSS(tabId, {
+                    allFrames,
+                    code: data,
+                });
         }
+        if (toInject)
+            await chromep.tabs.insertCSS(tabId, {
+                allFrames,
+                code: toInject.join('\r\n'),
+            });
     }
     async httpQuery(param) {
         let { contentType = 'application/json', url, method = 'GET', postData = undefined, dataType = undefined } = param;
