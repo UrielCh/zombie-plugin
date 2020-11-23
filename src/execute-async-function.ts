@@ -6,7 +6,7 @@
  * @license MIT
  **/
 
-import ChromePromise from "../vendor/chrome-promise/chrome-promise";
+import ChromePromise from '../vendor/chrome-promise/chrome-promise';
 const chromep = new ChromePromise();
 
 interface InjectAsyncDetails {
@@ -21,20 +21,13 @@ interface InjectAsyncDetails {
  * @param params Array of additional parameters to pass.
  * @returns Execution details to pass to chrome.tabs.executeScript
  **/
-function setupDetails(
-  action: Function | string | { code?: string; file?: string },
-  uid: string,
-  params: any[]
-): chrome.tabs.InjectDetails {
-  // Wrap the async function in an await and a runtime.sendMessage with the result
-  // This should always call runtime.sendMessage, even if an error is thrown
-  const wrapAsyncSendMessage = (action: string | Function) =>
-    `(async function () {
+function setupDetails(action: Function | string | { code?: string; file?: string }, uid: string, params: any[]): chrome.tabs.InjectDetails {
+    // Wrap the async function in an await and a runtime.sendMessage with the result
+    // This should always call runtime.sendMessage, even if an error is thrown
+    const wrapAsyncSendMessage = (action: string | Function) => `(async function () {
     const result = { asyncFuncID: '${uid}' };
     try {
-        result.content = await (${action})(${params
-      .map((p) => JSON.stringify(p))
-      .join(",")});
+        result.content = await (${action})(${params.map((p) => JSON.stringify(p)).join(',')});
     }
     catch(x) {
         // Make an explicit copy of the Error properties
@@ -51,19 +44,19 @@ function setupDetails(
         chrome.runtime.sendMessage(result);
     }
 })()`;
-  // Apply this wrapper to the code passed
-  let execArgs: chrome.tabs.InjectDetails = {};
-  if (typeof action === "function" || typeof action === "string")
+    // Apply this wrapper to the code passed
+    const execArgs: chrome.tabs.InjectDetails = {};
+    if (typeof action === 'function' || typeof action === 'string')
     // Passed a function or string, wrap it directly
-    execArgs.code = wrapAsyncSendMessage(action);
-  else if (action.code) {
+        execArgs.code = wrapAsyncSendMessage(action);
+    else if (action.code) {
     // Passed details object https://developer.chrome.com/extensions/tabs#method-executeScript
-    execArgs.code = wrapAsyncSendMessage(action.code);
-  } else if (action.file)
-    throw Error(`Cannot execute ${action.file}. File based execute scripts are not supported.`);
-  else
-    throw Error(`Cannot execute ${JSON.stringify(action)}, it must be a function, string, or have a code property.`);
-  return execArgs;
+        execArgs.code = wrapAsyncSendMessage(action.code);
+    } else if (action.file)
+        throw Error(`Cannot execute ${action.file}. File based execute scripts are not supported.`);
+    else
+        throw Error(`Cannot execute ${JSON.stringify(action)}, it must be a function, string, or have a code property.`);
+    return execArgs;
 }
 
 /** Create a promise that resolves when chrome.runtime.onMessage fires with the id
@@ -71,21 +64,21 @@ function setupDetails(
  * Messages without the ID will not resolve this promise.
  * @returns {Promise} Promise that resolves when chrome.runtime.onMessage.addListener fires. */
 function promisifyRuntimeMessage(id: string): Promise<any> {
-  // We don't have a reject because the finally in the script wrapper should ensure this always gets called.
-  return new Promise((resolve) => {
-    const listener = (request?: { asyncFuncID: string }) => {
-      // Check that the message sent is intended for this listener
-      if (request && request.asyncFuncID === id) {
-        // Remove this listener
-        chrome.runtime.onMessage.removeListener(listener);
-        resolve(request);
-      }
-      // Return false as we don't want to keep this channel open https://developer.chrome.com/extensions/runtime#event-onMessage
-      return false;
-    };
+    // We don't have a reject because the finally in the script wrapper should ensure this always gets called.
+    return new Promise((resolve) => {
+        const listener = (request?: { asyncFuncID: string }) => {
+            // Check that the message sent is intended for this listener
+            if (request && request.asyncFuncID === id) {
+                // Remove this listener
+                chrome.runtime.onMessage.removeListener(listener);
+                resolve(request);
+            }
+            // Return false as we don't want to keep this channel open https://developer.chrome.com/extensions/runtime#event-onMessage
+            return false;
+        };
 
-    chrome.runtime.onMessage.addListener(listener);
-  });
+        chrome.runtime.onMessage.addListener(listener);
+    });
 }
 
 /** Create a promise that resolves when chrome.tabs.onUpdated fires with the id
@@ -95,75 +88,74 @@ function promisifyRuntimeMessage(id: string): Promise<any> {
  * If this value is null or zero, it defaults to 120,000 ms (2 minutes).
  * @returns {Promise} Promise that resolves when chrome.tabs.onUpdated.addListener fires. */
 function promisifyTabUpdate(id: number, msTimeout: number) {
-  let mainPromise = new Promise((resolve, reject) => {
-    const tabUpdatedListener = (
-      tabId: number,
-      changeInfo: chrome.tabs.TabChangeInfo,
-      tab: chrome.tabs.Tab
-    ) => {
-      // The onUpdated event is called multiple times during a single load.
-      // the status of 'complete' is called only once, when it is finished.
-      if (tabId === id && changeInfo.status === "complete") {
-        removeListeners();
-        resolve({ tabId: tabId, changeInfo: changeInfo, tab: tab });
-      }
-    };
+    const mainPromise = new Promise((resolve, reject) => {
+        const tabUpdatedListener = (
+            tabId: number,
+            changeInfo: chrome.tabs.TabChangeInfo,
+            tab: chrome.tabs.Tab
+        ) => {
+        // The onUpdated event is called multiple times during a single load.
+        // the status of 'complete' is called only once, when it is finished.
+            if (tabId === id && changeInfo.status === 'complete') {
+                removeListeners();
+                resolve({ tabId: tabId, changeInfo: changeInfo, tab: tab });
+            }
+        };
 
-    // This will happen when the tab or window is closed before it finishes loading
-    const tabRemovedListener = (tabId: number, removeInfo: any) => {
-      if (tabId === id) {
-        removeListeners();
-        reject(
-          new Error(
-            `The tab with id = ${tabId} was removed before it finished loading.`
-          )
-        );
-      }
-    };
+        // This will happen when the tab or window is closed before it finishes loading
+        const tabRemovedListener = (tabId: number/*, removeInfo: any*/) => {
+            if (tabId === id) {
+                removeListeners();
+                reject(
+                    new Error(
+                        `The tab with id = ${tabId} was removed before it finished loading.`
+                    )
+                );
+            }
+        };
 
-    // This will happen when the tab is replaced.  This is untested, not sure how to recreate it.
-    const tabReplacedListener = (addedTabId: number, removedTabId: number) => {
-      if (removedTabId === id) {
-        removeListeners();
-        reject(
-          new Error(
-            `The tab with id = ${removedTabId} was replaced before it finished loading.`
-          )
-        );
-      }
-    };
+        // This will happen when the tab is replaced.  This is untested, not sure how to recreate it.
+        const tabReplacedListener = (addedTabId: number, removedTabId: number) => {
+            if (removedTabId === id) {
+                removeListeners();
+                reject(
+                    new Error(
+                        `The tab with id = ${removedTabId} was replaced before it finished loading.`
+                    )
+                );
+            }
+        };
 
-    const removeListeners = () => {
-      chrome.tabs.onUpdated.removeListener(tabUpdatedListener);
-      chrome.tabs.onRemoved.removeListener(tabRemovedListener);
-      chrome.tabs.onReplaced.removeListener(tabReplacedListener);
-    };
+        const removeListeners = () => {
+            chrome.tabs.onUpdated.removeListener(tabUpdatedListener);
+            chrome.tabs.onRemoved.removeListener(tabRemovedListener);
+            chrome.tabs.onReplaced.removeListener(tabReplacedListener);
+        };
 
-    chrome.tabs.onUpdated.addListener(tabUpdatedListener);
-    chrome.tabs.onRemoved.addListener(tabRemovedListener);
-    chrome.tabs.onReplaced.addListener(tabReplacedListener);
-  });
+        chrome.tabs.onUpdated.addListener(tabUpdatedListener);
+        chrome.tabs.onRemoved.addListener(tabRemovedListener);
+        chrome.tabs.onReplaced.addListener(tabReplacedListener);
+    });
 
-  // Although I have onRemoved and onReplaced events watching to reject the promise,
-  // there is nothing in the chrome extension api documentation that guarantees this will be an exhaustive approach.
-  // So to account for the unknown, I am adding an auto-timeout feature to reject the promise after 2 minutes.
-  let timeoutPromise = new Promise((resolve, reject) => {
-    let millisecondsToTimeout = 12e4; // 12e4 = 2 minutes
-    if (!!msTimeout && typeof msTimeout === "number" && msTimeout > 0) {
-      millisecondsToTimeout = msTimeout;
-    }
-    setTimeout(() => {
-      reject(
-        new Error(
-          `The tab loading timed out after ${
-            millisecondsToTimeout / 1000
-          } seconds.`
-        )
-      );
-    }, millisecondsToTimeout);
-  });
+    // Although I have onRemoved and onReplaced events watching to reject the promise,
+    // there is nothing in the chrome extension api documentation that guarantees this will be an exhaustive approach.
+    // So to account for the unknown, I am adding an auto-timeout feature to reject the promise after 2 minutes.
+    const timeoutPromise = new Promise((resolve, reject) => {
+        let millisecondsToTimeout = 12e4; // 12e4 = 2 minutes
+        if (!!msTimeout && typeof msTimeout === 'number' && msTimeout > 0) {
+            millisecondsToTimeout = msTimeout;
+        }
+        setTimeout(() => {
+            reject(
+                new Error(
+                    `The tab loading timed out after ${millisecondsToTimeout / 1000
+                    } seconds.`
+                )
+            );
+        }, millisecondsToTimeout);
+    });
 
-  return Promise.race([mainPromise, timeoutPromise]);
+    return Promise.race([mainPromise, timeoutPromise]);
 }
 
 /** Execute an async function and return the result.
@@ -177,32 +169,33 @@ function promisifyTabUpdate(id: number, msTimeout: number) {
  * Rejects if an error is encountered setting up the function, if an error is thrown by the executing script, or if it times out. */
 
 export const chrome_tabs_executeAsyncFunction = async function (
-  tab: number,
-  action: ((...p: any[]) => any) | string | InjectAsyncDetails,
-  ...params: any[]
+    tab: number,
+    // eslint-disable-next-line no-unused-vars
+    action: ((...p: any[]) => any) | string | InjectAsyncDetails,
+    ...params: any[]
 ): Promise<any> {
-  // Generate a random 4-char key to avoid clashes if called multiple times
-  const uid = Math.floor((1 + Math.random()) * 0x100000000)
-    .toString(16)
-    .substring(1);
+    // Generate a random 4-char key to avoid clashes if called multiple times
+    const uid = Math.floor((1 + Math.random()) * 0x100000000)
+        .toString(16)
+        .substring(1);
 
-  // Write the script and serialise the params
-  const details = setupDetails(action, uid, params);
+    // Write the script and serialise the params
+    const details = setupDetails(action, uid, params);
 
-  // Add a listener so that we know when the async script finishes
-  const message = promisifyRuntimeMessage(uid);
+    // Add a listener so that we know when the async script finishes
+    const message = promisifyRuntimeMessage(uid);
 
-  // This will return a serialised promise, which will be broken (http://stackoverflow.com/questions/43144485)
-  await chromep.tabs.executeScript(tab, details);
+    // This will return a serialised promise, which will be broken (http://stackoverflow.com/questions/43144485)
+    await chromep.tabs.executeScript(tab, details);
 
-  // Wait until we have the result message
-  const { content, error } = await message;
+    // Wait until we have the result message
+    const { content, error } = await message;
 
-  if (error)
-    throw new Error(`Error thrown in execution script: ${error.message}.
+    if (error)
+        throw new Error(`Error thrown in execution script: ${error.message}.
 Stack: ${error.stack}`);
 
-  return content;
+    return content;
 };
 
 /** Creates a Promise that resolves only when the created tab is finished loading.
@@ -214,16 +207,16 @@ Stack: ${error.stack}`);
  * The result is an object containing the parameters passed to the callback for [chrome.tabs.onUpdated]{@link https://developer.chrome.com/extensions/tabs#event-onUpdated}.
  * Rejects if an error is encountered loading the tab, or if it times out. */
 export const chrome_tabs_createAndWait = async function (
-  createProperties: object,
-  msTimeout: number
+    createProperties: object,
+    msTimeout: number
 ): Promise<any> {
-  const tab = await chromep.tabs.create(createProperties);
-  const tabLoadCompletePromise = promisifyTabUpdate(
+    const tab = await chromep.tabs.create(createProperties);
+    const tabLoadCompletePromise = promisifyTabUpdate(
     tab.id as number,
     msTimeout
-  );
-  const results = await tabLoadCompletePromise;
-  return results;
+    );
+    const results = await tabLoadCompletePromise;
+    return results;
 };
 
 /** Creates a Promise that resolves only when the tab is finished reloading.
@@ -236,13 +229,13 @@ export const chrome_tabs_createAndWait = async function (
  * The result is an object containing the parameters passed to the callback for [chrome.tabs.onUpdated]{@link https://developer.chrome.com/extensions/tabs#event-onUpdated}.
  * Rejects if an error is encountered loading the tab, or if it times out. */
 export const chrome_tabs_reloadAndWait = async function (
-  tabId: number,
-  reloadProperties: object,
-  msTimeout: number
+    tabId: number,
+    reloadProperties: object,
+    msTimeout: number
 ): Promise<any> {
-  await chromep.tabs.reload(tabId, reloadProperties);
-  const tabLoadCompletePromise = promisifyTabUpdate(tabId, msTimeout);
-  const results = await tabLoadCompletePromise;
-  return results;
+    await chromep.tabs.reload(tabId, reloadProperties);
+    const tabLoadCompletePromise = promisifyTabUpdate(tabId, msTimeout);
+    const results = await tabLoadCompletePromise;
+    return results;
 };
 

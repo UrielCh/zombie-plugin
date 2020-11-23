@@ -154,12 +154,12 @@ if (chrome.webRequest) {
             if (details.initiator) {
                 const url = new URL(details.initiator);
                 if (tasker.isBlockerDomain(url.hostname)) {
-                    let tabs = await chromep.tabs.query({});
+                    const tabs = await chromep.tabs.query({});
                     tabs.filter(tab => tab.url && ~tab.url.indexOf(details.initiator));
                     if (tabs.length) {
                         for (const tab of tabs)
                             if (tab.id)
-                                zUtils_1.default.closeTab(tab.id);
+                                await zUtils_1.default.closeTab(tab.id);
                     }
                 }
                 return;
@@ -170,23 +170,23 @@ if (chrome.webRequest) {
         if (details.error === 'net::ERR_FILE_NOT_FOUND' || details.error === 'net::ERR_NAME_NOT_RESOLVED') {
             if (details.url.startsWith('chrome-extension://')) {
                 console.log(`Force close 404 extention page ${details.url}`, details.error);
-                zUtils_1.default.closeTab(details.tabId);
+                await zUtils_1.default.closeTab(details.tabId);
                 return;
             }
             console.log('onErrorOccurred close 1 sec', details.error);
-            tasker.mayCloseTabIn(details.tabId, 6003);
+            void tasker.mayCloseTabIn(details.tabId, 6003);
             return;
         }
         if (details.error === 'net::ERR_BLOCKED_BY_CLIENT') {
             await common_1.wait(1009);
-            zUtils_1.default.closeTab(details.tabId);
+            await zUtils_1.default.closeTab(details.tabId);
             return;
         }
         if (details.error === 'net::ERR_TUNNEL_CONNECTION_FAILED' ||
             details.error === 'net::ERR_ABORTED' ||
             details.error === 'net::ERR_EMPTY_RESPONSE') {
             if (souldCloseTabId === details.tabId) {
-                tasker.mayCloseTabIn(details.tabId, 6004);
+                void tasker.mayCloseTabIn(details.tabId, 6004);
                 console.log(`R2:${details.error} ${details.url} Close in 1 sec`, details);
                 return;
             }
@@ -194,9 +194,14 @@ if (chrome.webRequest) {
             console.log(`R3:${details.error} ${details.url} Refresh in 5 sec canceled`, details);
             return;
         }
-        console.log('chrome.webRequest.onErrorOccurred close 5 sec [close Forced]', details);
-        tasker.mayCloseTabIn(details.tabId, 5005);
-        console.log(`R4:${details.error} ${details.url} Close in 5 sec`, details);
+        if (details.error === 'net::ERR_CONNECTION_CLOSED') {
+            console.log(`R4:${details.error} ${details.url} chrome.webRequest.onErrorOccurred close 5 sec [close Forced]`, details);
+            void tasker.mayCloseTabIn(details.tabId, 5005, true);
+        }
+        else {
+            console.log(`R4:${details.error} ${details.url} chrome.webRequest.onErrorOccurred close 5 sec [may close]`, details);
+            void tasker.mayCloseTabIn(details.tabId, 5005);
+        }
     }, {
         urls: ['<all_urls>']
     });
@@ -261,7 +266,7 @@ if (chrome.tabs)
                 console.log('chrome.webRequest.onErrorOccurred close 20 sec [close DROPED]');
                 await common_1.wait(20000);
                 if (tab2 && tab2.id)
-                    tasker.mayCloseTabIn(tab2.id, 2006);
+                    void tasker.mayCloseTabIn(tab2.id, 2006);
                 return;
             }
         }
@@ -275,8 +280,8 @@ if (chrome.tabs)
 setInterval(async () => {
     const tabs = await chromep.tabs.query({});
     tabs.forEach((tab) => {
-        if (tab.id && tab.active && tab.status === "unloaded") {
-            chromep.tabs.update(tab.id, { url: tab.url, highlighted: tab.highlighted });
+        if (tab.id && tab.active && tab.status === 'unloaded') {
+            void chromep.tabs.update(tab.id, { url: tab.url, highlighted: tab.highlighted });
             return;
         }
         const tabInformation = tasker.getTabInformation(tab);
@@ -286,13 +291,13 @@ setInterval(async () => {
             return;
         if (zUtils_1.default.isProtected(tab.url))
             return;
-        tasker.mayCloseTabIn(tab.id, 5007);
+        void tasker.mayCloseTabIn(tab.id, 5007);
     });
 }, 60000);
-if (chrome.storage) {
-    let lastValue = '';
-    chromep.storage.local.get(pluginStat.config)
-        .then(async (items) => {
+void (async () => {
+    if (chrome.storage) {
+        let lastValue = '';
+        const items = await chromep.storage.local.get(pluginStat.config);
         pluginStat.config = items;
         lastValue = JSON.stringify(pluginStat.config);
         tasker_1.default.updateBadge();
@@ -304,14 +309,14 @@ if (chrome.storage) {
             await chromep.storage.local.set(pluginStat.config);
             lastValue = newVal;
         }
-    });
-}
+    }
+})();
 
 },{"../vendor/chrome-promise/chrome-promise":7,"./PluginStat":1,"./common":3,"./tasker":4,"./zUtils":6}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.wait = void 0;
-exports.wait = (duration) => new Promise(resolve => setTimeout(() => (resolve()), duration));
+exports.wait = (duration) => new Promise(resolve => { setTimeout(() => (resolve()), duration); });
 
 },{}],4:[function(require,module,exports){
 "use strict";
@@ -588,7 +593,7 @@ class Tasker {
                 sendResponse('ok');
             },
             setGeoloc: async (request, sender, sendResponse) => {
-                const coords = (request);
+                const coords = request;
                 if (coords.latitude && coords.latitude && coords.accuracy) {
                     delete request.command;
                     await chromep.storage.local.set({ coords });
@@ -809,7 +814,7 @@ class Tasker {
     static get Instance() {
         return this._instance || (this._instance = new this());
     }
-    async mayCloseTabIn(tabId, ms) {
+    async mayCloseTabIn(tabId, ms, force) {
         if (!tabId)
             throw Error('missing tabId');
         ms = ms || 10000;
@@ -818,12 +823,17 @@ class Tasker {
             await common_1.wait(ms);
             const tab = await chromep.tabs.get(tabId);
             if (tab) {
-                const tabInformation = Tasker.Instance.getTabInformation(tab);
-                if (tabInformation) {
-                    console.log(`Tab ${tabId} is now registred, abord close`);
+                if (force) {
+                    await zUtils_1.default.closeTab(tabId);
                 }
                 else {
-                    zUtils_1.default.closeTab(tabId);
+                    const tabInformation = Tasker.Instance.getTabInformation(tab);
+                    if (tabInformation) {
+                        console.log(`Tab ${tabId} is now registred, abord close`);
+                    }
+                    else {
+                        await zUtils_1.default.closeTab(tabId);
+                    }
                 }
             }
         }
@@ -890,7 +900,7 @@ class ZFunction {
         if (urls.length === 0)
             return;
         const urlsFlat = ZFunction.flat(urls);
-        let lastJs = [];
+        const lastJs = [];
         try {
             const responsesMetadata = await this.httpGetAll(urlsFlat);
             const responsesMap = {};
@@ -919,7 +929,7 @@ class ZFunction {
     }
     async injectCSS(tabId, depCss, option) {
         const { allFrames = false, mergeInject = false } = option;
-        let toInject = [];
+        const toInject = [];
         for (const dep of depCss) {
             const { data } = await ZFunction._instance.httpGetCached(dep);
             if (mergeInject)
@@ -937,7 +947,7 @@ class ZFunction {
             });
     }
     async httpQuery(param) {
-        let { contentType = 'application/json', url, method = 'GET', postData = undefined, dataType = undefined } = param;
+        const { contentType = 'application/json', url, method = 'GET', postData = undefined, dataType = undefined } = param;
         const data = postData ? JSON.stringify(postData) : '';
         const response = await jQuery.ajax({
             contentType,

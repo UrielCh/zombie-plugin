@@ -155,7 +155,7 @@ describe('Test Proxy Feature', () => {
     let ipTxt0: string;
     it('disable all privious proxy data', async () => {
         const page = await getBGPage();
-        page.evaluate(() => { (chrome.runtime.onMessage as any).dispatch({ command: 'setProxy' }, null, console.log); });
+        await page.evaluate(() => { (chrome.runtime.onMessage as any).dispatch({ command: 'setProxy' }, null, console.log); });
     });
 
     it('Try to find a public proxy', async () => {
@@ -218,7 +218,7 @@ describe('Test QR code Readed', () => {
         const page0 = await getMainPage();
         // tslint:disable-next-line: no-shadowed-variable
         const qr = await page0.evaluate((pluginId) => {
-            return new Promise(resolve => chrome.runtime.sendMessage(pluginId, { command: 'readQrCode' }, resolve));
+            return new Promise(resolve => {chrome.runtime.sendMessage(pluginId, { command: 'readQrCode' }, resolve);});
         }, pluginId) as any[];
         expect(qr.length).to.equal(1);
         expect(qr[0].text).to.equal('https://github.com/UrielCh/zombie-plugin');
@@ -242,7 +242,7 @@ describe('Test Cookies manipulation functions', () => {
         const page = await getBGPage();
         // get Original cookies
         cookies1 = await page.evaluate(() => {
-            return new Promise(resolve => (chrome.runtime.onMessage as any).dispatch({ command: 'getCookies', name: '.*' }, null, resolve));
+            return new Promise(resolve => {(chrome.runtime.onMessage as any).dispatch({ command: 'getCookies', name: '.*' }, null, resolve);});
         }) as puppeteer.Cookie[];
         // console.log(`total Cookies Count: ${cookies1.length}`);
         // console.log(cookies1.map(cookie => `${cookie.domain}${cookie.path} ${cookie.name}`).join(', '));
@@ -253,7 +253,7 @@ describe('Test Cookies manipulation functions', () => {
         const page = await getBGPage();
         // delete cookies should return deleted cookies
         const deleted = await page.evaluate(() => {
-            return new Promise(resolve => (chrome.runtime.onMessage as any).dispatch({ command: 'deleteCookies', name: '.*' }, null, resolve));
+            return new Promise(resolve => {(chrome.runtime.onMessage as any).dispatch({ command: 'deleteCookies', name: '.*' }, null, resolve);});
         }) as puppeteer.Cookie[];
         expect(deleted).to.eq(cookies1.length);
         // console.log(deleted + ' cookies deleted');
@@ -263,7 +263,7 @@ describe('Test Cookies manipulation functions', () => {
         const page = await getBGPage();
         // get cookies after delete should be empty
         const cookies3 = await page.evaluate(() => {
-            return new Promise(resolve => (chrome.runtime.onMessage as any).dispatch({ command: 'getCookies', name: '.*' }, null, resolve));
+            return new Promise(resolve => {(chrome.runtime.onMessage as any).dispatch({ command: 'getCookies', name: '.*' }, null, resolve);});
         }) as puppeteer.Cookie[];
         expect(cookies3.length).to.eq(0);
     });
@@ -272,7 +272,7 @@ describe('Test Cookies manipulation functions', () => {
         const page = await getBGPage();
         // push previouly save cookies
         const code = await page.evaluate((cookies) => {
-            return new Promise(resolve => (chrome.runtime.onMessage as any).dispatch({ command: 'pushCookies', cookies }, null, resolve));
+            return new Promise(resolve => {(chrome.runtime.onMessage as any).dispatch({ command: 'pushCookies', cookies }, null, resolve);});
         }, cookies1 as any as puppeteer.SerializableOrJSHandle);
         expect(code).to.eq('ok');
     });
@@ -281,7 +281,7 @@ describe('Test Cookies manipulation functions', () => {
         const page = await getBGPage();
         // get cookies should be the same
         const cookies4 = await page.evaluate(() => {
-            return new Promise(resolve => (chrome.runtime.onMessage as any).dispatch({ command: 'getCookies', name: '.*' }, null, resolve));
+            return new Promise(resolve => {(chrome.runtime.onMessage as any).dispatch({ command: 'getCookies', name: '.*' }, null, resolve);});
         }) as puppeteer.Cookie[];
         // console.log(cookies4.map(cookie => `${cookie.domain}${cookie.path} ${cookie.name}`).join(', '));
         expect(cookies4).to.deep.eq(cookies1);

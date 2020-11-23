@@ -18,7 +18,7 @@ if (chrome.tabs)
             const tabs = tasker.namedTab[oldTask.target];
             for (let i = tabs.length - 1; i >= 0; i--) {
                 if (tabs[i].id === tabId)
-                    tabs.splice(i, 1)
+                    tabs.splice(i, 1);
             }
             if (!tabs.length) {
                 delete tasker.namedTab[oldTask.target];
@@ -57,6 +57,7 @@ if (chrome.tabs)
 /**
  * onMessage function reciever
  */
+// eslint-disable-next-line no-unused-vars
 const pluginListener = (source: string) => async (message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) => {
     // dummy sendResponse for some test case
     if (!sendResponse)
@@ -137,9 +138,7 @@ if (chrome.webRequest) {
             callbackFn({
                 authCredentials: JSON.parse(pluginStat.config.proxyAuth)
             });
-    },
-        { urls: ['<all_urls>'] },
-        ['asyncBlocking']);
+    }, { urls: ['<all_urls>'] }, ['asyncBlocking']);
 
     chrome.webRequest.onErrorOccurred.addListener(async (details) => {
         // do not case about image loading resource error
@@ -153,12 +152,12 @@ if (chrome.webRequest) {
                 if (tasker.isBlockerDomain(url.hostname)) {
                     // do not user { url: pattern } due to pattern level
                     // @see https://developer.chrome.com/extensions/match_patterns
-                    let tabs = await chromep.tabs.query({});
-                    tabs.filter(tab => tab.url && ~tab.url.indexOf(details.initiator as string))
+                    const tabs = await chromep.tabs.query({});
+                    tabs.filter(tab => tab.url && ~tab.url.indexOf(details.initiator as string));
                     if (tabs.length) {
                         for (const tab of tabs)
                             if (tab.id)
-                                ZUtils.closeTab(tab.id);
+                                await ZUtils.closeTab(tab.id);
                     }
                 }
                 return;
@@ -172,17 +171,17 @@ if (chrome.webRequest) {
 
             if (details.url.startsWith('chrome-extension://')) {
                 console.log(`Force close 404 extention page ${details.url}`, details.error);
-                ZUtils.closeTab(details.tabId);
+                await ZUtils.closeTab(details.tabId);
                 return;
             }
             console.log('onErrorOccurred close 1 sec', details.error);
-            tasker.mayCloseTabIn(details.tabId, 6003);
+            void tasker.mayCloseTabIn(details.tabId, 6003);
             return;
         }
 
         if (details.error === 'net::ERR_BLOCKED_BY_CLIENT') {
             await wait(1009);
-            ZUtils.closeTab(details.tabId);
+            await ZUtils.closeTab(details.tabId);
             return;
         }
 
@@ -192,7 +191,7 @@ if (chrome.webRequest) {
             details.error === 'net::ERR_EMPTY_RESPONSE'
         ) {
             if (souldCloseTabId === details.tabId) {
-                tasker.mayCloseTabIn(details.tabId, 6004);
+                void tasker.mayCloseTabIn(details.tabId, 6004);
                 console.log(`R2:${details.error} ${details.url} Close in 1 sec`, details);
                 return;
             }
@@ -202,9 +201,13 @@ if (chrome.webRequest) {
             //ZUtils.refreshTab(details.tabId);
             return;
         }
-        console.log('chrome.webRequest.onErrorOccurred close 5 sec [close Forced]', details);
-        tasker.mayCloseTabIn(details.tabId, 5005);
-        console.log(`R4:${details.error} ${details.url} Close in 5 sec`, details);
+        if (details.error === 'net::ERR_CONNECTION_CLOSED') {
+            console.log(`R4:${details.error} ${details.url} chrome.webRequest.onErrorOccurred close 5 sec [close Forced]`, details);
+            void tasker.mayCloseTabIn(details.tabId, 5005, true);
+        } else {
+            console.log(`R4:${details.error} ${details.url} chrome.webRequest.onErrorOccurred close 5 sec [may close]`, details);
+            void tasker.mayCloseTabIn(details.tabId, 5005);
+        }
     }, {
         urls: ['<all_urls>']
     });
@@ -232,7 +235,6 @@ if (chrome.webRequest) {
 
     /**
      * change user agent and block request if doamin match tasker.blockedDomains
-     * @param data 
      */
     const setUserAgentHook = (data: chrome.webRequest.WebRequestHeadersDetails) => {
         let requestHeaders = data.requestHeaders;
@@ -280,7 +282,7 @@ if (chrome.tabs)
                 console.log('chrome.webRequest.onErrorOccurred close 20 sec [close DROPED]');
                 await wait(20000);
                 if (tab2 && tab2.id)
-                    tasker.mayCloseTabIn(tab2.id, 2006);
+                    void tasker.mayCloseTabIn(tab2.id, 2006);
                 return;
             }
         } catch (error) {
@@ -298,9 +300,9 @@ if (chrome.tabs)
 setInterval(async () => {
     const tabs = await chromep.tabs.query({});
     tabs.forEach((tab: chrome.tabs.Tab) => {
-        if (tab.id && tab.active && tab.status === "unloaded") {
+        if (tab.id && tab.active && tab.status === 'unloaded') {
             // crached tab tab.highlighted 
-            chromep.tabs.update(tab.id, { url: tab.url, highlighted: tab.highlighted });
+            void chromep.tabs.update(tab.id, { url: tab.url, highlighted: tab.highlighted });
             return;
         }
         const tabInformation: ZTask | null = tasker.getTabInformation(tab);
@@ -311,34 +313,34 @@ setInterval(async () => {
             return;
         if (ZUtils.isProtected(tab.url))
             return;
-        tasker.mayCloseTabIn(tab.id, 5007);
+        void tasker.mayCloseTabIn(tab.id, 5007);
     });
 }, 60000); // 1 min
 
-// load config from previous state
-// save updated state every 3 sec
-if (chrome.storage) {
-    let lastValue = '';
-    chromep.storage.local.get(pluginStat.config)
-        .then(async (items) => {
-            pluginStat.config = items as PluginSavedState;
-            lastValue = JSON.stringify(pluginStat.config);
-            Tasker.updateBadge();
-            // eslint-disable-next-line no-constant-condition
-            while (true) {
-                await wait(3000);
-                const newVal = JSON.stringify(pluginStat.config);
-                // console.log('Sync Config', newVal);
-                if (newVal === lastValue)
-                    continue;
-                // Tasker.updateBadge();
-                // console.log('Sync tasker.config value');
-                // console.log('calling await chromep.storage.local.set');
-                await chromep.storage.local.set(pluginStat.config);
-                lastValue = newVal;
-            }
-        });
-}
+void (async () => {
+    // load config from previous state
+    // save updated state every 3 sec
+    if (chrome.storage) {
+        let lastValue = '';
+        const items = await chromep.storage.local.get(pluginStat.config);
+        pluginStat.config = items as PluginSavedState;
+        lastValue = JSON.stringify(pluginStat.config);
+        Tasker.updateBadge();
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+            await wait(3000);
+            const newVal = JSON.stringify(pluginStat.config);
+            // console.log('Sync Config', newVal);
+            if (newVal === lastValue)
+                continue;
+            // Tasker.updateBadge();
+            // console.log('Sync tasker.config value');
+            // console.log('calling await chromep.storage.local.set');
+            await chromep.storage.local.set(pluginStat.config);
+            lastValue = newVal;
+        }
+    }
+})();
 
 // chromep.proxy.settings.get({
 //    incognito: false

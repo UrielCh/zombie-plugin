@@ -45,7 +45,7 @@ const msgListener = async (response) => {
         if (++callback.retries > 3) {
             debugger;
             await common_1.wait(500);
-            promFilled(requestId, message)(resolve, reject);
+            void promFilled(requestId, message)(resolve, reject);
         }
         else {
             delete callbacks[response.requestId];
@@ -75,13 +75,13 @@ const promFilled = (requestId, message) => async (resolve, reject) => {
             if (usedPort === port)
                 port = null;
             await common_1.wait(150);
-            promFilled(requestId, message)(resolve, reject);
+            void promFilled(requestId, message)(resolve, reject);
         }
     }
 };
 let rqId = 1;
 exports.sendMessage = (message) => {
-    let next = rqId++;
+    const next = rqId++;
     return new Promise(promFilled(next, message));
 };
 exports.default = exports.sendMessage;
@@ -90,7 +90,7 @@ exports.default = exports.sendMessage;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.wait = void 0;
-exports.wait = (duration) => new Promise(resolve => setTimeout(() => (resolve()), duration));
+exports.wait = (duration) => new Promise(resolve => { setTimeout(() => (resolve()), duration); });
 
 },{}],4:[function(require,module,exports){
 "use strict";
@@ -173,7 +173,7 @@ jQuery(async () => {
         jq.on('change', function () {
             const value = jQuery(this).is(':checked');
             pluginStat.config[elm] = value;
-            SendMessage_1.default({
+            void SendMessage_1.default({
                 command: 'updateBadge',
             });
         });
@@ -189,7 +189,7 @@ jQuery(async () => {
         await SendMessage_1.default({
             command: 'setProxy',
         });
-        reloadConfig();
+        await reloadConfig();
     };
     const readQrCode = async () => {
         const result = await SendMessage_1.default({

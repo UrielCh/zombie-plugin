@@ -1,9 +1,9 @@
 import sendMessage from './SendMessage';
-import { wait } from './common'
+import { wait } from './common';
 /**
  * injected in all pages
  */
-let zone = document.getElementById('tasker_id_loader');
+const zone = document.getElementById('tasker_id_loader');
 if (zone)
     zone.innerHTML = chrome.runtime.id;
 
@@ -28,10 +28,11 @@ function execute(code: string): boolean {
     return true;
 }
 
+// eslint-disable-next-line no-unused-vars
 const injectScript = async (func: string | ((...args: any) => any), params: any[]): Promise<boolean> => {
     const script = document.createElement('script');
     if (typeof (func) === 'function')
-        script.innerHTML = '(' + func.toString() + ')(' + (params ? params.map((/** @type {any} */o) => JSON.stringify(o)).join(', ') : '') + ');';
+        script.innerHTML = '(' + func.toString() + ')(' + (params ? params.map((o: unknown) => JSON.stringify(o)).join(', ') : '') + ');';
     else if (typeof (func) === 'string')
         script.innerHTML = func;
     // self remove script
@@ -51,7 +52,6 @@ const originalGeolocation = {
 
 /**
  * see lib.dom.d.ts
- * @param {Coordinates} coords
  */
 function installGeolocationCode(coords: Coordinates) {
     /**
@@ -72,18 +72,18 @@ function installGeolocationCode(coords: Coordinates) {
     navigator.geolocation.clearWatch = () => window.clearInterval(timerId);
 }
 
-if (document.documentElement.tagName.toLowerCase() === 'html')  // Skip non-html pages.
+if (document.documentElement.tagName.toLowerCase() === 'html')  // Ignore non-html pages.
     chrome.storage.local.get({ coords: null }, (data) => {
         const { coords } = (data as Position);
         if (coords)
-            injectScript(installGeolocationCode, [coords]);
+            void injectScript(installGeolocationCode, [coords]);
         // else console.log('NOGEOLOC data');
     });
 
 async function startPluginCode() {
     try {
         // await wait(500);
-        let reWait = 0;
+        const reWait = 0;
         // debugger;
         if (reWait)
             await wait(reWait);
@@ -111,7 +111,7 @@ async function startPluginCode() {
             return false;
         if (!task.deps)
             task.deps = [];
-        let virtualScript = [];
+        const virtualScript = [];
         for (const dep of task.deps) {
             console.log('inject ', dep);
             const data2 = await fetch(dep, { method: 'GET' }).then((response) => response.text());
@@ -123,4 +123,4 @@ async function startPluginCode() {
     }
 }
 
-startPluginCode();
+void startPluginCode();

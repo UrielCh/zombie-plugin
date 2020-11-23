@@ -52,7 +52,4 @@ export default class ZUtils {
         }
     }
 
-    //public static toErr(error: any) {
-    //    return { error };
-    //}
 }

@@ -11,7 +11,8 @@ const zFunction = ZFunction.Instance;
 const chromep = new ChromePromise();
 const pluginStat: PluginStatValue = PluginStat();
 
-//  to promis Keeping this
+// to promise Keeping this
+// eslint-disable-next-line no-unused-vars
 function setPromiseFunction(fn: ((...args: any) => any), thisArg: any) {
     return (...arg: any[]) => {
         const args = Array.prototype.slice.call(arg);
@@ -40,6 +41,7 @@ function setPromiseFunction(fn: ((...args: any) => any), thisArg: any) {
 const chrome_debugger_attach = setPromiseFunction(chrome.debugger.attach, chrome.debugger);
 const chrome_debugger_detach = setPromiseFunction(chrome.debugger.detach, chrome.debugger);
 // const chrome_debugger_sendCommand = setPromiseFunction(chrome.debugger.sendCommand, chrome.debugger);
+// eslint-disable-next-line no-unused-vars
 const chrome_debugger_sendCommand = setPromiseFunction(chrome.debugger.sendCommand, chrome.debugger) as (target: chrome.debugger.Debuggee, method: string, commandParams?: object) => Promise<any>;
 
 // const debugger_sendCommand = (target: chrome.debugger.Debuggee, method: string, commandParams?: Object) => chrome_debugger_sendCommand(target, method, commandParams);
@@ -128,7 +130,7 @@ export default class Tasker {
      * @param tabId - tabId to close
      * @param ms - milliSec to wait before close
      */
-    public async mayCloseTabIn(tabId: number, ms: number) {
+    public async mayCloseTabIn(tabId: number, ms: number, force?: boolean) {
         if (!tabId)
             throw Error('missing tabId');
         ms = ms || 10000;
@@ -137,11 +139,15 @@ export default class Tasker {
             await wait(ms);
             const tab = await chromep.tabs.get(tabId);
             if (tab) {
-                const tabInformation = Tasker.Instance.getTabInformation(tab);
-                if (tabInformation) {
-                    console.log(`Tab ${tabId} is now registred, abord close`);
+                if (force) {
+                    await ZUtils.closeTab(tabId);
                 } else {
-                    ZUtils.closeTab(tabId);
+                    const tabInformation = Tasker.Instance.getTabInformation(tab);
+                    if (tabInformation) {
+                        console.log(`Tab ${tabId} is now registred, abord close`);
+                    } else {
+                        await ZUtils.closeTab(tabId);
+                    }
                 }
             }
         }
@@ -176,6 +182,7 @@ export default class Tasker {
     /**
      * All command are called from pluginListener and pluginListenerCnx
      */
+    // eslint-disable-next-line no-unused-vars
     public commands: { [key: string]: (message: any, sender: chrome.runtime.MessageSender | undefined, sendResponse: (response: any) => any) => Promise<any> } = {
         updateBadge: (request, sender, sendResponse) => {
             Tasker.updateBadge();
@@ -481,7 +488,7 @@ export default class Tasker {
          */
         setGeoloc: async (request, sender, sendResponse) => {
             // cast to Coordinates
-            const coords = /** @type {Coordinates} */ (request);
+            const coords: Coordinates = request;
             if (coords.latitude && coords.latitude && coords.accuracy) {
                 delete request.command;
                 await chromep.storage.local.set({ coords });
@@ -699,9 +706,6 @@ export default class Tasker {
         },
         /**
          * pop scripts to inject
-         * 
-         * @param sender
-         * @param sendResponse
          */
         getTodo: async (request, sender, sendResponse) => {
             if (!sender)

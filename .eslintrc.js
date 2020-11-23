@@ -1,41 +1,38 @@
 module.exports = {
-    'env': {
-        'browser': true,
-        'node': true,
-        'es6': true,
+    env: {
+        browser: true,
+        node: true,
+        es6: true,
     },
-    'extends': [
+    extends: [
         'eslint:recommended',
         'plugin:@typescript-eslint/eslint-recommended'
     ],
-    'globals': {
-        'Atomics': 'readonly',
-        'SharedArrayBuffer': 'readonly'
+    parser: '@typescript-eslint/parser',
+    parserOptions: {
+        project: './tsconfig.json',
+        tsconfigRootDir: __dirname,
+        ecmaVersion: 2018,
+        sourceType: 'module'
     },
-    'parser': '@typescript-eslint/parser',
-    'parserOptions': {
-        'ecmaVersion': 2018,
-        'sourceType': 'module'
-    },
-    'plugins': [
+    plugins: [
         '@typescript-eslint'
     ],
-    'rules': {
-        'indent': [
-            'error',
-            4
-        ],
-        'linebreak-style': [
-            'error',
-            'unix'
-        ],
-        'quotes': [
-            'error',
-            'single'
-        ],
-        'semi': [
-            'error',
-            'always'
-        ]
-    }
+    rules: {
+        "@typescript-eslint/no-floating-promises": "error",
+        '@typescript-eslint/no-explicit-any': 'off',
+        'no-promise-executor-return': 2,
+        'indent': ['error', 4, {'SwitchCase': 1}],
+        // 'linebreak-style': ['error', 'unix'],
+        'quotes': ['error', 'single'],
+        'semi': ['error', 'always'],
+        'no-constant-condition': 'off',
+        'max-len': 'off',
+        'array-type': 'off',
+    },
+    globals: {
+        Atomics: 'readonly',
+        SharedArrayBuffer: 'readonly'
+    },
+    ignorePatterns: [ '**/*.d.ts' ],
 };

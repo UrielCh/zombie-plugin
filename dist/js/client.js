@@ -16,7 +16,7 @@ const msgListener = async (response) => {
         if (++callback.retries > 3) {
             debugger;
             await common_1.wait(500);
-            promFilled(requestId, message)(resolve, reject);
+            void promFilled(requestId, message)(resolve, reject);
         }
         else {
             delete callbacks[response.requestId];
@@ -46,13 +46,13 @@ const promFilled = (requestId, message) => async (resolve, reject) => {
             if (usedPort === port)
                 port = null;
             await common_1.wait(150);
-            promFilled(requestId, message)(resolve, reject);
+            void promFilled(requestId, message)(resolve, reject);
         }
     }
 };
 let rqId = 1;
 exports.sendMessage = (message) => {
-    let next = rqId++;
+    const next = rqId++;
     return new Promise(promFilled(next, message));
 };
 exports.default = exports.sendMessage;
@@ -65,7 +65,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const SendMessage_1 = __importDefault(require("./SendMessage"));
 const common_1 = require("./common");
-let zone = document.getElementById('tasker_id_loader');
+const zone = document.getElementById('tasker_id_loader');
 if (zone)
     zone.innerHTML = chrome.runtime.id;
 const isProtected = (url) => {
@@ -120,11 +120,11 @@ if (document.documentElement.tagName.toLowerCase() === 'html')
     chrome.storage.local.get({ coords: null }, (data) => {
         const { coords } = data;
         if (coords)
-            injectScript(installGeolocationCode, [coords]);
+            void injectScript(installGeolocationCode, [coords]);
     });
 async function startPluginCode() {
     try {
-        let reWait = 0;
+        const reWait = 0;
         if (reWait)
             await common_1.wait(reWait);
         const data = await SendMessage_1.default({ command: 'getTodo' });
@@ -149,7 +149,7 @@ async function startPluginCode() {
             return false;
         if (!task.deps)
             task.deps = [];
-        let virtualScript = [];
+        const virtualScript = [];
         for (const dep of task.deps) {
             console.log('inject ', dep);
             const data2 = await fetch(dep, { method: 'GET' }).then((response) => response.text());
@@ -161,12 +161,12 @@ async function startPluginCode() {
         console.error(error);
     }
 }
-startPluginCode();
+void startPluginCode();
 
 },{"./SendMessage":1,"./common":3}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.wait = void 0;
-exports.wait = (duration) => new Promise(resolve => setTimeout(() => (resolve()), duration));
+exports.wait = (duration) => new Promise(resolve => { setTimeout(() => (resolve()), duration); });
 
 },{}]},{},[2]);

@@ -3,7 +3,9 @@ const extensionId = chrome.runtime.id;
 let port: chrome.runtime.Port | null = null;
 
 const callbacks: { [key: number]: {
+    // eslint-disable-next-line no-unused-vars
     resolve: (result?: any) => any;
+    // eslint-disable-next-line no-unused-vars
     reject: (reason?: any) => any;
     message: IPluginMessage;
     retries: number;
@@ -31,8 +33,8 @@ const msgListener = async (response: { requestId: number, error?: string, data?:
             // eslint-disable-next-line no-debugger
             debugger;
             await wait(500);
-            // noawait
-            promFilled(requestId, message)(resolve, reject);
+            // do nor wait here
+            void promFilled(requestId, message)(resolve, reject);
         } else {
             delete callbacks[response.requestId];
             callback.reject(Error(error));
@@ -43,7 +45,8 @@ const msgListener = async (response: { requestId: number, error?: string, data?:
     }
 };
 
-const promFilled = (requestId: number, message: IPluginMessage) => async (resolve: (value?: any) => void, reject: (reason?: any) => void) => {
+// eslint-disable-next-line no-unused-vars
+const promFilled = (requestId: number, message: IPluginMessage) => async (resolve: (value?: any) => void, reject: (reason?: Error) => void) => {
     let usedPort = port;
     if (!usedPort) {
         usedPort = chrome.runtime.connect(extensionId);
@@ -60,15 +63,15 @@ const promFilled = (requestId: number, message: IPluginMessage) => async (resolv
             if (usedPort === port)
                 port = null;
             await wait(150);
-            // noawait
-            promFilled(requestId, message)(resolve, reject);
+            // do not await here
+            void promFilled(requestId, message)(resolve, reject);
         }
     }
 };
 
 let rqId = 1;
 export const sendMessage = (message: IPluginMessage): Promise<any> => {
-    let next = rqId++;
+    const next = rqId++;
     return new Promise(promFilled(next, message));
 };
 

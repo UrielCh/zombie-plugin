@@ -64,7 +64,7 @@ export default class ZFunction {
         if (urls.length === 0)
             return;
         const urlsFlat: string[] = ZFunction.flat(urls);
-        let lastJs: string[] = [];
+        const lastJs: string[] = [];
         try {
             const responsesMetadata = await this.httpGetAll(urlsFlat);
             const responsesMap: {
@@ -99,7 +99,7 @@ export default class ZFunction {
      */
     public async injectCSS(tabId: number, depCss: string[], option: { allFrames?: boolean, mergeInject?: boolean }): Promise<any> {
         const { allFrames = false, mergeInject = false } = option;
-        let toInject = [];
+        const toInject = [];
         for (const dep of depCss) {
             const { data } = await ZFunction._instance.httpGetCached(dep);
             if (mergeInject)
@@ -126,7 +126,7 @@ export default class ZFunction {
     }) {
         // jQuery 3+
         // dataType: 'json',
-        let { contentType = 'application/json', url, method = 'GET', postData = undefined, dataType = undefined } = param;
+        const { contentType = 'application/json', url, method = 'GET', postData = undefined, dataType = undefined } = param;
 
         const data: string = postData ? JSON.stringify(postData) : '';
 
@@ -185,8 +185,6 @@ export default class ZFunction {
         return 'ok';
     }
     /**
-     * @param {string} url
-     * @param {boolean} [usecache]
      */
     public async httpGetPromise(url: string, usecache?: boolean): Promise<CacheHttpData> {
         const self: ZFunction = this;

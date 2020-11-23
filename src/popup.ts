@@ -11,7 +11,8 @@ import sendMessage from './SendMessage';
 type ConfigKey = keyof PluginSavedState;
 
 interface MyJQ extends JQuery<HTMLElement> {
-    bootstrapToggle(opt: bootstrapToggleConfig): JQuery<HTMLElement>;
+    // eslint-disable-next-line no-unused-vars
+    bootstrapToggle(options: bootstrapToggleConfig): JQuery<HTMLElement>;
 }
 
 jQuery(async () => {
@@ -112,7 +113,7 @@ jQuery(async () => {
             // Can be fix with moderne TS
             // tasker.config[elm] = value;
             (pluginStat.config as any)[elm] = value;
-            sendMessage({
+            void sendMessage({
                 command: 'updateBadge',
             });
         });
@@ -132,7 +133,7 @@ jQuery(async () => {
         await sendMessage({
             command: 'setProxy',
         });
-        reloadConfig();
+        await reloadConfig();
     };
 
     const readQrCode = async () => {
