@@ -194,7 +194,11 @@ if (chrome.webRequest) {
             console.log(`R3:${details.error} ${details.url} Refresh in 5 sec canceled`, details);
             return;
         }
-        if (details.error === 'net::ERR_CONNECTION_CLOSED') {
+        if (details.error === 'net::ERR_HTTP2_PROTOCOL_ERROR') {
+            console.log(`R4:${details.error} ${details.url} chrome.webRequest.onErrorOccurred close 5 sec [close Forced]`, details);
+            void tasker.mayCloseTabIn(details.tabId, 5005, true);
+        }
+        else if (details.error === 'net::ERR_CONNECTION_CLOSED') {
             console.log(`R4:${details.error} ${details.url} chrome.webRequest.onErrorOccurred close 5 sec [close Forced]`, details);
             void tasker.mayCloseTabIn(details.tabId, 5005, true);
         }
