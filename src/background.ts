@@ -167,8 +167,11 @@ if (chrome.webRequest) {
         //   | "script"
         if (details.type !== 'main_frame') // "main_frame" | "sub_frame" | "stylesheet" | "script" | "image" | "font" | "object" | "xmlhttprequest" | "ping" | "csp_report" | "media" | "websocket" | "other"
             return;
-        if (details.error === 'net::ERR_FILE_NOT_FOUND' || details.error === 'net::ERR_NAME_NOT_RESOLVED') {
 
+             
+        if (details.error === 'net::ERR_FILE_NOT_FOUND' || 
+            details.error === 'net::ERR_NAME_NOT_RESOLVED' ||
+            details.error === 'net::ERR_EMPTY_RESPONSE') {
             if (details.url.startsWith('chrome-extension://')) {
                 console.log(`Force close 404 extention page ${details.url}`, details.error);
                 await ZUtils.closeTab(details.tabId);
