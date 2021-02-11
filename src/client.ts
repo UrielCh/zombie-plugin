@@ -1,5 +1,7 @@
 import sendMessage from './SendMessage';
 import { wait } from './common';
+import {GeolocationCoordinates, GeolocationPosition} from './dom';
+
 /**
  * injected in all pages
  */
@@ -53,7 +55,7 @@ const originalGeolocation = {
 /**
  * see lib.dom.d.ts
  */
-function installGeolocationCode(coords: Coordinates) {
+function installGeolocationCode(coords: GeolocationCoordinates) {
     /**
      */
     const myGetPos = (successCallback: PositionCallback/*, error: PositionErrorCallback, options: PositionOptions*/) => {
@@ -74,7 +76,7 @@ function installGeolocationCode(coords: Coordinates) {
 
 if (document.documentElement.tagName.toLowerCase() === 'html')  // Ignore non-html pages.
     chrome.storage.local.get({ coords: null }, (data) => {
-        const { coords } = (data as Position);
+        const { coords } = (data as GeolocationPosition);
         if (coords)
             void injectScript(installGeolocationCode, [coords]);
         // else console.log('NOGEOLOC data');

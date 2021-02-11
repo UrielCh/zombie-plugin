@@ -167,7 +167,9 @@ if (chrome.webRequest) {
         }
         if (details.type !== 'main_frame')
             return;
-        if (details.error === 'net::ERR_FILE_NOT_FOUND' || details.error === 'net::ERR_NAME_NOT_RESOLVED') {
+        if (details.error === 'net::ERR_FILE_NOT_FOUND' ||
+            details.error === 'net::ERR_NAME_NOT_RESOLVED' ||
+            details.error === 'net::ERR_EMPTY_RESPONSE') {
             if (details.url.startsWith('chrome-extension://')) {
                 console.log(`Force close 404 extention page ${details.url}`, details.error);
                 await zUtils_1.default.closeTab(details.tabId);
@@ -348,7 +350,7 @@ function setPromiseFunction(fn, thisArg) {
                 const results = Array.prototype.slice.call(arg2);
                 switch (results.length) {
                     case 0:
-                        return resolve();
+                        return resolve(undefined);
                     case 1:
                         return resolve(results[0]);
                     default:

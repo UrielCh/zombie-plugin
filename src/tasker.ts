@@ -5,6 +5,7 @@ import ZFunction from './zFunction';
 import ZUtils from './zUtils';
 import { wait } from './common';
 import { PluginStatValue, ZTask, RegisterCommandMessage } from './interfaces';
+import { GeolocationCoordinates } from './dom';
 
 const zFunction = ZFunction.Instance;
 
@@ -24,7 +25,7 @@ function setPromiseFunction(fn: ((...args: any) => any), thisArg: any) {
                 const results = Array.prototype.slice.call(arg2);
                 switch (results.length) {
                     case 0:
-                        return resolve();
+                        return resolve(undefined);
                     case 1:
                         return resolve(results[0]);
                     default:
@@ -488,7 +489,7 @@ export default class Tasker {
          */
         setGeoloc: async (request, sender, sendResponse) => {
             // cast to Coordinates
-            const coords: Coordinates = request;
+            const coords: GeolocationCoordinates = request;
             if (coords.latitude && coords.latitude && coords.accuracy) {
                 delete request.command;
                 await chromep.storage.local.set({ coords });
