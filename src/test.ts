@@ -49,7 +49,7 @@ function startSrv(port: number) {
             }
             response.end();
         });
-        app.listen(port, resolve);
+        app.listen(port, () => resolve(undefined));
     });
 }
 let _browser: Browser;

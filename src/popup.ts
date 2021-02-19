@@ -113,9 +113,9 @@ jQuery(async () => {
             // Can be fix with moderne TS
             // tasker.config[elm] = value;
             (pluginStat.config as any)[elm] = value;
-            void sendMessage({
+            sendMessage({
                 command: 'updateBadge',
-            });
+            }).finally(() => {});
         });
     }
     updateDisplay();

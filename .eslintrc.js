@@ -23,6 +23,7 @@ module.exports = {
         '@typescript-eslint/no-explicit-any': 'off',
         'no-promise-executor-return': 2,
         'indent': ['error', 4, {'SwitchCase': 1}],
+        'linebreak-style': 'off',
         // 'linebreak-style': ['error', 'unix'],
         'quotes': ['error', 'single'],
         'semi': ['error', 'always'],

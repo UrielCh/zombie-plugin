@@ -4,7 +4,9 @@ import PluginStat from './PluginStat';
 import ZFunction from './zFunction';
 import ZUtils from './zUtils';
 import { wait } from './common';
+// eslint-disable-next-line no-unused-vars
 import { PluginStatValue, ZTask, RegisterCommandMessage } from './interfaces';
+// eslint-disable-next-line no-unused-vars
 import { GeolocationCoordinates } from './dom';
 
 const zFunction = ZFunction.Instance;
@@ -131,7 +133,7 @@ export default class Tasker {
      * @param tabId - tabId to close
      * @param ms - milliSec to wait before close
      */
-    public async mayCloseTabIn(tabId: number, ms: number, force?: boolean) {
+    public async mayCloseTabIn(tabId: number, ms: number, force?: boolean): Promise<string> {
         if (!tabId)
             throw Error('missing tabId');
         ms = ms || 10000;
@@ -153,6 +155,16 @@ export default class Tasker {
             }
         }
         return 'ok';
+    }
+
+    /**
+     * close a tab if autoclose if enabled
+     *
+     * @param tabId - tabId to close
+     * @param ms - milliSec to wait before close
+     */
+    public mayCloseTabInVoid(tabId: number, ms: number, force?: boolean): void {
+        this.mayCloseTabIn(tabId, ms, force).finally(() => {});
     }
 
     /**

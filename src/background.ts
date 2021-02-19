@@ -1,5 +1,6 @@
 import ChromePromise from '../vendor/chrome-promise/chrome-promise';
 import PluginStat from './PluginStat';
+// eslint-disable-next-line no-unused-vars
 import { PluginStatValue, PluginSavedState, ZTask } from './interfaces';
 import Tasker from './tasker';
 import ZUtils from './zUtils';
@@ -178,7 +179,7 @@ if (chrome.webRequest) {
                 return;
             }
             console.log('onErrorOccurred close 1 sec', details.error);
-            void tasker.mayCloseTabIn(details.tabId, 6003);
+            tasker.mayCloseTabInVoid(details.tabId, 6003);
             return;
         }
 
@@ -194,7 +195,7 @@ if (chrome.webRequest) {
             details.error === 'net::ERR_EMPTY_RESPONSE'
         ) {
             if (souldCloseTabId === details.tabId) {
-                void tasker.mayCloseTabIn(details.tabId, 6004);
+                tasker.mayCloseTabInVoid(details.tabId, 6004);
                 console.log(`R2:${details.error} ${details.url} Close in 1 sec`, details);
                 return;
             }
@@ -207,13 +208,13 @@ if (chrome.webRequest) {
 
         if (details.error === 'net::ERR_HTTP2_PROTOCOL_ERROR') {
             console.log(`R4:${details.error} ${details.url} chrome.webRequest.onErrorOccurred close 5 sec [close Forced]`, details);
-            void tasker.mayCloseTabIn(details.tabId, 5005, true);
+            tasker.mayCloseTabInVoid(details.tabId, 5005, true);
         } else if (details.error === 'net::ERR_CONNECTION_CLOSED') {
             console.log(`R4:${details.error} ${details.url} chrome.webRequest.onErrorOccurred close 5 sec [close Forced]`, details);
-            void tasker.mayCloseTabIn(details.tabId, 5005, true);
+            void tasker.mayCloseTabInVoid(details.tabId, 5005, true);
         } else {
             console.log(`R4:${details.error} ${details.url} chrome.webRequest.onErrorOccurred close 5 sec [may close]`, details);
-            void tasker.mayCloseTabIn(details.tabId, 5005);
+            void tasker.mayCloseTabInVoid(details.tabId, 5005);
         }
     }, {
         urls: ['<all_urls>']
@@ -289,7 +290,7 @@ if (chrome.tabs)
                 console.log('chrome.webRequest.onErrorOccurred close 20 sec [close DROPED]');
                 await wait(20000);
                 if (tab2 && tab2.id)
-                    void tasker.mayCloseTabIn(tab2.id, 2006);
+                    void tasker.mayCloseTabInVoid(tab2.id, 2006);
                 return;
             }
         } catch (error) {
@@ -309,7 +310,7 @@ setInterval(async () => {
     tabs.forEach((tab: chrome.tabs.Tab) => {
         if (tab.id && tab.active && tab.status === 'unloaded') {
             // crached tab tab.highlighted 
-            void chromep.tabs.update(tab.id, { url: tab.url, highlighted: tab.highlighted });
+            chromep.tabs.update(tab.id, { url: tab.url, highlighted: tab.highlighted }).finally(() => {});
             return;
         }
         const tabInformation: ZTask | null = tasker.getTabInformation(tab);
@@ -320,11 +321,11 @@ setInterval(async () => {
             return;
         if (ZUtils.isProtected(tab.url))
             return;
-        void tasker.mayCloseTabIn(tab.id, 5007);
+        tasker.mayCloseTabInVoid(tab.id, 5007);
     });
 }, 60000); // 1 min
 
-void (async () => {
+(async () => {
     // load config from previous state
     // save updated state every 3 sec
     if (chrome.storage) {
@@ -347,7 +348,7 @@ void (async () => {
             lastValue = newVal;
         }
     }
-})();
+})().finally(() => {});
 
 // chromep.proxy.settings.get({
 //    incognito: false

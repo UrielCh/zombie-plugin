@@ -34,7 +34,7 @@ const msgListener = async (response: { requestId: number, error?: string, data?:
             debugger;
             await wait(500);
             // do nor wait here
-            void promFilled(requestId, message)(resolve, reject);
+            promFilled(requestId, message)(resolve, reject).finally(() => {});
         } else {
             delete callbacks[response.requestId];
             callback.reject(Error(error));
@@ -64,7 +64,7 @@ const promFilled = (requestId: number, message: IPluginMessage) => async (resolv
                 port = null;
             await wait(150);
             // do not await here
-            void promFilled(requestId, message)(resolve, reject);
+            promFilled(requestId, message)(resolve, reject).finally(() => {});
         }
     }
 };

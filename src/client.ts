@@ -1,5 +1,6 @@
 import sendMessage from './SendMessage';
 import { wait } from './common';
+// eslint-disable-next-line no-unused-vars
 import {GeolocationCoordinates, GeolocationPosition} from './dom';
 
 /**
@@ -78,7 +79,7 @@ if (document.documentElement.tagName.toLowerCase() === 'html')  // Ignore non-ht
     chrome.storage.local.get({ coords: null }, (data) => {
         const { coords } = (data as GeolocationPosition);
         if (coords)
-            void injectScript(installGeolocationCode, [coords]);
+            injectScript(installGeolocationCode, [coords]).finally(() => {});
         // else console.log('NOGEOLOC data');
     });
 
@@ -125,4 +126,4 @@ async function startPluginCode() {
     }
 }
 
-void startPluginCode();
+startPluginCode().finally(() => {});
