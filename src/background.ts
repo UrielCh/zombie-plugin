@@ -179,7 +179,7 @@ if (chrome.webRequest) {
                 return;
             }
             console.log('onErrorOccurred close 1 sec', details.error);
-            tasker.mayCloseTabInVoid(details.tabId, 6003);
+            tasker.mayCloseTabInVoid(details.tabId, 6003, true);
             return;
         }
 
@@ -195,7 +195,7 @@ if (chrome.webRequest) {
             details.error === 'net::ERR_EMPTY_RESPONSE'
         ) {
             if (souldCloseTabId === details.tabId) {
-                tasker.mayCloseTabInVoid(details.tabId, 6004);
+                tasker.mayCloseTabInVoid(details.tabId, 6004, true);
                 console.log(`R2:${details.error} ${details.url} Close in 1 sec`, details);
                 return;
             }

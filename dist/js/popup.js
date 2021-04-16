@@ -45,7 +45,7 @@ const msgListener = async (response) => {
         if (++callback.retries > 3) {
             debugger;
             await common_1.wait(500);
-            void promFilled(requestId, message)(resolve, reject);
+            promFilled(requestId, message)(resolve, reject).finally(() => { });
         }
         else {
             delete callbacks[response.requestId];
@@ -75,7 +75,7 @@ const promFilled = (requestId, message) => async (resolve, reject) => {
             if (usedPort === port)
                 port = null;
             await common_1.wait(150);
-            void promFilled(requestId, message)(resolve, reject);
+            promFilled(requestId, message)(resolve, reject).finally(() => { });
         }
     }
 };
@@ -90,7 +90,7 @@ exports.default = exports.sendMessage;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.wait = void 0;
-exports.wait = (duration) => new Promise(resolve => { setTimeout(() => (resolve()), duration); });
+exports.wait = (duration) => new Promise(resolve => { setTimeout(() => (resolve(undefined)), duration); });
 
 },{}],4:[function(require,module,exports){
 "use strict";
@@ -173,9 +173,9 @@ jQuery(async () => {
         jq.on('change', function () {
             const value = jQuery(this).is(':checked');
             pluginStat.config[elm] = value;
-            void SendMessage_1.default({
+            SendMessage_1.default({
                 command: 'updateBadge',
-            });
+            }).finally(() => { });
         });
     }
     updateDisplay();

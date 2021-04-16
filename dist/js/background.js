@@ -176,7 +176,7 @@ if (chrome.webRequest) {
                 return;
             }
             console.log('onErrorOccurred close 1 sec', details.error);
-            void tasker.mayCloseTabIn(details.tabId, 6003);
+            tasker.mayCloseTabInVoid(details.tabId, 6003, true);
             return;
         }
         if (details.error === 'net::ERR_BLOCKED_BY_CLIENT') {
@@ -188,7 +188,7 @@ if (chrome.webRequest) {
             details.error === 'net::ERR_ABORTED' ||
             details.error === 'net::ERR_EMPTY_RESPONSE') {
             if (souldCloseTabId === details.tabId) {
-                void tasker.mayCloseTabIn(details.tabId, 6004);
+                tasker.mayCloseTabInVoid(details.tabId, 6004, true);
                 console.log(`R2:${details.error} ${details.url} Close in 1 sec`, details);
                 return;
             }
@@ -198,15 +198,15 @@ if (chrome.webRequest) {
         }
         if (details.error === 'net::ERR_HTTP2_PROTOCOL_ERROR') {
             console.log(`R4:${details.error} ${details.url} chrome.webRequest.onErrorOccurred close 5 sec [close Forced]`, details);
-            void tasker.mayCloseTabIn(details.tabId, 5005, true);
+            tasker.mayCloseTabInVoid(details.tabId, 5005, true);
         }
         else if (details.error === 'net::ERR_CONNECTION_CLOSED') {
             console.log(`R4:${details.error} ${details.url} chrome.webRequest.onErrorOccurred close 5 sec [close Forced]`, details);
-            void tasker.mayCloseTabIn(details.tabId, 5005, true);
+            void tasker.mayCloseTabInVoid(details.tabId, 5005, true);
         }
         else {
             console.log(`R4:${details.error} ${details.url} chrome.webRequest.onErrorOccurred close 5 sec [may close]`, details);
-            void tasker.mayCloseTabIn(details.tabId, 5005);
+            void tasker.mayCloseTabInVoid(details.tabId, 5005);
         }
     }, {
         urls: ['<all_urls>']
@@ -272,7 +272,7 @@ if (chrome.tabs)
                 console.log('chrome.webRequest.onErrorOccurred close 20 sec [close DROPED]');
                 await common_1.wait(20000);
                 if (tab2 && tab2.id)
-                    void tasker.mayCloseTabIn(tab2.id, 2006);
+                    void tasker.mayCloseTabInVoid(tab2.id, 2006);
                 return;
             }
         }
@@ -287,7 +287,7 @@ setInterval(async () => {
     const tabs = await chromep.tabs.query({});
     tabs.forEach((tab) => {
         if (tab.id && tab.active && tab.status === 'unloaded') {
-            void chromep.tabs.update(tab.id, { url: tab.url, highlighted: tab.highlighted });
+            chromep.tabs.update(tab.id, { url: tab.url, highlighted: tab.highlighted }).finally(() => { });
             return;
         }
         const tabInformation = tasker.getTabInformation(tab);
@@ -297,10 +297,10 @@ setInterval(async () => {
             return;
         if (zUtils_1.default.isProtected(tab.url))
             return;
-        void tasker.mayCloseTabIn(tab.id, 5007);
+        tasker.mayCloseTabInVoid(tab.id, 5007);
     });
 }, 60000);
-void (async () => {
+(async () => {
     if (chrome.storage) {
         let lastValue = '';
         const items = await chromep.storage.local.get(pluginStat.config);
@@ -316,13 +316,13 @@ void (async () => {
             lastValue = newVal;
         }
     }
-})();
+})().finally(() => { });
 
 },{"../vendor/chrome-promise/chrome-promise":7,"./PluginStat":1,"./common":3,"./tasker":4,"./zUtils":6}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.wait = void 0;
-exports.wait = (duration) => new Promise(resolve => { setTimeout(() => (resolve()), duration); });
+exports.wait = (duration) => new Promise(resolve => { setTimeout(() => (resolve(undefined)), duration); });
 
 },{}],4:[function(require,module,exports){
 "use strict";
@@ -845,6 +845,9 @@ class Tasker {
         }
         return 'ok';
     }
+    mayCloseTabInVoid(tabId, ms, force) {
+        this.mayCloseTabIn(tabId, ms, force).finally(() => { });
+    }
     getTabInformation(tab) {
         if (!tab || !tab.id)
             return null;
@@ -1149,23 +1152,23 @@ class ZUtils {
     static isProtected(url) {
         if (!url)
             return false;
-        return (~url.indexOf('chrome://')) || (~url.indexOf('127.0.0.1')) || (~url.indexOf('localhost')) || (~url.indexOf('.exs.fr'));
+        return !!((~url.indexOf('chrome://')) || (~url.indexOf('127.0.0.1')) || (~url.indexOf('localhost')) || (~url.indexOf('.exs.fr')));
     }
     static async preventPrompts(tabId) {
         try {
             await chromep.tabs.update(tabId, {
                 url: 'javascript:window.onbeforeunload = undefined; window.onunload = undefined; window.confirm=function(){return !0}; window.alert=function(){}; window.prompt=function(){return !0};'
             });
-            return '';
+            return true;
         }
         catch (e) {
-            return '';
+            return false;
         }
     }
     static async closeTab(tabId) {
         await ZUtils.preventPrompts(tabId);
         await chromep.tabs.remove(tabId);
-        return setTimeout(() => chromep.tabs.remove(tabId)
+        setTimeout(() => chromep.tabs.remove(tabId)
             .catch(() => { }), 1000);
     }
     static async closeAllTabExept(ignoreId) {
