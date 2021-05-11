@@ -1,6 +1,6 @@
 {
   "name": "Zombie",
-  "version": "4.1.17",
+  "version": "4.1.18",
   "description": "Dynamicaly improve Your chrome navigator",
   "background": {
     "page": "files/background.html",

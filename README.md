@@ -43,7 +43,9 @@ echo zombie-v${version}.tar.gz generated
 
 ### changelog
 
-*-* V 4.1.16
+* V 4.1.18
+    - add reload and close blocked tabs
+* V 4.1.16
     - Self close on Error: ERR_EMPTY_RESPONSE
 * V 4.1.6
     - fix multi tab per task

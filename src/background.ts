@@ -169,8 +169,7 @@ if (chrome.webRequest) {
         if (details.type !== 'main_frame') // "main_frame" | "sub_frame" | "stylesheet" | "script" | "image" | "font" | "object" | "xmlhttprequest" | "ping" | "csp_report" | "media" | "websocket" | "other"
             return;
 
-             
-        if (details.error === 'net::ERR_FILE_NOT_FOUND' || 
+        if (details.error === 'net::ERR_FILE_NOT_FOUND' ||
             details.error === 'net::ERR_NAME_NOT_RESOLVED' ||
             details.error === 'net::ERR_EMPTY_RESPONSE') {
             if (details.url.startsWith('chrome-extension://')) {
@@ -300,30 +299,71 @@ if (chrome.tabs)
             };
         }
     });
-
+/**
+ * looks for blocked tabs
+ */
+const loadingTabs: { [tabId: string]: { time: number, url: string, reload: number } } = {};
 /**
  * Main testing loop every 5 sec
  * auto-close tab
  */
 setInterval(async () => {
     const tabs = await chromep.tabs.query({});
+    // added 2021-05-11
+    // remove old loadingTabs data
+    const monitoredId = Object.keys(loadingTabs);
+    const tabsIds = new Set(tabs.map(tab => tab.id).filter(id=>id).map(id => String(id)));
+    for (const id of monitoredId) {
+        if (!tabsIds.has(id))
+            delete loadingTabs[id];
+    }
     tabs.forEach((tab: chrome.tabs.Tab) => {
-        if (tab.id && tab.active && tab.status === 'unloaded') {
+        if (!tab || !tab.id)
+            return;
+        if (tab.active && tab.status === 'unloaded') {
             // crached tab tab.highlighted 
-            chromep.tabs.update(tab.id, { url: tab.url, highlighted: tab.highlighted }).finally(() => {});
+            chromep.tabs.update(tab.id, { url: tab.url, highlighted: tab.highlighted }).finally(() => { });
             return;
         }
         const tabInformation: ZTask | null = tasker.getTabInformation(tab);
-        // TODO add recover crachs
-        if (tabInformation)
+        if (tabInformation) {
+            // added 2021-05-11
+            // kill blocked tab.
+            if (tab.status === 'loading') {
+                let stat = loadingTabs[tab.id];
+                const url = tab.url || '';
+                if (!stat) {
+                    stat = { time: Date.now(), url, reload: 0 };
+                    loadingTabs[tab.id] = stat;
+                }
+                if (stat.url !== tab.url) {
+                    stat.url = url;
+                    stat.time = Date.now();
+                } else {
+                    if (Date.now() - stat.time > 60_000) {
+                        if (stat.reload < 2) {
+                            stat.reload++;
+                            void chromep.tabs.reload(tab.id, {bypassCache: true});
+                        } else {
+                            tasker.mayCloseTabInVoid(tab.id, 1007, true);
+                            delete loadingTabs[tab.id];
+                        }
+                    }
+                }
+            } else {
+                delete loadingTabs[tab.id];
+            }
             return;
-        if (!tab || !tab.url || !tab.id)
+        }
+        if (!tab.url || !tab.id)
             return;
         if (ZUtils.isProtected(tab.url))
             return;
         tasker.mayCloseTabInVoid(tab.id, 5007);
+        // check if loading for more than 60 sec
+        // tabs[1].status === 'loading'
     });
-}, 60000); // 1 min
+}, 20000); // 20 sec
 
 (async () => {
     // load config from previous state
@@ -348,7 +388,7 @@ setInterval(async () => {
             lastValue = newVal;
         }
     }
-})().finally(() => {});
+})().finally(() => { });
 
 // chromep.proxy.settings.get({
 //    incognito: false

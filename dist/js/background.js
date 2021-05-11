@@ -283,23 +283,60 @@ if (chrome.tabs)
             };
         }
     });
+const loadingTabs = {};
 setInterval(async () => {
     const tabs = await chromep.tabs.query({});
+    const monitoredId = Object.keys(loadingTabs);
+    const tabsIds = new Set(tabs.map(tab => tab.id).filter(id => id).map(id => String(id)));
+    for (const id of monitoredId) {
+        if (!tabsIds.has(id))
+            delete loadingTabs[id];
+    }
     tabs.forEach((tab) => {
-        if (tab.id && tab.active && tab.status === 'unloaded') {
+        if (!tab || !tab.id)
+            return;
+        if (tab.active && tab.status === 'unloaded') {
             chromep.tabs.update(tab.id, { url: tab.url, highlighted: tab.highlighted }).finally(() => { });
             return;
         }
         const tabInformation = tasker.getTabInformation(tab);
-        if (tabInformation)
+        if (tabInformation) {
+            if (tab.status === 'loading') {
+                let stat = loadingTabs[tab.id];
+                const url = tab.url || '';
+                if (!stat) {
+                    stat = { time: Date.now(), url, reload: 0 };
+                    loadingTabs[tab.id] = stat;
+                }
+                if (stat.url !== tab.url) {
+                    stat.url = url;
+                    stat.time = Date.now();
+                }
+                else {
+                    if (Date.now() - stat.time > 60000) {
+                        if (stat.reload < 2) {
+                            stat.reload++;
+                            void chromep.tabs.reload(tab.id, { bypassCache: true });
+                        }
+                        else {
+                            tasker.mayCloseTabInVoid(tab.id, 1007, true);
+                            delete loadingTabs[tab.id];
+                        }
+                    }
+                }
+            }
+            else {
+                delete loadingTabs[tab.id];
+            }
             return;
-        if (!tab || !tab.url || !tab.id)
+        }
+        if (!tab.url || !tab.id)
             return;
         if (zUtils_1.default.isProtected(tab.url))
             return;
         tasker.mayCloseTabInVoid(tab.id, 5007);
     });
-}, 60000);
+}, 20000);
 (async () => {
     if (chrome.storage) {
         let lastValue = '';
