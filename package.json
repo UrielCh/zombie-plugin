@@ -20,7 +20,7 @@
         "build": "npm run tsc && npm run browserify",
         "install": "npm run build"
     },
-    "author": "",
+    "author": "Uriel Chemouni <uchemouni@gmail.com> (https://urielch.github.io/)",
     "license": "ISC",
     "dependencies": {
         "base64-js": "^1.3.1",
